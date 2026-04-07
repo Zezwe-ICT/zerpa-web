@@ -7,13 +7,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 interface InvoiceDetailPageProps {
-  params: {
-    id: string;
-  };
+  params: Promise<{ id: string }>;
 }
 
 export default async function InvoiceDetailPage({ params }: InvoiceDetailPageProps) {
-  const invoice = await getInvoiceById(params.id);
+  const { id } = await params;
+  const invoice = await getInvoiceById(id);
 
   if (!invoice) {
     return notFound();
