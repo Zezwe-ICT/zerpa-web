@@ -39,7 +39,7 @@ export function BillingListClient({ initialInvoices }: BillingListClientProps) {
   if (invoices.length === 0) {
     return (
       <EmptyState
-        icon={FileText}
+        icon={<FileText size={24} className="text-muted-fg" />}
         title="No invoices yet"
         description="Create your first invoice to get started"
         action={{
