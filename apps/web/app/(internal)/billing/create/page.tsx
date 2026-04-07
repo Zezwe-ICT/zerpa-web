@@ -1,16 +1,16 @@
+"use client";
+
 import { PageContainer } from "@/components/layouts/page-container";
 import { PageHeader } from "@/components/ui/page-header";
 import { CreateInvoiceForm } from "@/components/modules/billing/create-invoice-form";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-
-export const metadata = {
-  title: "Create Invoice - Billing",
-  description: "Create a new invoice",
-};
+import { useRouter } from "next/navigation";
 
 export default function CreateInvoicePage() {
+  const router = useRouter();
+
   return (
     <PageContainer>
       <div className="mb-6">
@@ -31,9 +31,7 @@ export default function CreateInvoicePage() {
 
       <CreateInvoiceForm
         onSuccess={(invoice) => {
-          // In production, redirect to the invoice detail page
-          // For now, just close the form
-          console.log("Invoice created:", invoice);
+          router.push(`/billing/${invoice.id}`);
         }}
       />
     </PageContainer>
