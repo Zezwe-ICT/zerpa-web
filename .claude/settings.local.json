@@ -9,7 +9,18 @@
       "Bash(node -e \"const fs=require\\('fs'\\); const d='C:/Users/sylon/Downloads/zerpa-web/apps/web'; console.log\\(fs.readdirSync\\(d\\).filter\\(f => f.includes\\('postcss'\\) || f.includes\\('tailwind'\\)\\)\\);\")",
       "Bash(node -e \"const fs=require\\('fs'\\); console.log\\('@tailwindcss/postcss:', fs.existsSync\\('C:/Users/sylon/Downloads/zerpa-web/node_modules/@tailwindcss/postcss'\\)\\); const pkg=JSON.parse\\(fs.readFileSync\\('C:/Users/sylon/Downloads/zerpa-web/apps/web/package.json'\\)\\); console.log\\('tailwindcss version spec:', pkg.devDependencies?.tailwindcss || pkg.dependencies?.tailwindcss\\);\")",
       "Bash(grep -l '\"use client\"' \"C:/Users/sylon/Downloads/zerpa-web/apps/web/components/ui/\"*.tsx)",
-      "Bash(xargs grep:*)"
+      "Bash(xargs grep:*)",
+      "Bash(gh auth:*)",
+      "Bash(where gh:*)",
+      "Bash(winget list:*)",
+      "Bash(cmd /c \"gh repo view Zezwe-ICT/zerpa-web 2>&1\")",
+      "Bash(cmd /c \"gh auth status && gh repo list Zezwe-ICT --limit 10 2>&1\")",
+      "Bash(cmd /c \"gh auth token\")",
+      "Bash(cmd /c \"gh auth token 2>&1\")",
+      "Bash(cmd /c \"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe auth token 2>&1\")",
+      "Bash(cmd /c \"cd C:\\\\Users\\\\sylon\\\\Downloads\\\\zerpa-web && git push --force origin master:main\")",
+      "Bash(cmdkey /delete:LegacyGeneric:target=git:https://github.com)",
+      "Bash(cmdkey /delete:LegacyGeneric:target=https://github.com)"
     ]
   }
 }
