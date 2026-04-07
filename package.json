@@ -1,0 +1,32 @@
+{
+  "name": "zerpa-erp",
+  "version": "2.0.0",
+  "description": "ZERPA ERP - Modern SaaS Platform for Funeral, Automotive, Restaurant & Spa Industries",
+  "private": true,
+  "workspaces": [
+    "apps/web",
+    "packages/shared-types"
+  ],
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "start": "turbo start",
+    "test": "turbo test",
+    "lint": "turbo lint",
+    "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
+    "verify": "turbo run lint build test"
+  },
+  "devDependencies": {
+    "@turbo/gen": "^1.10.0",
+    "prettier": "^3.0.0",
+    "turbo": "^1.10.0",
+    "typescript": "^5.3.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@tailwindcss/postcss": "^4.2.2",
+    "lucide-react": "^1.7.0"
+  }
+}
