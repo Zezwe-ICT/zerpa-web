@@ -3,6 +3,7 @@
   "version": "2.0.0",
   "description": "ZERPA ERP - Modern SaaS Platform for Funeral, Automotive, Restaurant & Spa Industries",
   "private": true,
+  "packageManager": "npm@10.9.2",
   "workspaces": [
     "apps/web",
     "packages/shared-types"

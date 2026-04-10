@@ -1,20 +1,22 @@
 "use client";
 
-import { useState } from "react";
 import { Search, Bell, ChevronDown } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/auth/context";
 
 interface TopBarProps {
   title?: string;
 }
 
 export function InternalTopBar({ title }: TopBarProps) {
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const { user } = useAuth();
+
+  const initials = user?.fullName
+    ? user.fullName.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()
+    : "?";
 
   return (
     <header className="sticky top-0 z-40 bg-background border-b border-border h-14">
       <div className="flex items-center justify-between px-6 h-full gap-4">
-        {/* Title / Breadcrumb */}
         {title && <h2 className="text-sm font-semibold text-foreground">{title}</h2>}
         <div className="flex-1" />
 
@@ -38,9 +40,11 @@ export function InternalTopBar({ title }: TopBarProps) {
         {/* User Menu */}
         <button className="flex items-center gap-2 px-3 py-1.5 hover:bg-surface rounded-[6px] transition-colors">
           <div className="w-6 h-6 rounded-full bg-primary text-primary-fg flex items-center justify-center text-xs font-semibold">
-            JD
+            {initials}
           </div>
-          <span className="text-sm font-medium text-foreground">Jane Doe</span>
+          <span className="text-sm font-medium text-foreground">
+            {user?.fullName ?? "—"}
+          </span>
           <ChevronDown size={14} className="text-muted-fg" />
         </button>
       </div>

@@ -19,6 +19,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/lib/auth/context";
 
 interface SidebarItem {
   label: string;
@@ -95,6 +96,11 @@ const SIDEBAR_ITEMS: SidebarItem[] = [
 export function InternalSidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
+  const { user, company, signOut } = useAuth();
+
+  const initials = user?.fullName
+    ? user.fullName.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()
+    : "?";
 
   const isActive = (href: string) => {
     return pathname === href || pathname.startsWith(href + "/");
@@ -165,13 +171,13 @@ export function InternalSidebar() {
       {/* User Section */}
       <div className="border-t border-border p-4 space-y-2">
         <div className={cn("flex items-center gap-2", collapsed && "justify-center")}>
-          <div className="w-8 h-8 rounded-full bg-primary text-primary-fg flex items-center justify-center font-semibold text-xs">
-            JD
+          <div className="w-8 h-8 rounded-full bg-primary text-primary-fg flex items-center justify-center font-semibold text-xs flex-shrink-0">
+            {initials}
           </div>
           {!collapsed && (
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-foreground truncate">Jane Doe</p>
-              <p className="text-xs text-muted-fg truncate">agent@zerpa.co.za</p>
+              <p className="text-xs font-semibold text-foreground truncate">{user?.fullName ?? "—"}</p>
+              <p className="text-xs text-muted-fg truncate">{company?.name ?? user?.email ?? ""}</p>
             </div>
           )}
         </div>
@@ -180,10 +186,7 @@ export function InternalSidebar() {
             variant="outline"
             size="sm"
             className="w-full justify-start text-xs"
-            onClick={() => {
-              // Handle sign out
-              window.location.href = "/login";
-            }}
+            onClick={signOut}
           >
             <LogOut size={12} className="mr-1.5" />
             Sign Out

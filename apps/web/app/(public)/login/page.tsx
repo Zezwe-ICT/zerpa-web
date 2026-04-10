@@ -1,7 +1,44 @@
-import { Button } from "@/components/ui/button";
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useAuth } from "@/lib/auth/context";
+import { ApiError } from "@/lib/api/client";
+
+type Mode = "signin" | "register";
 
 export default function LoginPage() {
+  const { signIn, register } = useAuth();
+  const [mode, setMode] = useState<Mode>("register");
+  const [email, setEmail] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      if (mode === "register") {
+        await register({ email, fullName, password });
+        toast.success("Account created — let's set up your company.");
+        window.location.href = "/onboarding";
+      } else {
+        await signIn({ email, password });
+      }
+    } catch (err) {
+      const message =
+        err instanceof ApiError ? err.message : "Something went wrong";
+      toast.error(message);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-surface">
       <div className="w-full max-w-md space-y-8">
@@ -15,54 +52,84 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Form */}
+        {/* Card */}
         <div className="bg-background rounded-[12px] border border-border p-8 space-y-6">
-          <div>
-            <h1 className="section-title text-center">Sign In</h1>
-            <p className="text-sm text-muted-fg text-center mt-1">
-              Enter your credentials to continue
-            </p>
+          {/* Mode toggle */}
+          <div className="flex rounded-[8px] border border-border overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setMode("register")}
+              className={`flex-1 py-2 text-sm font-medium transition-colors ${
+                mode === "register"
+                  ? "bg-primary text-primary-fg"
+                  : "text-muted-fg hover:text-foreground"
+              }`}
+            >
+              Register
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("signin")}
+              className={`flex-1 py-2 text-sm font-medium transition-colors ${
+                mode === "signin"
+                  ? "bg-primary text-primary-fg"
+                  : "text-muted-fg hover:text-foreground"
+              }`}
+            >
+              Sign In
+            </button>
           </div>
 
-          {/* Mock Auth Info */}
-          <div className="bg-surface-2 border border-border rounded-[8px] p-4 text-sm space-y-2">
-            <p className="font-semibold text-foreground">Demo Accounts (Mock Mode)</p>
-            <div className="space-y-1 text-muted-fg text-xs">
-              <p><strong>Zerpa Staff:</strong> agent@zerpa.co.za</p>
-              <p><strong>Funeral Client:</strong> admin@dignityfuneralhome.co.za</p>
-              <p><strong>Automotive Client:</strong> admin@autoshop.co.za</p>
-              <p><strong>Restaurant Client:</strong> manager@restaurants.co.za</p>
-              <p><strong>Spa Client:</strong> owner@spa.co.za</p>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {mode === "register" && (
+              <div className="space-y-1.5">
+                <Label htmlFor="fullName">Full Name</Label>
+                <Input
+                  id="fullName"
+                  type="text"
+                  placeholder="Jane Smith"
+                  autoComplete="name"
+                  required
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                />
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="you@example.com"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
             </div>
-          </div>
 
-          {/* Quick Login Buttons */}
-          <div className="space-y-2">
-            <form action="/dashboard" method="GET">
-              <Button type="submit" className="w-full" size="lg">
-                Login as Zerpa Staff
-              </Button>
-            </form>
+            <div className="space-y-1.5">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="••••••••"
+                autoComplete={mode === "register" ? "new-password" : "current-password"}
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
 
-            <form action="/funeral/dashboard" method="GET">
-              <Button type="submit" variant="outline" className="w-full" size="lg">
-                Login as Funeral Client
-              </Button>
-            </form>
-
-            <form action="/automotive/dashboard" method="GET">
-              <Button type="submit" variant="outline" className="w-full" size="lg">
-                Login as Automotive Client
-              </Button>
-            </form>
-          </div>
-
-          <p className="text-xs text-muted-fg text-center">
-            In production, this will be replaced with AWS Cognito authentication.
-          </p>
+            <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+              {isLoading
+                ? mode === "register" ? "Creating account…" : "Signing in…"
+                : mode === "register" ? "Create Account" : "Sign In"}
+            </Button>
+          </form>
         </div>
 
-        {/* Back Link */}
         <div className="text-center">
           <Link href="/" className="text-sm text-primary hover:underline">
             Back to home
