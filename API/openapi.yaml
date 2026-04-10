@@ -1,0 +1,387 @@
+openapi: 3.0.3
+info:
+  title: ZERPA API
+  version: 0.1.0
+  description: >
+    Bootstrap API for ZERPA UI integrations.
+    Current scope includes health checks, auth, company creation, and team member management.
+servers:
+  - url: https://api.zerpa.co.za
+    description: Production
+  - url: http://localhost:8080
+    description: Local development
+tags:
+  - name: Health
+  - name: Auth
+  - name: Companies
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Service and database health check
+      description: Returns service status, database availability, and table count.
+      responses:
+        "200":
+          description: Service healthy and database reachable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthOkResponse"
+        "503":
+          description: Service running but database unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthDegradedResponse"
+
+  /api/v1/auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: User created and signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponse"
+        "409":
+          description: Email already registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/auth/sign-in:
+    post:
+      tags: [Auth]
+      summary: Sign in an existing user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignInRequest"
+      responses:
+        "200":
+          description: Successful sign in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponse"
+        "401":
+          description: Invalid email or password
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/companies:
+    post:
+      tags: [Companies]
+      summary: Create a company
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCompanyRequest"
+      responses:
+        "201":
+          description: Company created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateCompanyResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponse"
+        "401":
+          description: Missing or invalid bearer token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/companies/{companyId}/team-members:
+    post:
+      tags: [Companies]
+      summary: Add a team member to a company
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddTeamMemberRequest"
+      responses:
+        "201":
+          description: Team member added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AddTeamMemberResponse"
+        "400":
+          description: Validation error or missing password for a new user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationOrBusinessErrorResponse"
+        "401":
+          description: Missing or invalid bearer token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Caller lacks company admin permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: User is already a member of this company
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          example: Invalid token
+
+    ValidationErrorResponse:
+      type: object
+      required: [error, details]
+      properties:
+        error:
+          type: string
+          example: Validation failed
+        details:
+          type: object
+          additionalProperties: true
+          example:
+            formErrors: []
+            fieldErrors:
+              email: ["Invalid email"]
+
+    ValidationOrBusinessErrorResponse:
+      oneOf:
+        - $ref: "#/components/schemas/ValidationErrorResponse"
+        - $ref: "#/components/schemas/ErrorResponse"
+
+    UserPublic:
+      type: object
+      required: [id, email]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        fullName:
+          type: string
+          nullable: true
+
+    AuthResponse:
+      type: object
+      required: [token, user]
+      properties:
+        token:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        user:
+          $ref: "#/components/schemas/UserPublic"
+
+    RegisterRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        fullName:
+          type: string
+          minLength: 2
+          maxLength: 255
+        password:
+          type: string
+          minLength: 8
+          maxLength: 100
+      example:
+        email: owner@company.com
+        fullName: Owner User
+        password: StrongPass123!
+
+    SignInRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+          maxLength: 100
+      example:
+        email: owner@company.com
+        password: StrongPass123!
+
+    CreateCompanyRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 255
+      example:
+        name: Apollo Holdings
+
+    CreateCompanyResponse:
+      type: object
+      required: [id, name, slug, ownerUserId]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+        ownerUserId:
+          type: string
+          format: uuid
+
+    AddTeamMemberRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+        fullName:
+          type: string
+          minLength: 2
+          maxLength: 255
+        password:
+          type: string
+          minLength: 8
+          maxLength: 100
+          description: Required only when the email does not already exist.
+        role:
+          type: string
+          enum: [ADMIN, STAFF]
+          default: STAFF
+      example:
+        email: staff1@company.com
+        fullName: Team Member
+        password: TeamPass123!
+        role: STAFF
+
+    AddTeamMemberResponse:
+      type: object
+      required: [createdUser, membership]
+      properties:
+        createdUser:
+          type: boolean
+        membership:
+          type: object
+          required: [id, role, user]
+          properties:
+            id:
+              type: string
+              format: uuid
+            role:
+              type: string
+              enum: [OWNER, ADMIN, STAFF]
+            user:
+              $ref: "#/components/schemas/UserPublic"
+
+    HealthOkResponse:
+      type: object
+      required: [status, ts, database]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+        ts:
+          type: integer
+          format: int64
+        database:
+          type: object
+          required: [available, tableCount]
+          properties:
+            available:
+              type: boolean
+              example: true
+            tableCount:
+              type: integer
+              minimum: 0
+
+    HealthDegradedResponse:
+      type: object
+      required: [status, ts, database]
+      properties:
+        status:
+          type: string
+          enum: [degraded]
+        ts:
+          type: integer
+          format: int64
+        database:
+          type: object
+          required: [available, tableCount]
+          properties:
+            available:
+              type: boolean
+              example: false
+            tableCount:
+              type: integer
+              nullable: true
+              example: null
