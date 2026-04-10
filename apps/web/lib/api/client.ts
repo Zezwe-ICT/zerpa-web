@@ -50,11 +50,16 @@ export async function apiRequest<T>(
     ? `${CONFIG.apiUrl.replace("/api/v1", "")}${path}`
     : `${CONFIG.apiUrl}${path}`;
 
-  const res = await fetch(url, {
-    ...rest,
-    headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      ...rest,
+      headers,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+  } catch (networkErr) {
+    throw new ApiError(0, `Network error — could not reach ${url}. Check CORS or server availability.`);
+  }
 
   if (!res.ok) {
     let errorMessage = `Request failed with status ${res.status}`;
