@@ -1,0 +1,1401 @@
+openapi: 3.0.3
+info:
+  title: ZERPA API
+  version: 0.2.0
+  description: >
+    MVP API surface for ZERPA UI integrations.
+    Current scope includes health checks, auth, companies, CRM, sales, and minimal billing.
+servers:
+  - url: https://api.zerpa.co.za
+    description: Production
+  - url: http://localhost:8080
+    description: Local development
+tags:
+  - name: Health
+  - name: Auth
+  - name: Companies
+  - name: CRM
+  - name: Sales
+  - name: Billing
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Service and database health check
+      description: Returns service status, database availability, and table count.
+      responses:
+        "200":
+          description: Service healthy and database reachable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthOkResponse"
+        "503":
+          description: Service running but database unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthDegradedResponse"
+
+  /api/v1/auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: User created and signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponse"
+        "409":
+          description: Email already registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/auth/sign-in:
+    post:
+      tags: [Auth]
+      summary: Sign in an existing user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignInRequest"
+      responses:
+        "200":
+          description: Successful sign in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponse"
+        "401":
+          description: Invalid email or password
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/companies:
+    get:
+      tags: [Companies]
+      summary: List companies for current user
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Companies associated with current user
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserCompanySummary"
+        "401":
+          description: Missing or invalid bearer token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      tags: [Companies]
+      summary: Create a company
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCompanyRequest"
+      responses:
+        "201":
+          description: Company created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateCompanyResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponse"
+        "401":
+          description: Missing or invalid bearer token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/companies/{companyId}/team-members:
+    post:
+      tags: [Companies]
+      summary: Add a team member to a company
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddTeamMemberRequest"
+      responses:
+        "201":
+          description: Team member added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AddTeamMemberResponse"
+        "400":
+          description: Validation error or missing password for a new user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationOrBusinessErrorResponse"
+        "401":
+          description: Missing or invalid bearer token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/crm/contacts:
+    get:
+      tags: [CRM]
+      summary: List contacts for tenant
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TenantIdQuery"
+      responses:
+        "200":
+          description: Contact list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Contact"
+        "401":
+          $ref: "#/components/responses/AuthError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+    post:
+      tags: [CRM]
+      summary: Create contact
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateContactRequest"
+      responses:
+        "201":
+          description: Created contact
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Contact"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/AuthError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+
+  /api/v1/crm/contacts/{id}:
+    get:
+      tags: [CRM]
+      summary: Get contact by id
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+        - $ref: "#/components/parameters/TenantIdQuery"
+      responses:
+        "200":
+          description: Contact details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContactWithLeads"
+        "401":
+          $ref: "#/components/responses/AuthError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+    patch:
+      tags: [CRM]
+      summary: Update contact
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateContactRequest"
+      responses:
+        "200":
+          description: Updated contact
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContactWithLeads"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/AuthError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /api/v1/crm/leads:
+    get:
+      tags: [CRM]
+      summary: List leads
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TenantIdQuery"
+        - name: stage
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/LeadStage"
+      responses:
+        "200":
+          description: Lead list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Lead"
+        "401":
+          $ref: "#/components/responses/AuthError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+    post:
+      tags: [CRM]
+      summary: Create lead
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateLeadRequest"
+      responses:
+        "201":
+          description: Created lead
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Lead"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/AuthError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+
+  /api/v1/crm/leads/{id}:
+    patch:
+      tags: [CRM]
+      summary: Update lead
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateLeadRequest"
+      responses:
+        "200":
+          description: Updated lead
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeadWithSale"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/AuthError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /api/v1/crm/leads/{id}/convert:
+    post:
+      tags: [CRM]
+      summary: Convert lead to sale (scaffold)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConvertLeadRequest"
+      responses:
+        "201":
+          description: Sale created from lead
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Sale"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/AuthError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /api/v1/sales:
+    get:
+      tags: [Sales]
+      summary: List sales
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TenantIdQuery"
+      responses:
+        "200":
+          description: Sales list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Sale"
+        "401":
+          $ref: "#/components/responses/AuthError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+    post:
+      tags: [Sales]
+      summary: Create sale
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSaleRequest"
+      responses:
+        "201":
+          description: Created sale
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Sale"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/AuthError"
+
+  /api/v1/sales/dashboard:
+    get:
+      tags: [Sales]
+      summary: Get sales dashboard summary
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TenantIdQuery"
+      responses:
+        "200":
+          description: Aggregated status counts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalesDashboard"
+        "401":
+          $ref: "#/components/responses/AuthError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+
+  /api/v1/sales/{id}:
+    get:
+      tags: [Sales]
+      summary: Get sale by id
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+        - $ref: "#/components/parameters/TenantIdQuery"
+      responses:
+        "200":
+          description: Sale details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Sale"
+        "401":
+          $ref: "#/components/responses/AuthError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /api/v1/sales/{id}/checklist:
+    patch:
+      tags: [Sales]
+      summary: Update sale provisioning checklist
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSaleChecklistRequest"
+      responses:
+        "200":
+          description: Updated sale
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Sale"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/AuthError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /api/v1/sales/{id}/activate:
+    patch:
+      tags: [Sales]
+      summary: Activate sale
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TenantBody"
+      responses:
+        "200":
+          description: Updated sale
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Sale"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/AuthError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /api/v1/sales/{id}/suspend:
+    post:
+      tags: [Sales]
+      summary: Suspend sale
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SuspendSaleRequest"
+      responses:
+        "200":
+          description: Updated sale
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Sale"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/AuthError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /api/v1/billing/invoices:
+    get:
+      tags: [Billing]
+      summary: List invoices
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TenantIdQuery"
+      responses:
+        "200":
+          description: Invoice list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Invoice"
+        "401":
+          $ref: "#/components/responses/AuthError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+    post:
+      tags: [Billing]
+      summary: Create invoice
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateInvoiceRequest"
+      responses:
+        "201":
+          description: Created invoice
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invoice"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/AuthError"
+
+  /api/v1/billing/invoices/{id}:
+    get:
+      tags: [Billing]
+      summary: Get invoice by id
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+        - $ref: "#/components/parameters/TenantIdQuery"
+      responses:
+        "200":
+          description: Invoice details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invoice"
+        "401":
+          $ref: "#/components/responses/AuthError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+    patch:
+      tags: [Billing]
+      summary: Update invoice
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateInvoiceRequest"
+      responses:
+        "200":
+          description: Updated invoice
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invoice"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/AuthError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "403":
+          description: Caller lacks company admin permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: User is already a member of this company
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  parameters:
+    IdPath:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    TenantIdQuery:
+      name: tenantId
+      in: query
+      required: false
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    AuthError:
+      description: Missing or invalid bearer token
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    ForbiddenError:
+      description: User is authenticated but not authorized for requested tenant/resource
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ValidationErrorResponse"
+    NotFoundError:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          example: Invalid token
+
+    ValidationErrorResponse:
+      type: object
+      required: [error, details]
+      properties:
+        error:
+          type: string
+          example: Validation failed
+        details:
+          type: object
+          additionalProperties: true
+          example:
+            formErrors: []
+            fieldErrors:
+              email: ["Invalid email"]
+
+    ValidationOrBusinessErrorResponse:
+      oneOf:
+        - $ref: "#/components/schemas/ValidationErrorResponse"
+        - $ref: "#/components/schemas/ErrorResponse"
+
+    TenantBody:
+      type: object
+      properties:
+        tenantId:
+          type: string
+          format: uuid
+
+    UserPublic:
+      type: object
+      required: [id, email]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        fullName:
+          type: string
+          nullable: true
+
+    AuthResponse:
+      type: object
+      required: [token, user]
+      properties:
+        token:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        user:
+          $ref: "#/components/schemas/UserPublic"
+
+    RegisterRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        fullName:
+          type: string
+          minLength: 2
+          maxLength: 255
+        password:
+          type: string
+          minLength: 8
+          maxLength: 100
+      example:
+        email: owner@company.com
+        fullName: Owner User
+        password: StrongPass123!
+
+    SignInRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+          maxLength: 100
+      example:
+        email: owner@company.com
+        password: StrongPass123!
+
+    CreateCompanyRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 255
+      example:
+        name: Apollo Holdings
+
+    CreateCompanyResponse:
+      type: object
+      required: [id, name, slug, ownerUserId]
+      properties:
+        id:
+          type: string
+          format: uuid
+
+    UserCompanySummary:
+      type: object
+      required: [id, name, slug, role]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+        role:
+          type: string
+          enum: [OWNER, ADMIN, STAFF]
+        name:
+          type: string
+        slug:
+          type: string
+        ownerUserId:
+          type: string
+          format: uuid
+
+    AddTeamMemberRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+        fullName:
+          type: string
+          minLength: 2
+          maxLength: 255
+        password:
+          type: string
+          minLength: 8
+          maxLength: 100
+          description: Required only when the email does not already exist.
+        role:
+          type: string
+          enum: [ADMIN, STAFF]
+          default: STAFF
+      example:
+        email: staff1@company.com
+        fullName: Team Member
+        password: TeamPass123!
+        role: STAFF
+
+    AddTeamMemberResponse:
+      type: object
+      required: [createdUser, membership]
+      properties:
+        createdUser:
+          type: boolean
+        membership:
+          type: object
+          required: [id, role, user]
+          properties:
+            id:
+              type: string
+              format: uuid
+            role:
+              type: string
+              enum: [OWNER, ADMIN, STAFF]
+            user:
+              $ref: "#/components/schemas/UserPublic"
+
+    Contact:
+      type: object
+      required: [id, tenantId, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+          format: uuid
+        firstName:
+          type: string
+          nullable: true
+        lastName:
+          type: string
+          nullable: true
+        email:
+          type: string
+          format: email
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        company:
+          type: string
+          nullable: true
+        source:
+          type: string
+          nullable: true
+        metadata:
+          type: object
+          additionalProperties: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ContactWithLeads:
+      allOf:
+        - $ref: "#/components/schemas/Contact"
+        - type: object
+          properties:
+            leads:
+              type: array
+              items:
+                $ref: "#/components/schemas/Lead"
+
+    LeadStage:
+      type: string
+      enum: [NEW, CONTACTED, QUALIFIED, PROPOSAL, NEGOTIATION, CLOSED_WON, CLOSED_LOST]
+
+    Lead:
+      type: object
+      required: [id, tenantId, contactId, stage, priority, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+          format: uuid
+        contactId:
+          type: string
+          format: uuid
+        assignedTo:
+          type: string
+          format: uuid
+          nullable: true
+        stage:
+          $ref: "#/components/schemas/LeadStage"
+        vertical:
+          type: string
+          enum: [FUNERAL, AUTOMOTIVE, RESTAURANT, SPA, OTHER]
+          nullable: true
+        priority:
+          type: integer
+        estimatedValue:
+          type: number
+          nullable: true
+        lostReason:
+          type: string
+          nullable: true
+        convertedAt:
+          type: string
+          format: date-time
+          nullable: true
+        convertedTenantId:
+          type: string
+          format: uuid
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    LeadWithSale:
+      allOf:
+        - $ref: "#/components/schemas/Lead"
+        - type: object
+          properties:
+            sale:
+              $ref: "#/components/schemas/Sale"
+
+    SalesStatus:
+      type: string
+      enum: [PENDING, SETUP, ACTIVE, SUSPENDED, CANCELLED]
+
+    Sale:
+      type: object
+      required: [id, tenantId, status, setupFeePaid, setupFeeAmount, monthlyAmount, freeMonths, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+          format: uuid
+        sourceLeadId:
+          type: string
+          format: uuid
+          nullable: true
+        assignedAgentId:
+          type: string
+          format: uuid
+          nullable: true
+        status:
+          $ref: "#/components/schemas/SalesStatus"
+        setupFeePaid:
+          type: boolean
+        setupFeeAmount:
+          type: number
+        monthlyAmount:
+          type: number
+        freeMonths:
+          type: integer
+        trialStartDate:
+          type: string
+          format: date-time
+          nullable: true
+        trialEndDate:
+          type: string
+          format: date-time
+          nullable: true
+        billingStartDate:
+          type: string
+          format: date-time
+          nullable: true
+        services:
+          type: object
+          additionalProperties: true
+        provisioningChecklist:
+          type: object
+          additionalProperties: true
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    SalesDashboard:
+      type: object
+      properties:
+        pending:
+          type: integer
+        setup:
+          type: integer
+        active:
+          type: integer
+        suspended:
+          type: integer
+        cancelled:
+          type: integer
+        total:
+          type: integer
+
+    Invoice:
+      type: object
+      required: [id, tenantId, invoiceNumber, type, status, amount, taxAmount, currency, lineItems, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+          format: uuid
+        saleId:
+          type: string
+          format: uuid
+          nullable: true
+        invoiceNumber:
+          type: string
+        type:
+          type: string
+          enum: [SETUP, SUBSCRIPTION, AD_HOC]
+        status:
+          type: string
+          enum: [DRAFT, SENT, PAID, OVERDUE, VOID]
+        amount:
+          type: number
+        taxAmount:
+          type: number
+        currency:
+          type: string
+        dueDate:
+          type: string
+          format: date-time
+          nullable: true
+        paidAt:
+          type: string
+          format: date-time
+          nullable: true
+        lineItems:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateContactRequest:
+      allOf:
+        - $ref: "#/components/schemas/TenantBody"
+        - type: object
+          properties:
+            firstName: { type: string }
+            lastName: { type: string }
+            email: { type: string, format: email }
+            phone: { type: string }
+            company: { type: string }
+            source: { type: string }
+            metadata:
+              type: object
+              additionalProperties: true
+
+    UpdateContactRequest:
+      type: object
+      minProperties: 1
+      properties:
+        firstName: { type: string }
+        lastName: { type: string }
+        email: { type: string, format: email }
+        phone: { type: string }
+        company: { type: string }
+        source: { type: string }
+        metadata:
+          type: object
+          additionalProperties: true
+
+    CreateLeadRequest:
+      allOf:
+        - $ref: "#/components/schemas/TenantBody"
+        - type: object
+          required: [contactId]
+          properties:
+            contactId:
+              type: string
+              format: uuid
+            assignedTo:
+              type: string
+              format: uuid
+            stage:
+              $ref: "#/components/schemas/LeadStage"
+            vertical:
+              type: string
+              enum: [FUNERAL, AUTOMOTIVE, RESTAURANT, SPA, OTHER]
+            priority:
+              type: integer
+            estimatedValue:
+              type: number
+            lostReason:
+              type: string
+            notes:
+              type: string
+
+    UpdateLeadRequest:
+      allOf:
+        - $ref: "#/components/schemas/TenantBody"
+        - type: object
+          minProperties: 1
+          properties:
+            assignedTo:
+              type: string
+              format: uuid
+            stage:
+              $ref: "#/components/schemas/LeadStage"
+            vertical:
+              type: string
+              enum: [FUNERAL, AUTOMOTIVE, RESTAURANT, SPA, OTHER]
+            priority:
+              type: integer
+            estimatedValue:
+              type: number
+            lostReason:
+              type: string
+            notes:
+              type: string
+
+    ConvertLeadRequest:
+      allOf:
+        - $ref: "#/components/schemas/TenantBody"
+        - type: object
+          properties:
+            assignedAgentId:
+              type: string
+              format: uuid
+            monthlyAmount:
+              type: number
+            setupFeeAmount:
+              type: number
+            freeMonths:
+              type: integer
+            notes:
+              type: string
+
+    CreateSaleRequest:
+      allOf:
+        - $ref: "#/components/schemas/TenantBody"
+        - type: object
+          properties:
+            sourceLeadId:
+              type: string
+              format: uuid
+            assignedAgentId:
+              type: string
+              format: uuid
+            setupFeePaid:
+              type: boolean
+            setupFeeAmount:
+              type: number
+            monthlyAmount:
+              type: number
+            freeMonths:
+              type: integer
+            trialStartDate:
+              type: string
+              format: date
+            trialEndDate:
+              type: string
+              format: date
+            billingStartDate:
+              type: string
+              format: date
+            services:
+              type: object
+              additionalProperties: true
+            provisioningChecklist:
+              type: object
+              additionalProperties: true
+            notes:
+              type: string
+
+    UpdateSaleChecklistRequest:
+      allOf:
+        - $ref: "#/components/schemas/TenantBody"
+        - type: object
+          required: [provisioningChecklist]
+          properties:
+            provisioningChecklist:
+              type: object
+              additionalProperties: true
+
+    SuspendSaleRequest:
+      allOf:
+        - $ref: "#/components/schemas/TenantBody"
+        - type: object
+          properties:
+            notes:
+              type: string
+
+    CreateInvoiceRequest:
+      allOf:
+        - $ref: "#/components/schemas/TenantBody"
+        - type: object
+          required: [amount]
+          properties:
+            saleId:
+              type: string
+              format: uuid
+            invoiceNumber:
+              type: string
+            type:
+              type: string
+              enum: [SETUP, SUBSCRIPTION, AD_HOC]
+            status:
+              type: string
+              enum: [DRAFT, SENT, PAID, OVERDUE, VOID]
+            amount:
+              type: number
+            taxAmount:
+              type: number
+            currency:
+              type: string
+            dueDate:
+              type: string
+              format: date
+            paidAt:
+              type: string
+              format: date-time
+            lineItems:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+            notes:
+              type: string
+
+    UpdateInvoiceRequest:
+      allOf:
+        - $ref: "#/components/schemas/TenantBody"
+        - type: object
+          minProperties: 1
+          properties:
+            saleId:
+              type: string
+              format: uuid
+            invoiceNumber:
+              type: string
+            type:
+              type: string
+              enum: [SETUP, SUBSCRIPTION, AD_HOC]
+            status:
+              type: string
+              enum: [DRAFT, SENT, PAID, OVERDUE, VOID]
+            amount:
+              type: number
+            taxAmount:
+              type: number
+            currency:
+              type: string
+            dueDate:
+              type: string
+              format: date
+            paidAt:
+              type: string
+              format: date-time
+            lineItems:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+            notes:
+              type: string
+
+    HealthOkResponse:
+      type: object
+      required: [status, ts, database]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+        ts:
+          type: integer
+          format: int64
+        database:
+          type: object
+          required: [available, tableCount]
+          properties:
+            available:
+              type: boolean
+              example: true
+            tableCount:
+              type: integer
+              minimum: 0
+
+    HealthDegradedResponse:
+      type: object
+      required: [status, ts, database]
+      properties:
+        status:
+          type: string
+          enum: [degraded]
+        ts:
+          type: integer
+          format: int64
+        database:
+          type: object
+          required: [available, tableCount]
+          properties:
+            available:
+              type: boolean
+              example: false
+            tableCount:
+              type: integer
+              nullable: true
+              example: null

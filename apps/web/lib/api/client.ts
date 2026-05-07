@@ -50,6 +50,11 @@ export async function apiRequest<T>(
     ? `${CONFIG.apiUrl.replace("/api/v1", "")}${path}`
     : `${CONFIG.apiUrl}${path}`;
 
+  console.log(`[API] ${rest.method || "GET"} ${url}`, {
+    headers,
+    bodyPreview: body ? JSON.stringify(body).substring(0, 100) : undefined,
+  });
+
   let res: Response;
   try {
     res = await fetch(url, {
@@ -58,8 +63,13 @@ export async function apiRequest<T>(
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
   } catch (networkErr) {
-    throw new ApiError(0, `Network error — could not reach ${url}. Check CORS or server availability.`);
+    const error = `Network error — could not reach ${url}. Check CORS or server availability.`;
+    console.error(`[API] Network Error on ${rest.method || "GET"} ${url}:`, networkErr);
+    console.error(`[API] Error Details:`, error);
+    throw new ApiError(0, error);
   }
+
+  console.log(`[API] Response Status: ${res.status} ${res.statusText}`);
 
   if (!res.ok) {
     let errorMessage = `Request failed with status ${res.status}`;
@@ -71,8 +81,14 @@ export async function apiRequest<T>(
     } catch {
       // ignore parse error
     }
+    console.error(`[API] Error Response (${res.status}):`, {
+      message: errorMessage,
+      details,
+    });
     throw new ApiError(res.status, errorMessage, details);
   }
 
-  return res.json() as Promise<T>;
+  const responseData = await res.json();
+  console.log(`[API] Success Response:`, responseData);
+  return responseData as Promise<T>;
 }

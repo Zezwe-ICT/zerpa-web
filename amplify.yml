@@ -21,4 +21,8 @@ applications:
         paths:
           - node_modules/**/*
           - .next/cache/**/*
+      env:
+        variables:
+          NEXT_PUBLIC_API_URL: https://api.zerpa.co.za/api/v1
+          AMPLIFY_MONOREPO_APP_ROOT: apps/web
     appRoot: apps/web

@@ -20,7 +20,19 @@
       "Bash(cmd /c \"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe auth token 2>&1\")",
       "Bash(cmd /c \"cd C:\\\\Users\\\\sylon\\\\Downloads\\\\zerpa-web && git push --force origin master:main\")",
       "Bash(cmdkey /delete:LegacyGeneric:target=git:https://github.com)",
-      "Bash(cmdkey /delete:LegacyGeneric:target=https://github.com)"
+      "Bash(cmdkey /delete:LegacyGeneric:target=https://github.com)",
+      "Bash(cmdkey /delete:git:https://github.com)",
+      "Bash(cmdkey /list)",
+      "Bash(findstr /i github)",
+      "Bash(powershell -Command \"cmdkey /list\")",
+      "Bash(powershell -Command \"cmdkey /delete:LegacyGeneric:target=git:https://nostalgic-code@github.com\")",
+      "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\(JSON.stringify\\(p, null, 2\\)\\)\")",
+      "Bash(node -e \"console.log\\(process.version\\)\")",
+      "Bash(npm -v)",
+      "Bash(ipconfig /flushdns)",
+      "Bash(powershell -Command \"ipconfig /flushdns\")",
+      "Bash(powershell -Command ':*)",
+      "Bash(powershell -Command \"Resolve-DnsName api.zerpa.co.za\")"
     ]
   }
 }

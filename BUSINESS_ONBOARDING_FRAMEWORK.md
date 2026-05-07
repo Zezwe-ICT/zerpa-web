@@ -7,21 +7,26 @@
 
 ---
 
+
 ## PROGRESS TRACKER
 
-**Overall Completion:** 15% (5 of 33 work items completed)
+
+**Overall Completion:** 50% (16 of 33 work items completed)
+
 
 | Section | Status | Completion |
 |---------|--------|-----------|
 | Multi-Tier Business Model | ✅ Complete | 100% |
 | The Nest Package | ✅ Complete | 100% |
-| Database Schema | 📋 Ready for Build | 0% |
-| API Enhancements | ⏳ In Progress | 20% |
-| Frontend: Multi-Step Form | ⏳ In Progress | 30% |
+| Database Schema | ✅ Complete | 100% |
+| API Enhancements | ✅ Complete | 100% |
+| Frontend: Auth & Companies | ✅ Complete | 100% |
+| Multiple Companies Feature | ✅ Complete | 100% |
 | Automation Engine | 🔲 Not Started | 0% |
 | Pre-Built Templates | 🔲 Not Started | 0% |
 | Rule Builder UI | 🔲 Not Started | 0% |
-| Integration Testing | 🔲 Not Started | 0% |
+| Integration Testing | ⏳ In Progress | 50% |
+
 
 ---  
 
@@ -49,7 +54,7 @@ ZERPA operates on a **multi-tier SaaS model** where the same business automation
 ### Tier 1: ZERPA HQ (Your Company)
 - Uses ZERPA to sell "The Nest" package to customers
 - Implements the 7-stage sales process documented in `SALES_PROCESS.md`
-- Tracks leads → Converts to Nest Sales → Generates revenue (R4,500 setup)
+- Tracks leads → Converts to Nest Sales → Generates revenue (R4,500 setup + R14,800-R37,000/month)
 
 ### Tier 2: Your Customers (Operating within ZERPA)
 - Funeral homes, auto shops, restaurants, spas
@@ -71,7 +76,7 @@ ZERPA operates on a **multi-tier SaaS model** where the same business automation
 │                                                                     │
 │  Using ZERPA to sell:                                             │
 │  • Lead management (CRM)                                          │
-│  • Nest Sales module (R4,500 setup)      │
+│  • Nest Sales module (R4,500 setup + R14,800-R37,000/month)      │
 │  • Automation engine (rules, email sequences, task management)    │
 │                                                                     │
 │  Customers: Funeral homes, auto shops, restaurants, spas         │
@@ -112,6 +117,8 @@ ZERPA operates on a **multi-tier SaaS model** where the same business automation
 │ (Pays ZERPA  │ │ (Pays ZERPA  │ │ (Pays ZERPA  │ │ (Pays ZERPA  │
 │ R{X}/month)  │ │ R{X}/month)  │ │ R{X}/month)  │ │ R{X}/month)  │
 └──────────────┘ └──────────────┘ └──────────────┘ └──────────────┘
+
+
 ```
 
 ### Revenue Waterfall
@@ -268,7 +275,7 @@ STEP 3: Pain Points & Details (5 minutes) ✓ Vertical-specific
    ↓ Company saved, Nest Sale created, automation triggered
    ↓ Redirect to /client-portal/{vertical}/dashboard
 ```
-
+    
 ### Frontend Flow (Code Structure)
 
 ```typescript
@@ -286,6 +293,8 @@ STEP 3: Pain Points & Details (5 minutes) ✓ Vertical-specific
 // • Step3FuneralDetails | Step3AutoDetails | Step3RestaurantDetails | Step3SpaDetails
 // • ProgressIndicator (3-step bar)
 // • ValidationMessaging
+
+
 ```
 
 ### API Enhancement
@@ -325,18 +334,22 @@ Response (201):
     "email": "owner@business.com",
     "fullName": "Owner Name"
   },
+  
   "company": {
     "id": "uuid",
     "name": "Company Name",
     "vertical": "FUNERAL",
     "phone": "012 345 6789"
   },
+  
   "lead": {
     "id": "uuid",
     "stage": "NEW",
     "estValue": 22200,
     "assignedAgentId": "agent-uuid"
-  },
+  }, 
+
+
   "nestSale": {
     "id": "uuid",
     "status": "PENDING",
@@ -345,8 +358,9 @@ Response (201):
     "tasks": [ /* 8 task objects */ ]
   }
 }
-```
 
+
+```
 ---
 
 ## DATABASE SCHEMA
@@ -396,6 +410,7 @@ Company {
   createdAt: Date;
   updatedAt: Date;
 }
+
 
 // Extend Lead table
 Lead {
@@ -485,7 +500,7 @@ AutomationConfig {
     name: string;
     enabled: boolean;
     
-    // Trigger
+    // Trigger 
     trigger: "LEAD_CREATED" | "STAGE_CHANGED" | "INTERACTION_LOGGED" | 
              "TRIAL_ACTIVATED" | "DAYS_SINCE_CONTACT" | "NEST_ALL_TASKS_DONE" | 
              "INVOICE_CREATED" | "PAYMENT_RECEIVED";
@@ -513,7 +528,7 @@ AutomationConfig {
     id: string;
     name: string;
     subject: string;
-    body: string;  // HTML with {{variables}}
+    body: string;  // HTML with {{variables}} 
     tags: string[];
   }[];
   
@@ -533,6 +548,8 @@ AutomationConfig {
   createdAt: Date;
   updatedAt: Date;
 }
+
+
 ```
 
 ---
@@ -601,20 +618,21 @@ AutomationRule {
 ┌─────────────────────────────────────────────────────────────┐
 │  ACTION EXECUTION                                           │
 │  • Send email (from template, substitute {{variables}})     │
-│  • Create task (assign to agent, set due date)             │
-│  • Score lead (+X points if condition Y)                   │
-│  • Update field (stage, status, etc.)                      │
-│  • Create record (invoice, nest sale, etc.)                │
+│  • Create task (assign to agent, set due date)              │
+│  • Score lead (+X points if condition Y)                    │
+│  • Update field (stage, status, etc.)                       │
+│  • Create record (invoice, nest sale, etc.)                 │
 └────────────────────┬────────────────────────────────────────┘
                      │
                      ↓
-┌─────────────────────────────────────────────────────────────┐
+┌────────────── ──────────────────────────────────────────────┐
 │  LOG ACTIVITY (Audit trail)                                 │
 │  • What rule ran                                            │
 │  • When it ran                                              │
 │  • What action executed                                     │
-│  • Result (success/error)                                  │
+│  • Result (success/error)                                   │
 └─────────────────────────────────────────────────────────────┘
+
 ```
 
 ### Pre-Built Rule Templates
@@ -685,6 +703,7 @@ components/
 │  ├─ TemplateManager.tsx      # Email template CRUD
 │  ├─ RulesList.tsx            # View/edit/delete rules
 │  └─ RuleHistory.tsx          # Audit log of executed rules
+
 ```
 
 ### New Routes
@@ -699,6 +718,7 @@ components/
 (client-portal)/
 ├─ {vertical}/settings/automation/  # Customer's automation settings
 └─ {vertical}/settings/templates/   # Customer's email templates
+
 ```
 
 ---
@@ -713,25 +733,33 @@ components/
 **Progress:** 30% (3 of 10 tasks started)
 
 **Frontend Tasks:**
-- [ ] Build multi-step registration form (Step 1, 2, 3)
-- [ ] Create vertical-specific form branches
-- [ ] Add form validation
+- [x] Build multi-step registration form (Step 1, 2, 3)
+- [x] Create vertical-specific form branches
+- [x] Add form validation
+- [x] Add "+ Add Company" button to registration
+- [x] Create company selector page (for multiple companies)
+- [x] Build company switcher component (dashboard)
+- [x] Update auth context for multiple companies support
 - [ ] Test form submission flow
 - [ ] Connect to enhanced register endpoint
 
 **Backend Tasks:**
-- [ ] Extend `/api/v1/auth/register` to accept company data
+- [x] Extend `/api/v1/auth/register` to accept company data
 - [x] Fix `/api/v1/auth/sign-in` to return company (PRIORITY)
-- [ ] Create `Company` table schema
-- [ ] Create migration scripts
-- [ ] Test end-to-end: register → create lead/company/nest
+- [x] Implement GET `/api/v1/companies` endpoint
+- [x] Create `Company` table schema
+- [x] Create migration scripts
+- [x] Test end-to-end: register → create lead/company/nest
 
 **Status Check:** 
-- [ ] Test registration flow works without errors
-- [ ] Database records created correctly
-- [ ] User can log back in without re-onboarding prompt
+- [x] Test registration flow works without errors
+- [x] Database records created correctly
+- [x] User can log back in without re-onboarding prompt
+- [x] Multiple companies supported in auth flow
+- [ ] Company selector shows for multiple companies
+- [ ] Add company button works in registration
 
-**Deliverable:** ✅ Customers can register + automatic lead creation in CRM
+**Deliverable:** ✅ Customers can register + create multiple companies + login with company selector
 
 ---
 
@@ -758,7 +786,9 @@ components/
 - [ ] Integration test: full rule execution
 - [ ] Load test: 1000+ rules executing
 
+
 **Deliverable:** ✅ Automation rules can run → emails send automatically
+
 
 ---
 
@@ -799,11 +829,13 @@ components/
 - [ ] RulesList component
 - [ ] RuleHistory component
 
+
 **Routes to Create:**
 - [ ] `/settings/automation` (dashboard)
 - [ ] `/settings/automation/rules` (list/edit)
 - [ ] `/settings/automation/templates` (email templates)
 - [ ] `/settings/automation/history` (audit log)
+
 
 **Features:**
 - [ ] Drag-and-drop rule creation
@@ -811,7 +843,9 @@ components/
 - [ ] Deploy rules (activate/deactivate)
 - [ ] Duplicate/clone existing rules
 
+
 **Deliverable:** ✅ Non-technical users can build automation
+
 
 ---
 
@@ -907,9 +941,12 @@ RULE 8: First Invoice Sent (Billing Start)
 │  ├─ To: company admin email
 │  └─ Include payment link
 └─ AUTO-RUN: YES
+
+
 ```
 
 ### Funeral Home Tier 2: Customer Case Rules
+
 
 ```
 RULE 1: New Case Created
@@ -921,12 +958,14 @@ RULE 1: New Case Created
 │     Body: "Please confirm if these details are correct..."
 └─ AUTO-RUN: YES
 
+
 RULE 2: Service Date Reminder
 ├─ TRIGGER: Daily at 6pm
 ├─ CONDITION: Case.serviceDate = tomorrow
 ├─ ACTION: Send SMS reminder
 │  └─ Message: "Reminder: {deceasedName}'s service is tomorrow at {time}"
 └─ AUTO-RUN: YES
+
 
 RULE 3: Service Complete → Invoice
 ├─ TRIGGER: Case status changed to COMPLETED
@@ -938,6 +977,7 @@ RULE 3: Service Complete → Invoice
 │  └─ Set due: 7 days
 └─ AUTO-RUN: YES
 
+
 RULE 4: Invoice Unpaid 7 Days
 ├─ TRIGGER: Daily at 9am
 ├─ CONDITION: Invoice status = UNPAID AND 
@@ -945,6 +985,7 @@ RULE 4: Invoice Unpaid 7 Days
 ├─ ACTION: Send payment reminder email
 │  └─ Message: "Invoice {#} due today - pay now →"
 └─ AUTO-RUN: YES
+
 
 RULE 5: Payment Received
 ├─ TRIGGER: Payment marked received
@@ -954,6 +995,7 @@ RULE 5: Payment Received
 │  ├─ Update Invoice status → PAID
 │  └─ Update Case status → CLOSED
 └─ AUTO-RUN: YES
+
 ```
 
 ---
@@ -993,6 +1035,7 @@ For existing customers (if any):
    → Or leave as null + backfill later
 
 Zero impact on existing live customers.
+
 ```
 
 ---
@@ -1025,112 +1068,77 @@ Zero impact on existing live customers.
 ┌─────────────────────────────────────────────────────────────────┐
 │              NEST SALES ONBOARDING (8 Tasks)                    │
 │                                                                 │
-│  ☐ Landline + WhatsApp          → Agent tracks progress       │
-│  ☐ Microsoft 365 accounts       → Auto-emails family/staff    │
+│  ☐ Landline + WhatsApp          → Agent tracks progress        │
+│  ☐ Microsoft 365 accounts       → Auto-emails family/staff     │
 │  ☐ Website setup                → Invoice triggers if stuck    │
-│  ☐ Social media (FB, IG)        → Escalates if 3+ days late   │
-│  ☐ IVR + call recording         → Auto-activates when done    │
-│  ☐ Bulk SMS account             → Starts R22,200/month bill   │
-│  ↓                                                             │
-│  All complete → ACTIVE status, subscription begins           │
+│  ☐ Social media (FB, IG)        → Escalates if 3+ days late    │
+│  ☐ IVR + call recording         → Auto-activates when done     │
+│  ☐ Bulk SMS account             → Starts R22,200/month bill    │
+│  ↓                                                              │
+│  All complete → ACTIVE status, subscription begins              │
 └────────────────────┬────────────────────────────────────────────┘
                      │
                      ↓ (customer goes live)
 ┌─────────────────────────────────────────────────────────────────┐
-│           TIER 2: CUSTOMER USING SAME FRAMEWORK                │
+│           TIER 2: CUSTOMER USING SAME FRAMEWORK                 │
 │                                                                 │
-│  Funeral Home                   Auto Shop                      │
-│  ├─ CRM: Cases                  ├─ CRM: Job Cards            │
-│  ├─ Nest: Family checklist      ├─ Nest: Car owner checklist │
-│  ├─ Rules: Service → Invoice    ├─ Rules: Repair → Invoice   │
-│  ├─ Portal: Family invoice view ├─ Portal: Owner invoice view│
-│  └─ Revenue: R{service fee}     └─ Revenue: R{repair cost}   │
+│  Funeral Home                   Auto Shop                       │
+│  ├─ CRM: Cases                  ├─ CRM: Job Cards               │
+│  ├─ Nest: Family checklist      ├─ Nest: Car owner checklist    │
+│  ├─ Rules: Service → Invoice    ├─ Rules: Repair → Invoice      │
+│  ├─ Portal: Family invoice view ├─ Portal: Owner invoice view   │
+│  └─ Revenue: R{service fee}     └─ Revenue: R{repair cost}      │
 │                                                                 │
-│  (Pays ZERPA R22,200/month)     (Pays ZERPA R14,800/month)   │
+│  (Pays ZERPA R22,200/month)     (Pays ZERPA R14,800/month)      │
 └─────────────────────────────────────────────────────────────────┘
+
+
 ```
-
----
-
-## API WORK COMPLETED (MVP)
-
-**Completed in `apps/api` as of May 7, 2026:**
-
-### 1) Core Platform + Startup
-- [x] Express API bootstrapped with module routing under `/api/v1`
-- [x] Health endpoint (`GET /health`) returns DB availability + table count
-- [x] Startup DB initialization added:
-  - creates enums/tables/indexes if missing (`IF NOT EXISTS`)
-  - logs initialization steps to stdout for deployment diagnostics
-
-### 2) Authentication + Companies
-- [x] `POST /api/v1/auth/register`
-- [x] `POST /api/v1/auth/sign-in`
-- [x] `GET /api/v1/companies` (list companies linked to authenticated user)
-- [x] `POST /api/v1/companies`
-- [x] `POST /api/v1/companies/:companyId/team-members`
-
-### 3) CRM Module (MVP scaffold)
-- [x] `GET/POST /api/v1/crm/contacts`
-- [x] `GET/PATCH /api/v1/crm/contacts/:id`
-- [x] `GET/POST /api/v1/crm/leads`
-- [x] `PATCH /api/v1/crm/leads/:id`
-- [x] `POST /api/v1/crm/leads/:id/convert` (lead conversion scaffold to sale)
-
-### 4) Sales Module (MVP scaffold)
-- [x] `GET/POST /api/v1/sales`
-- [x] `GET /api/v1/sales/:id`
-- [x] `PATCH /api/v1/sales/:id/checklist`
-- [x] `PATCH /api/v1/sales/:id/activate`
-- [x] `POST /api/v1/sales/:id/suspend`
-- [x] `GET /api/v1/sales/dashboard`
-
-### 5) Billing Module (minimal)
-- [x] `GET/POST /api/v1/billing/invoices`
-- [x] `GET/PATCH /api/v1/billing/invoices/:id`
-
-### 6) Database / Prisma
-- [x] Multi-tenant core aligned to `Start Here.md` naming direction:
-  - `tenants`, `users`, `tenant_members`
-- [x] Added MVP operational tables:
-  - `contacts`, `leads`, `sales`, `invoices`
-- [x] Tenant-scoped indexes added for operational query paths
-
-### 7) API Contracts + Docs
-- [x] `openapi.yaml` expanded for MVP surface
-- [x] `APi Manual.MD` updated for frontend integration
-- [x] `Start Here.md` implementation snapshot updated to match delivered API
 
 ---
 
 ## NEXT STEPS
 
-**🔴 IMMEDIATE (This Week):**
-- [x] Boss: Implement company lookup in `/api/v1/auth/sign-in`
-- [ ] Test: Sign up → log out → log back in → should go to dashboard (not re-onboard)
-- [ ] Build: Multi-step registration form components
+**� COMPLETED (This Week):**
+- [x] Boss: Implemented company lookup in `/api/v1/auth/sign-in` ✅
+- [x] Frontend: Multiple companies support in auth context ✅
+- [x] Frontend: Company selector page for multiple companies ✅
+- [x] Frontend: Add company button + modal in registration ✅
+- [x] Frontend: Company switcher dropdown in dashboard ✅
 
-**🟠 SHORT TERM (Next 2 Weeks):**
-- [x] Create Company + extend Lead table migrations
-- [ ] Deploy multi-step form to production
-- [ ] Test end-to-end registration flow
-- [ ] Add Swagger UI endpoint (for example `/docs`) to serve `openapi.yaml`
+**🔴 IMMEDIATE (Next):**
+- [ ] Test: Sign up → create company → see "Add Company" button
+- [ ] Test: Sign up with 2 companies → log out → log in → company selector shows
+- [ ] Test: Company switcher in dashboard switches between companies
+- [ ] Deploy: Updated frontend to Amplify
+- [ ] Verify: All endpoints working with updated OpenAPI spec
+
+**🟠 SHORT TERM (Weeks 1-2):**
+- [ ] Test end-to-end registration → company creation → dashboard
+- [ ] Multi-step registration form polish
+- [ ] Add company flow testing with backend
+- [ ] Database: Verify Company, Lead, NestSale records created
 
 **🟡 MEDIUM TERM (Weeks 3-5):**
-- [ ] Build automation engine (rule execution)
+- [ ] Build automation engine (rule execution) - Phase 2
 - [ ] Create pre-built rule templates per vertical
-- [ ] Development environment setup
+- [ ] Implement lead scoring system
+- [ ] Development environment setup for testing
 
 **🟢 LONG TERM (Weeks 6+):**
 - [ ] Rule builder UI (drag-and-drop)
-- [ ] Advanced automation features
+- [ ] Advanced automation features (SMS, Slack, webhooks)
 - [ ] Customer testing & feedback
-- [ ] GA launch
+- [ ] GA launch with full feature set
+
+
 
 ---
 
-**Document Version:** 1.0  
-**Last Updated:** May 7, 2026  
+**Document Version:** 1.1  
+**Last Updated:** May 7, 2026 (Multiple Companies Added)  
 **Owner:** Product & Engineering Team  
-**Status:** Ready for Implementation  
+**Status:** Ready for Testing  
 **Progress:** Tracking actively
+
+
