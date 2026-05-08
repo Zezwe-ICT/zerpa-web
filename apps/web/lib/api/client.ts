@@ -78,6 +78,18 @@ export async function apiRequest<T>(
       const data = await res.json();
       errorMessage = data.error ?? data.message ?? errorMessage;
       details = data.details;
+      // Extract first field error from Zod validation response
+      if (
+        errorMessage === "Validation failed" &&
+        data.details?.fieldErrors
+      ) {
+        const fieldErrors = data.details.fieldErrors as Record<string, string[]>;
+        const firstField = Object.keys(fieldErrors)[0];
+        if (firstField && fieldErrors[firstField]?.length) {
+          const label = firstField.charAt(0).toUpperCase() + firstField.slice(1);
+          errorMessage = `${label}: ${fieldErrors[firstField][0]}`;
+        }
+      }
     } catch {
       // ignore parse error
     }
