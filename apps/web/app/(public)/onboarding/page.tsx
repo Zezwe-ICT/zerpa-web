@@ -3,77 +3,101 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Building2, Plus, ChevronRight, Check } from "lucide-react";
+import { Building2, Plus, Trash2, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth/context";
 import { createCompany } from "@/lib/api/companies";
+import type { CompanyResponse } from "@/lib/api/companies";
 import { ApiError } from "@/lib/api/client";
 
 const VERTICALS = [
+  { value: "", label: "Select industry (optional)" },
   { value: "FUNERAL", label: "Funeral Home" },
-  { value: "AUTO", label: "Automotive / Car Dealership" },
+  { value: "AUTO", label: "Automotive" },
   { value: "RESTAURANT", label: "Restaurant / Hospitality" },
   { value: "SPA", label: "Spa / Wellness" },
+  { value: "TECH", label: "Technology / ICT" },
+  { value: "TELECOM", label: "Telecommunications" },
+  { value: "FINANCE", label: "Finance / Accounting" },
+  { value: "RETAIL", label: "Retail" },
+  { value: "CONSTRUCTION", label: "Construction" },
+  { value: "HEALTH", label: "Healthcare" },
   { value: "OTHER", label: "Other" },
 ];
 
-const COMPANY_SIZES = [
-  { value: "1-10", label: "1 – 10", sub: "Just me / small team" },
-  { value: "11-50", label: "11 – 50", sub: "Growing team" },
-  { value: "51-200", label: "51 – 200", sub: "Mid-size" },
-  { value: "201-500", label: "201 – 500", sub: "Large" },
-  { value: "500+", label: "500+", sub: "Enterprise" },
-];
+interface CompanyEntry {
+  id: string;
+  name: string;
+  vertical: string;
+}
+
+function newEntry(): CompanyEntry {
+  return { id: Math.random().toString(36).slice(2), name: "", vertical: "" };
+}
 
 type Mode = "select" | "create";
 
 export default function OnboardingPage() {
-  const { user, companies, isLoading, isAuthenticated, setCompany, selectCompany } = useAuth();
+  const { user, companies, isLoading, isAuthenticated, setCompany, selectCompany, addCompany } = useAuth();
   const router = useRouter();
 
   const [mode, setMode] = useState<Mode>("select");
-  const [name, setName] = useState("");
-  const [vertical, setVertical] = useState("");
-  const [size, setSize] = useState("");
-  const [phone, setPhone] = useState("");
+  const [entries, setEntries] = useState<CompanyEntry[]>([newEntry()]);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.replace("/login");
-    }
+    if (!isLoading && !isAuthenticated) router.replace("/login");
   }, [isLoading, isAuthenticated, router]);
 
-  // If user has no companies yet, go straight to the create form
   useEffect(() => {
-    if (!isLoading && isAuthenticated && companies.length === 0) {
-      setMode("create");
-    }
+    if (!isLoading && isAuthenticated && companies.length === 0) setMode("create");
   }, [isLoading, isAuthenticated, companies.length]);
+
+  function updateEntry(id: string, field: keyof Omit<CompanyEntry, "id">, value: string) {
+    setEntries((prev) => prev.map((e) => (e.id === id ? { ...e, [field]: value } : e)));
+  }
+
+  function removeEntry(id: string) {
+    setEntries((prev) => prev.filter((e) => e.id !== id));
+  }
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    if (!vertical) { toast.error("Please select an industry."); return; }
-    if (!size) { toast.error("Please select company size."); return; }
+    const valid = entries.filter((e) => e.name.trim());
+    if (valid.length === 0) { toast.error("Add at least one company name."); return; }
     setSubmitting(true);
+
+    const created: CompanyResponse[] = [];
     try {
-      const res = await createCompany({ name: name.trim(), vertical, size, phone: phone.trim() || undefined });
-      setCompany({ id: res.id, name: res.name, slug: res.slug });
-      toast.success(`Company "${res.name}" created!`);
-      router.push("/dashboard");
+      for (const entry of valid) {
+        const res = await createCompany({
+          name: entry.name.trim(),
+          vertical: entry.vertical || undefined,
+        });
+        created.push(res);
+        await addCompany({ name: res.name, vertical: res.vertical });
+      }
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Failed to create company");
-    } finally {
       setSubmitting(false);
+      return;
     }
+
+    if (created.length === 1) {
+      setCompany({ id: created[0].id, name: created[0].name, slug: created[0].slug });
+      router.push("/dashboard");
+    } else {
+      router.push("/select-company");
+    }
+    setSubmitting(false);
   }
 
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-surface">
-        <div className="text-muted-fg text-sm">Loading…</div>
+        <div className="text-muted-fg text-sm">Loading...</div>
       </div>
     );
   }
@@ -81,6 +105,7 @@ export default function OnboardingPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-surface py-12 px-4">
       <div className="w-full max-w-lg space-y-8">
+
         {/* Logo */}
         <div className="flex justify-center">
           <div className="flex items-center gap-3">
@@ -91,13 +116,13 @@ export default function OnboardingPage() {
           </div>
         </div>
 
-        {/* ── SELECT MODE ─────────────────────────────────────── */}
+        {/* SELECT: existing companies */}
         {mode === "select" && companies.length > 0 && (
           <div className="bg-background rounded-[12px] border border-border p-8 space-y-6">
             <div className="text-center">
               <h1 className="section-title">Your Companies</h1>
               <p className="text-sm text-muted-fg mt-1">
-                Welcome back{user?.fullName ? `, ${user.fullName.split(" ")[0]}` : ""}. Select a company or add a new one.
+                Welcome back{user?.fullName ? `, ${user.fullName.split(" ")[0]}` : ""}. Select a company to continue.
               </p>
             </div>
 
@@ -116,7 +141,7 @@ export default function OnboardingPage() {
                       <p className="text-sm font-medium text-foreground">{c.name}</p>
                       {c.vertical && (
                         <p className="text-xs text-muted-fg capitalize">
-                          {c.vertical.replace("_", " ")}
+                          {c.vertical.replace(/_/g, " ")}
                         </p>
                       )}
                     </div>
@@ -130,7 +155,7 @@ export default function OnboardingPage() {
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => setMode("create")}
+                onClick={() => { setEntries([newEntry()]); setMode("create"); }}
               >
                 <Plus size={16} className="mr-2" />
                 Add New Company
@@ -139,7 +164,7 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* ── CREATE MODE ─────────────────────────────────────── */}
+        {/* CREATE: add one or more companies */}
         {mode === "create" && (
           <div className="bg-background rounded-[12px] border border-border p-8 space-y-6">
             <div className="flex flex-col items-center gap-3">
@@ -147,94 +172,74 @@ export default function OnboardingPage() {
                 <Building2 size={22} className="text-primary" />
               </div>
               <div className="text-center">
-                <h1 className="section-title">Set up your company</h1>
+                <h1 className="section-title">Add your companies</h1>
                 <p className="text-sm text-muted-fg mt-1">
                   {companies.length > 0
-                    ? "Add another company to your account."
-                    : `Welcome${user?.fullName ? `, ${user.fullName.split(" ")[0]}` : ""}. Tell us about your business.`}
+                    ? "Add one or more companies to your account."
+                    : `Welcome${user?.fullName ? `, ${user.fullName.split(" ")[0]}` : ""}. Enter the companies you own or manage.`}
                 </p>
               </div>
             </div>
 
-            <form onSubmit={handleCreate} className="space-y-5">
-              {/* Company Name */}
-              <div className="space-y-1.5">
-                <Label htmlFor="name">Company Name</Label>
-                <Input
-                  id="name"
-                  placeholder="e.g. Apollo Holdings"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
-              </div>
+            <form onSubmit={handleCreate} className="space-y-4">
+              {entries.map((entry, idx) => (
+                <div key={entry.id} className="rounded-[10px] border border-border p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-muted-fg uppercase tracking-wide">
+                      Company {idx + 1}
+                    </span>
+                    {entries.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeEntry(entry.id)}
+                        className="text-muted-fg hover:text-red-500 transition-colors"
+                        aria-label="Remove"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                  </div>
 
-              {/* Industry */}
-              <div className="space-y-1.5">
-                <Label>Industry</Label>
-                <div className="grid grid-cols-1 gap-2">
-                  {VERTICALS.map((v) => (
-                    <button
-                      key={v.value}
-                      type="button"
-                      onClick={() => setVertical(v.value)}
-                      className={`flex items-center justify-between px-4 py-3 rounded-[8px] border text-sm transition-colors ${
-                        vertical === v.value
-                          ? "border-primary bg-primary/5 text-foreground font-medium"
-                          : "border-border hover:border-primary/50 text-muted-fg hover:text-foreground"
-                      }`}
+                  <div className="space-y-1.5">
+                    <Label htmlFor={`name-${entry.id}`}>Company Name</Label>
+                    <Input
+                      id={`name-${entry.id}`}
+                      placeholder="e.g. Zezwe ICT, Hawkz Telecoms..."
+                      value={entry.name}
+                      onChange={(e) => updateEntry(entry.id, "name", e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor={`vertical-${entry.id}`}>
+                      Industry <span className="text-muted-fg font-normal">(optional)</span>
+                    </Label>
+                    <select
+                      id={`vertical-${entry.id}`}
+                      value={entry.vertical}
+                      onChange={(e) => updateEntry(entry.id, "vertical", e.target.value)}
+                      className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                     >
-                      <span>{v.label}</span>
-                      {vertical === v.value && <Check size={14} className="text-primary" />}
-                    </button>
-                  ))}
+                      {VERTICALS.map((v) => (
+                        <option key={v.value} value={v.value}>{v.label}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-              </div>
+              ))}
 
-              {/* Company Size */}
-              <div className="space-y-1.5">
-                <Label>Number of Employees</Label>
-                <div className="grid grid-cols-5 gap-2">
-                  {COMPANY_SIZES.map((s) => (
-                    <button
-                      key={s.value}
-                      type="button"
-                      onClick={() => setSize(s.value)}
-                      className={`flex flex-col items-center justify-center px-2 py-3 rounded-[8px] border text-xs transition-colors ${
-                        size === s.value
-                          ? "border-primary bg-primary/5 text-foreground font-medium"
-                          : "border-border hover:border-primary/50 text-muted-fg hover:text-foreground"
-                      }`}
-                    >
-                      <span className="font-semibold text-sm">{s.label}</span>
-                      <span className="text-[10px] mt-0.5 text-center leading-tight">{s.sub}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Phone (optional) */}
-              <div className="space-y-1.5">
-                <Label htmlFor="phone">
-                  Phone <span className="text-muted-fg font-normal">(optional)</span>
-                </Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  placeholder="+27 11 000 0000"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                />
-              </div>
+              <button
+                type="button"
+                onClick={() => setEntries((prev) => [...prev, newEntry()])}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-[10px] border border-dashed border-border text-sm text-muted-fg hover:border-primary hover:text-primary transition-colors"
+              >
+                <Plus size={15} />
+                Add another company
+              </button>
 
               <div className="flex gap-3 pt-1">
                 {companies.length > 0 && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="flex-1"
-                    onClick={() => setMode("select")}
-                  >
+                  <Button type="button" variant="outline" className="flex-1" onClick={() => setMode("select")}>
                     Back
                   </Button>
                 )}
@@ -242,9 +247,13 @@ export default function OnboardingPage() {
                   type="submit"
                   className="flex-1"
                   size="lg"
-                  disabled={submitting || !name.trim() || !vertical || !size}
+                  disabled={submitting || !entries.some((e) => e.name.trim())}
                 >
-                  {submitting ? "Creating…" : "Create Company →"}
+                  {submitting
+                    ? "Creating..."
+                    : entries.filter((e) => e.name.trim()).length > 1
+                    ? `Create ${entries.filter((e) => e.name.trim()).length} Companies`
+                    : "Create Company"}
                 </Button>
               </div>
             </form>
@@ -252,10 +261,9 @@ export default function OnboardingPage() {
         )}
 
         <p className="text-center text-xs text-muted-fg">
-          You can update company details from Settings after setup.
+          You can update company details from Settings at any time.
         </p>
       </div>
     </div>
   );
 }
-
