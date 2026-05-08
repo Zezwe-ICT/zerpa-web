@@ -89,7 +89,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.removeItem(COMPANIES_KEY);
       }
     }
-    }
 
     setIsLoading(false);
   }, []);
