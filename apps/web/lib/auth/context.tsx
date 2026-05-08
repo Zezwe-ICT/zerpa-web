@@ -100,24 +100,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem(USER_KEY, JSON.stringify(res.user));
       setUser(res.user);
 
-      // Handle multiple companies from response
-      const companiesList = res.companies || (res.company ? [res.company] : []);
-      
+      // Use companies from sign-in response, or fetch them separately
+      let companiesList = res.companies || (res.company ? [res.company] : []);
+
+      if (companiesList.length === 0) {
+        try {
+          const fetched = await apiGetCompanies();
+          companiesList = fetched.companies || [];
+        } catch {
+          // API may not support the endpoint yet — fall through to onboarding
+        }
+      }
+
       if (companiesList.length > 0) {
         localStorage.setItem(COMPANIES_KEY, JSON.stringify(companiesList));
         setCompaniesState(companiesList);
 
         if (companiesList.length === 1) {
-          // Single company: auto-select and go to dashboard
           localStorage.setItem(COMPANY_KEY, JSON.stringify(companiesList[0]));
           setCompanyState(companiesList[0]);
           router.push("/dashboard");
         } else {
-          // Multiple companies: show selector
           router.push("/select-company");
         }
       } else {
-        // No company: go to onboarding
         router.push("/onboarding");
       }
     },
