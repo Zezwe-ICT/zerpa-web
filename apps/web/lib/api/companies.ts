@@ -5,6 +5,16 @@ export interface CompanyResponse {
   name: string;
   slug: string;
   ownerUserId: string;
+  vertical?: string;
+  size?: string;
+  phone?: string;
+}
+
+export interface CreateCompanyPayload {
+  name: string;
+  vertical?: string;
+  size?: string;
+  phone?: string;
 }
 
 export interface TeamMemberPayload {
@@ -36,10 +46,10 @@ export interface HealthResponse {
   };
 }
 
-export function createCompany(name: string): Promise<CompanyResponse> {
+export function createCompany(payload: CreateCompanyPayload): Promise<CompanyResponse> {
   return apiRequest<CompanyResponse>("/companies", {
     method: "POST",
-    body: { name },
+    body: payload,
   });
 }
 
