@@ -76,7 +76,7 @@ export async function apiRequest<T>(
     let details: unknown;
     try {
       const data = await res.json();
-      errorMessage = data.error ?? errorMessage;
+      errorMessage = data.error ?? data.message ?? errorMessage;
       details = data.details;
     } catch {
       // ignore parse error

@@ -19,8 +19,22 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  function validatePassword(pw: string): string | null {
+    if (pw.length < 8) return "Password must be at least 8 characters.";
+    if (!/[A-Z]/.test(pw)) return "Password must contain at least one uppercase letter.";
+    if (!/[0-9]/.test(pw)) return "Password must contain at least one number.";
+    return null;
+  }
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (mode === "register") {
+      const pwError = validatePassword(password);
+      if (pwError) {
+        toast.error(pwError);
+        return;
+      }
+    }
     setIsLoading(true);
     try {
       if (mode === "register") {
@@ -120,6 +134,11 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
+              {mode === "register" && (
+                <p className="text-xs text-muted-fg">
+                  Min 8 characters, 1 uppercase letter, 1 number.
+                </p>
+              )}
             </div>
 
             <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
