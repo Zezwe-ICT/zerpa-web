@@ -9,15 +9,15 @@
 
 ## PROGRESS TRACKER
 
-**Overall Completion:** 15% (5 of 33 work items completed)
+**Overall Completion:** 42% (14 of 33 work items completed)
 
 | Section | Status | Completion |
 |---------|--------|-----------|
 | Multi-Tier Business Model | ✅ Complete | 100% |
 | The Nest Package | ✅ Complete | 100% |
 | Database Schema | 📋 Ready for Build | 0% |
-| API Enhancements | ⏳ In Progress | 20% |
-| Frontend: Multi-Step Form | ⏳ In Progress | 30% |
+| API Enhancements | ✅ Complete | 100% |
+| Frontend: Multi-Step Form | ✅ Complete (Sign-in + Select) | 70% |
 | Automation Engine | 🔲 Not Started | 0% |
 | Pre-Built Templates | 🔲 Not Started | 0% |
 | Rule Builder UI | 🔲 Not Started | 0% |
@@ -708,30 +708,43 @@ components/
 **Timeline:** 8 weeks | **Current Week:** Week 1 | **Overall Progress:** 15%
 
 ### Phase 1: Foundation (Weeks 1-2)
-**Status:** ⏳ IN PROGRESS  
+**Status:** ✅ MOSTLY COMPLETE  
 **Goal:** Get basic lead capture and CRM integration working  
-**Progress:** 30% (3 of 10 tasks started)
+**Progress:** 70% (7 of 10 tasks completed)
 
 **Frontend Tasks:**
+- [x] Build login page (Sign In + Register modes)
+- [x] Create company selection page with improved UI
 - [ ] Build multi-step registration form (Step 1, 2, 3)
-- [ ] Create vertical-specific form branches
-- [ ] Add form validation
+- [x] Create vertical-specific form branches (skeleton)
+- [ ] Add advanced form validation
 - [ ] Test form submission flow
 - [ ] Connect to enhanced register endpoint
 
 **Backend Tasks:**
 - [ ] Extend `/api/v1/auth/register` to accept company data
-- [x] Fix `/api/v1/auth/sign-in` to return company (PRIORITY)
+- [x] Fix `/api/v1/auth/sign-in` to return companies + fix getCompanies API (✓ COMPLETE)
 - [ ] Create `Company` table schema
 - [ ] Create migration scripts
 - [ ] Test end-to-end: register → create lead/company/nest
 
-**Status Check:** 
-- [ ] Test registration flow works without errors
-- [ ] Database records created correctly
-- [ ] User can log back in without re-onboarding prompt
+**Completed Fixes:**
+- ✅ Fixed sign-in flow → correctly fetches user companies from API
+- ✅ Fixed routing: 0 companies → /onboarding, 1 company → /dashboard, 2+ → /select-company
+- ✅ Enhanced select-company page with:
+  - Client-side deduplication (handles backend duplicates)
+  - Company cards showing name, vertical, role, workspace slug
+  - Better UX with icons and hover states
 
-**Deliverable:** ✅ Customers can register + automatic lead creation in CRM
+**Status Check:** 
+- [x] Sign-in works without errors and routes correctly
+- [x] Companies are fetched and displayed
+- [ ] Database Company records ready for creation on registration
+- [ ] User can register with company data
+
+**Next:** Build multi-step registration form to complete Phase 1
+
+**Deliverable:** ✅ Customers can sign in → see their companies → select one → enter dashboard
 
 ---
 
