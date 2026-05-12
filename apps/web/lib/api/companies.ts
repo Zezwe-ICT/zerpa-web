@@ -13,8 +13,9 @@ export interface CompanyResponse {
 export interface CreateCompanyPayload {
   name: string;
   vertical?: string;
-  size?: string;
   phone?: string;
+  description?: string;
+  details?: Record<string, any>;
 }
 
 export interface TeamMemberPayload {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,41 +9,18 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth/context";
 import { ApiError } from "@/lib/api/client";
 
-type Mode = "signin" | "register";
-
 export default function LoginPage() {
-  const { signIn, register } = useAuth();
-  const [mode, setMode] = useState<Mode>("register");
+  const { signIn } = useAuth();
+  const router = useRouter();
   const [email, setEmail] = useState("");
-  const [fullName, setFullName] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  function validatePassword(pw: string): string | null {
-    if (pw.length < 8) return "Password must be at least 8 characters.";
-    if (!/[A-Z]/.test(pw)) return "Password must contain at least one uppercase letter.";
-    if (!/[0-9]/.test(pw)) return "Password must contain at least one number.";
-    return null;
-  }
-
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (mode === "register") {
-      const pwError = validatePassword(password);
-      if (pwError) {
-        toast.error(pwError);
-        return;
-      }
-    }
     setIsLoading(true);
     try {
-      if (mode === "register") {
-        await register({ email, fullName, password });
-        toast.success("Account created — let's set up your company.");
-        window.location.href = "/onboarding";
-      } else {
-        await signIn({ email, password });
-      }
+      await signIn({ email, password });
     } catch (err) {
       const message =
         err instanceof ApiError ? err.message : "Something went wrong";
@@ -68,48 +45,12 @@ export default function LoginPage() {
 
         {/* Card */}
         <div className="bg-background rounded-[12px] border border-border p-8 space-y-6">
-          {/* Mode toggle */}
-          <div className="flex rounded-[8px] border border-border overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setMode("register")}
-              className={`flex-1 py-2 text-sm font-medium transition-colors ${
-                mode === "register"
-                  ? "bg-primary text-primary-fg"
-                  : "text-muted-fg hover:text-foreground"
-              }`}
-            >
-              Register
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode("signin")}
-              className={`flex-1 py-2 text-sm font-medium transition-colors ${
-                mode === "signin"
-                  ? "bg-primary text-primary-fg"
-                  : "text-muted-fg hover:text-foreground"
-              }`}
-            >
-              Sign In
-            </button>
+          <div className="text-center space-y-2">
+            <h1 className="text-2xl font-bold">Welcome back</h1>
+            <p className="text-sm text-muted-fg">Sign in to your Zerpa account</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {mode === "register" && (
-              <div className="space-y-1.5">
-                <Label htmlFor="fullName">Full Name</Label>
-                <Input
-                  id="fullName"
-                  type="text"
-                  placeholder="Jane Smith"
-                  autoComplete="name"
-                  required
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                />
-              </div>
-            )}
-
             <div className="space-y-1.5">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -129,31 +70,29 @@ export default function LoginPage() {
                 id="password"
                 type="password"
                 placeholder="••••••••"
-                autoComplete={mode === "register" ? "new-password" : "current-password"}
+                autoComplete="current-password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
-              {mode === "register" && (
-                <p className="text-xs text-muted-fg">
-                  Min 8 characters, 1 uppercase letter, 1 number.
-                </p>
-              )}
             </div>
 
             <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
-              {isLoading
-                ? mode === "register" ? "Creating account…" : "Signing in…"
-                : mode === "register" ? "Create Account" : "Sign In"}
+              {isLoading ? "Signing in…" : "Sign In"}
             </Button>
           </form>
         </div>
 
-        <div className="text-center">
-          <Link href="/" className="text-sm text-primary hover:underline">
-            Back to home
-          </Link>
-        </div>
+        {/* Footer */}
+        <p className="text-center text-xs text-muted-fg">
+          Don't have an account?{" "}
+          <button
+            onClick={() => router.push("/register")}
+            className="text-primary hover:underline font-medium"
+          >
+            Create one
+          </button>
+        </p>
       </div>
     </div>
   );
