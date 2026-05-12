@@ -8,14 +8,13 @@ import { Step2Form } from "@/components/auth/step2-form";
 import { Step3Form } from "@/components/auth/step3-form";
 import { ProgressIndicator } from "@/components/auth/progress-indicator";
 import { useAuth } from "@/lib/auth/context";
-import { createCompany } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
 
 type Step = 1 | 2 | 3;
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { register } = useAuth();
+  const { register, addCompany } = useAuth();
 
   // Step 1: User account
   const [fullName, setFullName] = useState("");
@@ -54,8 +53,8 @@ export default function RegisterPage() {
   async function handleStep3Submit() {
     setIsLoading(true);
     try {
-      // Create the company with details
-      await createCompany({
+      // Create the company with details via addCompany (updates auth context)
+      const newCompany = await addCompany({
         name: companyName,
         phone: phone || undefined,
         vertical: vertical || undefined,
@@ -63,7 +62,11 @@ export default function RegisterPage() {
       });
 
       toast.success("Account setup complete! Welcome to Zerpa.");
-      router.push("/select-company");
+      
+      // If only one company, go directly to dashboard
+      if (newCompany && newCompany.id) {
+        router.push("/select-company");
+      }
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "Failed to create company";
       toast.error(message);
