@@ -6,6 +6,7 @@ export interface AuthCompany {
   vertical?: string;
   slug?: string;
   ownerUserId?: string;
+  role?: string;
 }
 
 export interface AuthResponse {
@@ -48,9 +49,9 @@ export function register(payload: RegisterPayload): Promise<AuthResponse> {
   });
 }
 
-export function getCompanies(): Promise<{ companies: AuthCompany[] }> {
+export function getCompanies(): Promise<AuthCompany[]> {
   console.log("[AUTH] Fetching user companies");
-  return apiRequest<{ companies: AuthCompany[] }>("/companies", {
+  return apiRequest<AuthCompany[]>("/companies", {
     method: "GET",
   }).catch((err) => {
     console.error("[AUTH] Get companies failed:", err);

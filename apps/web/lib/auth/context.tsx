@@ -106,7 +106,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (companiesList.length === 0) {
         try {
           const fetched = await apiGetCompanies();
-          companiesList = fetched.companies || [];
+          companiesList = Array.isArray(fetched) ? fetched : [];
         } catch {
           // API may not support the endpoint yet — fall through to onboarding
         }
