@@ -1,34 +1,47 @@
 "use client";
 
+import { useMemo } from "react";
 import { useAuth } from "@/lib/auth/context";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
-import { MessageCircle } from "lucide-react";
+import { MessageCircle, Building2 } from "lucide-react";
 
 export default function SelectCompanyPage() {
   const { companies, selectCompany, isLoading } = useAuth();
   const router = useRouter();
 
+  // Deduplicate companies by name to handle backend duplicates
+  const uniqueCompanies = useMemo(() => {
+    if (!companies) return [];
+    const seen = new Map<string, typeof companies[0]>();
+    for (const company of companies) {
+      if (!seen.has(company.name)) {
+        seen.set(company.name, company);
+      }
+    }
+    return Array.from(seen.values());
+  }, [companies]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading companies...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-fg">Loading companies...</p>
         </div>
       </div>
     );
   }
 
-  if (!companies || companies.length === 0) {
+  if (!uniqueCompanies || uniqueCompanies.length === 0) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="flex items-center justify-center min-h-screen bg-surface">
         <Card className="w-full max-w-md p-8">
           <div className="text-center">
-            <MessageCircle className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+            <MessageCircle className="w-12 h-12 mx-auto mb-4 text-muted-fg" />
             <h1 className="text-2xl font-bold mb-2">No Companies</h1>
-            <p className="text-gray-600 mb-6">
+            <p className="text-muted-fg mb-6">
               You don't have any companies yet. Create one to get started.
             </p>
             <Button onClick={() => router.push("/onboarding")} className="w-full">
@@ -41,33 +54,53 @@ export default function SelectCompanyPage() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50 p-4">
-      <div className="w-full max-w-2xl">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-2">Select Company</h1>
-          <p className="text-gray-600">
-            You have access to {companies.length} compan{companies.length === 1 ? "y" : "ies"}. Choose which one you'd like to work on.
+    <div className="flex items-center justify-center min-h-screen bg-surface p-4">
+      <div className="w-full max-w-3xl">
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold mb-3">Select Company</h1>
+          <p className="text-muted-fg text-lg">
+            You have access to {uniqueCompanies.length} compan{uniqueCompanies.length === 1 ? "y" : "ies"}. Choose which one you'd like to work on.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-          {companies.map((company) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          {uniqueCompanies.map((company) => (
             <Card
               key={company.id}
-              className="p-6 cursor-pointer hover:shadow-lg transition-shadow"
+              className="p-6 cursor-pointer hover:shadow-lg hover:border-primary/30 transition-all group"
               onClick={() => selectCompany(company.id)}
             >
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <h2 className="text-xl font-semibold text-gray-900 mb-1">
+              <div className="flex items-start gap-4 mb-4">
+                <div className="p-3 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                  <Building2 size={24} className="text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-lg font-semibold text-foreground truncate">
                     {company.name}
                   </h2>
                   {company.vertical && (
-                    <p className="text-sm text-gray-500 capitalize">
-                      {company.vertical.replace("_", " ")}
+                    <p className="text-sm text-muted-fg capitalize mt-1">
+                      {company.vertical.replace(/_/g, " ")}
                     </p>
                   )}
                 </div>
+              </div>
+
+              <div className="space-y-2 mb-6">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-fg">Role</span>
+                  <span className="font-medium text-foreground capitalize">
+                    {company.role || "Member"}
+                  </span>
+                </div>
+                {company.slug && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-fg">Workspace</span>
+                    <span className="font-mono text-xs text-muted-fg truncate ml-2">
+                      {company.slug}
+                    </span>
+                  </div>
+                )}
               </div>
 
               <Button
@@ -84,7 +117,7 @@ export default function SelectCompanyPage() {
         </div>
 
         <div className="text-center">
-          <p className="text-sm text-gray-600 mb-3">
+          <p className="text-sm text-muted-fg mb-3">
             Need to create another company?
           </p>
           <Button
