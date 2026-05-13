@@ -70,7 +70,7 @@ export function CreateInvoiceForm({ onSuccess }: CreateInvoiceFormProps) {
       {
         id: "1",
         description: "",
-        qty: 1,
+        quantity: 1,
         unitPrice: 0,
         total: 0,
       },
@@ -103,7 +103,7 @@ export function CreateInvoiceForm({ onSuccess }: CreateInvoiceFormProps) {
         {
           id: String(Date.now()),
           description: "",
-          qty: 1,
+          quantity: 1,
           unitPrice: 0,
           total: 0,
         },
