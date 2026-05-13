@@ -1,6 +1,7 @@
 import { PageContainer } from "@/components/layouts/page-container";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatsCard } from "@/components/ui/stats-card";
+import { DashboardGreeting } from "@/components/modules/dashboard/dashboard-greeting";
 import { Building2, TrendingUp, AlertCircle, Users } from "lucide-react";
 
 export default function DashboardPage() {
@@ -8,7 +9,7 @@ export default function DashboardPage() {
     <PageContainer>
       <PageHeader
         title="Dashboard"
-        subtitle="Good morning, Jane. Here's what's happening today."
+        subtitle={<DashboardGreeting />}
       />
 
       {/* KPI Cards */}
