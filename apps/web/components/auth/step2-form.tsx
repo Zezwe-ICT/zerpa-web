@@ -1,3 +1,8 @@
+/**
+ * @file components/auth/step2-form.tsx
+ * @description Step 2 of the registration flow: captures company name, industry
+ * vertical (FUNERAL | AUTO | RESTAURANT | SPA | …) and contact phone number.
+ */
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

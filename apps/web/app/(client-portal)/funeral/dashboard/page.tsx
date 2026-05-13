@@ -1,3 +1,9 @@
+/**
+ * @file app/(client-portal)/funeral/dashboard/page.tsx
+ * @description Funeral home client dashboard. Shows KPI cards for Active Cases,
+ * Completed Cases, Pending Arrangements and Notifications. Displays a recent
+ * activity table with case status and scheduled dates.
+ */
 import { PageContainer } from "@/components/layouts/page-container";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatsCard } from "@/components/ui/stats-card";

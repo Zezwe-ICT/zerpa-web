@@ -1,3 +1,9 @@
+/**
+ * @file components/modules/crm/leads-list-client.tsx
+ * @description Client component that renders the CRM leads pipeline table.
+ * Supports status-based colour coding, search filtering, and links to individual
+ * lead detail pages. Receives `initialLeads` from the server page.
+ */
 "use client";
 
 import { useState } from "react";

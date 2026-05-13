@@ -1,3 +1,9 @@
+/**
+ * @file components/modules/nest-sales/nest-sale-detail-client.tsx
+ * @description Client component for the Nest Sale detail page. Displays the
+ * 8-task provisioning checklist with tick/untick actions, sale summary, pricing
+ * and timeline. Manages optimistic checklist state locally.
+ */
 "use client";
 
 import { useState } from "react";

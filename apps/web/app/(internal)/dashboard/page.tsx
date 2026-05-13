@@ -1,7 +1,10 @@
+/**
+ * @file app/(internal)/dashboard/page.tsx
+ * @description ZERPA internal admin dashboard. Shows 4 KPI cards (Active Clients,
+ * MRR, Overdue Invoices, Open Leads) and placeholder sections for charts and
+ * activity feeds. Greeting is personalised via DashboardGreeting component.
+ */
 import { PageContainer } from "@/components/layouts/page-container";
-import { PageHeader } from "@/components/ui/page-header";
-import { StatsCard } from "@/components/ui/stats-card";
-import { DashboardGreeting } from "@/components/modules/dashboard/dashboard-greeting";
 import { Building2, TrendingUp, AlertCircle, Users } from "lucide-react";
 
 export default function DashboardPage() {

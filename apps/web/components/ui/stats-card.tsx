@@ -1,3 +1,8 @@
+/**
+ * @file components/ui/stats-card.tsx
+ * @description KPI StatsCard widget displaying a metric label, value, sub-text,
+ * coloured icon and optional trend indicator. Used on dashboard pages.
+ */
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
 

@@ -1,3 +1,9 @@
+/**
+ * @file app/(internal)/billing/[id]/page.tsx
+ * @description Admin invoice detail page. Server-fetches a single invoice by id
+ * via getInvoiceById(); 404s when not found. Renders InvoiceDetailClient which
+ * shows the full invoice with Send, Void and Print actions.
+ */
 import { PageContainer } from "@/components/layouts/page-container";
 import { Button } from "@/components/ui/button";
 import { InvoiceDetailClient } from "@/components/modules/billing/invoice-detail-client";

@@ -1,3 +1,9 @@
+/**
+ * @file components/modules/dashboard/dashboard-greeting.tsx
+ * @description Client component that renders a time-aware personalised greeting
+ * on the internal dashboard ("Good morning/afternoon/evening, [FirstName]").
+ * Reads the logged-in user's fullName from the AuthContext.
+ */
 "use client";
 
 import { useAuth } from "@/lib/auth/context";

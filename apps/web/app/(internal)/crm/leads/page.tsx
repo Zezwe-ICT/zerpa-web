@@ -1,3 +1,8 @@
+/**
+ * @file app/(internal)/crm/leads/page.tsx
+ * @description CRM leads pipeline page. Server-fetches all leads via getLeads()
+ * and renders them in the LeadsListClient component with stage filtering.
+ */
 import { PageContainer } from "@/components/layouts/page-container";
 import { PageHeader } from "@/components/ui/page-header";
 import { LeadsListClient } from "@/components/modules/crm/leads-list-client";

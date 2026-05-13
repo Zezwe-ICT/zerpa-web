@@ -1,3 +1,9 @@
+/**
+ * @file app/(client-portal)/restaurant/dashboard/page.tsx
+ * @description Restaurant client dashboard. Shows KPI cards for Today's Orders,
+ * Average Wait Time, Revenue Today and Active Staff. Includes a live order
+ * status table with timestamps.
+ */
 import { PageContainer } from "@/components/layouts/page-container";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatsCard } from "@/components/ui/stats-card";

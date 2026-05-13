@@ -1,3 +1,9 @@
+/**
+ * @file components/ui/dialog.tsx
+ * @description Modal Dialog with backdrop overlay. Closes on outside click.
+ * Exports Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+ * DialogFooter sub-components for composable modal layouts.
+ */
 "use client";
 
 import * as React from "react";

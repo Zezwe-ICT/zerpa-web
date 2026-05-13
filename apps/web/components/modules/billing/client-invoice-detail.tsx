@@ -1,3 +1,9 @@
+/**
+ * @file components/modules/billing/client-invoice-detail.tsx
+ * @description Client-portal invoice detail view. Shows invoice metadata, line
+ * items table, totals and a PDF download button. Displays an overdue alert banner
+ * when the invoice is past due. Read-only (no admin actions).
+ */
 "use client";
 
 import { formatDate, isOverdue } from "@/lib/utils/dates";

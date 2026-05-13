@@ -1,3 +1,8 @@
+/**
+ * @file components/add-company-button.tsx
+ * @description Thin wrapper button that opens AddCompanyModal on click.
+ * Accepts an optional onSuccess callback and showLabel flag.
+ */
 "use client";
 
 import { useState } from "react";

@@ -1,3 +1,8 @@
+/**
+ * @file components/auth/step3-spa-form.tsx
+ * @description Step 3 details form for Spa & Wellness vertical. Captures staff
+ * count, services offered (multi-select), average bookings per week and description.
+ */
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

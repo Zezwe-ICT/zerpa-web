@@ -1,3 +1,8 @@
+/**
+ * @file app/(internal)/crm/contacts/page.tsx
+ * @description CRM contacts page. Server-fetches all contacts via getContacts()
+ * and passes them to ContactsListClient for search and display.
+ */
 import { PageContainer } from "@/components/layouts/page-container";
 import { PageHeader } from "@/components/ui/page-header";
 import { ContactsListClient } from "@/components/modules/crm/contacts-list-client";

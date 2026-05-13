@@ -1,3 +1,8 @@
+/**
+ * @file components/ui/card.tsx
+ * @description Reusable Card layout primitives — Card, CardHeader, CardTitle,
+ * CardContent and CardFooter. Used as the base container throughout the app.
+ */
 import * as React from "react";
 import { cn } from "@/lib/utils";
 

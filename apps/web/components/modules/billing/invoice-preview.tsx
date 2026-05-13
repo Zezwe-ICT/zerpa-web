@@ -1,3 +1,9 @@
+/**
+ * @file components/modules/billing/invoice-preview.tsx
+ * @description Print-ready ZERPA-branded invoice preview. Renders the full
+ * invoice layout (header, branding, line items table, totals, notes, footer)
+ * with conditional PAID / OVERDUE / DRAFT watermarks.
+ */
 "use client";
 
 import { cn } from "@/lib/utils";

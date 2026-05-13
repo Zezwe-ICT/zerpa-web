@@ -1,3 +1,8 @@
+/**
+ * @file components/auth/step3-restaurant-form.tsx
+ * @description Step 3 details form for Restaurant / Hospitality vertical. Captures
+ * restaurant type, average covers per day, event booking volume and cuisine types.
+ */
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

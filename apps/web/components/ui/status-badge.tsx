@@ -1,3 +1,8 @@
+/**
+ * @file components/ui/status-badge.tsx
+ * @description StatusBadge renders colour-coded pill labels for invoice statuses
+ * (DRAFT, SENT, PAID, OVERDUE, VOID) and lead/nest-sale pipeline stages.
+ */
 "use client";
 
 import { cn } from "@/lib/utils";

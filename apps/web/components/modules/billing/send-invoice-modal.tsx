@@ -1,7 +1,11 @@
+/**
+ * @file components/modules/billing/send-invoice-modal.tsx
+ * @description Modal dialog for sending an invoice to a client. Pre-fills the
+ * recipient email, allows adding a custom message and calls sendInvoice() on submit.
+ */
 "use client";
 
-import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { useState } from "react"; from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";

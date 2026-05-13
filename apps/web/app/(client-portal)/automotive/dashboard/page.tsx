@@ -1,3 +1,9 @@
+/**
+ * @file app/(client-portal)/automotive/dashboard/page.tsx
+ * @description Automotive client dashboard. Shows KPI cards for Open Job Cards,
+ * Completed This Month, Revenue MTD and Parts in Stock. Includes activity feed
+ * with recent vehicle service records.
+ */
 import { PageContainer } from "@/components/layouts/page-container";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatsCard } from "@/components/ui/stats-card";
@@ -27,3 +33,5 @@ export default function AutomotiveDashboardPage() {
     </PageContainer>
   );
 }
+
+

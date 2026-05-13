@@ -1,3 +1,9 @@
+/**
+ * @file components/layouts/internal-sidebar.tsx
+ * @description Collapsible left-hand navigation sidebar for the internal ERP shell.
+ * Contains nav links grouped by section (CRM, Billing, Operations, HR, Settings)
+ * and a sign-out button. Reads active route from usePathname for highlighting.
+ */
 "use client";
 
 import { useState } from "react";

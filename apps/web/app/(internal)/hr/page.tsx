@@ -1,3 +1,9 @@
+/**
+ * @file app/(internal)/hr/page.tsx
+ * @description HR & Team Management page. Allows admins to view the current
+ * team roster and invite new team members by email, name and role.
+ * Calls addTeamMember() API on form submit.
+ */
 "use client";
 
 import { useState } from "react";

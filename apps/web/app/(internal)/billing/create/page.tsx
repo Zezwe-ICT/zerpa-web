@@ -1,3 +1,8 @@
+/**
+ * @file app/(internal)/billing/create/page.tsx
+ * @description Create new invoice page. Renders the CreateInvoiceForm inside
+ * the internal shell. On successful creation, redirects back to /billing.
+ */
 "use client";
 
 import { PageContainer } from "@/components/layouts/page-container";

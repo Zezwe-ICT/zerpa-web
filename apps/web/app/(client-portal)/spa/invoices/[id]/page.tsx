@@ -1,3 +1,9 @@
+/**
+ * @file app/(client-portal)/spa/invoices/[id]/page.tsx
+ * @description Spa client portal — invoice detail page. Force-dynamic;
+ * fetches invoice by id via getInvoiceById() and renders ClientInvoiceDetail.
+ * Shows line items, totals, status and a print/download action.
+ */
 import { PageContainer } from "@/components/layouts/page-container";
 import { ClientInvoiceDetail } from "@/components/modules/billing/client-invoice-detail";
 import { Button } from "@/components/ui/button";

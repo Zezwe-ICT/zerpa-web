@@ -1,3 +1,9 @@
+/**
+ * @file app/(client-portal)/automotive/invoices/page.tsx
+ * @description Automotive client portal — invoices list. Force-dynamic; fetches all
+ * invoices and filters to AUTOMOTIVE vertical. Renders ClientInvoiceList with invoice
+ * number, amount, status and a link to each invoice detail page.
+ */
 import { PageContainer } from "@/components/layouts/page-container";
 import { PageHeader } from "@/components/ui/page-header";
 import { ClientInvoiceList } from "@/components/modules/billing/client-invoice-list";

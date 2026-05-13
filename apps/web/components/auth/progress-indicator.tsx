@@ -1,3 +1,8 @@
+/**
+ * @file components/auth/progress-indicator.tsx
+ * @description Visual step progress bar for the multi-step registration flow.
+ * Renders coloured segment bars and labelled step indicators below them.
+ */
 interface ProgressIndicatorProps {
   currentStep: number;
   totalSteps: number;

@@ -1,3 +1,9 @@
+/**
+ * @file app/(internal)/settings/page.tsx
+ * @description System settings page for ZERPA admins. Lists configuration sections
+ * (Notifications, Security, Appearance, Integrations, Database, Email).
+ * Also displays live API health status and logged-in account info.
+ */
 "use client";
 
 import { useEffect, useState } from "react";

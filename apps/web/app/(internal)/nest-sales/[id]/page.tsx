@@ -1,3 +1,9 @@
+/**
+ * @file app/(internal)/nest-sales/[id]/page.tsx
+ * @description Nest Sale detail page. Server-fetches a single sale and its
+ * provisioning checklist then hands off to NestSaleDetailClient for interactive
+ * task completion and status management.
+ */
 import { notFound } from "next/navigation";
 import { getNestSaleById, getProvisioningChecklist } from "@/lib/data/nest-sales";
 import { NestSaleDetailClient } from "@/components/modules/nest-sales/nest-sale-detail-client";

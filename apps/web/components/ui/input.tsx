@@ -1,3 +1,8 @@
+/**
+ * @file components/ui/input.tsx
+ * @description Text Input component with ZERPA design-system styling.
+ * Forwards refs; supports all native input attributes.
+ */
 "use client";
 
 import * as React from "react";

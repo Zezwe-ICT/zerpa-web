@@ -1,3 +1,8 @@
+/**
+ * @file components/auth/step3-auto-form.tsx
+ * @description Step 3 details form for Automotive / Auto Shop vertical. Captures
+ * mechanic count, monthly repair volume, workshop location and service types.
+ */
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

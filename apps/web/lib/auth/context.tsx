@@ -1,33 +1,10 @@
 /**
  * @file lib/auth/context.tsx
- * @description
- * Global Authentication Context for ZERPA application
- *
- * Responsibilities:
- * 1. Manage user authentication state (user, token, companies)
- * 2. Handle auth flows: sign-in, register, company selection
- * 3. Persist auth state to localStorage for persistence across sessions
- * 4. Route navigation based on auth state (1 company → dashboard, 2+ → select, 0 → onboarding)
- * 5. Support multi-tenant company switching
- *
- * Architecture:
- * - AuthProvider: Wraps entire app, initializes auth from localStorage
- * - useAuth hook: Access auth context (throws if used outside provider)
- * - Functions are useCallback optimized to prevent unnecessary re-renders
- *
- * Storage Keys:
- * - zerpa_user: Current authenticated user object
- * - zerpa_company: Currently selected company
- * - zerpa_companies: All companies user has access to
- * - Authorization token stored in cookie/header via api/client.ts
- *
- * Flow Diagrams:
- * Sign-In: email/password → apiSignIn() → setUser() → fetch all companies → route
- * Register: email/password → apiRegister() → setUser() → return (user on company creation page)
- * AddCompany: company data → apiCreateCompany() → update companies array → update storage
- * SelectCompany: companyId → update active company → route to /dashboard
+ * @description Global Authentication Context for the ZERPA application.
+ * Manages user, token and company state. Provides signIn, register, selectCompany,
+ * addCompany and signOut functions. Persists state to localStorage.
+ * Auth state is hydrated on mount from zerpa_user / zerpa_company storage keys.
  */
-
 "use client";
 
 import {

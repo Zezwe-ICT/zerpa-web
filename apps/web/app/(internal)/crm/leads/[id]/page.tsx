@@ -1,3 +1,9 @@
+/**
+ * @file app/(internal)/crm/leads/[id]/page.tsx
+ * @description CRM lead detail page. Server-fetches a lead by id via getLeadById();
+ * 404s if not found. Displays lead info, assigned user, interactions timeline
+ * and quick-action buttons (email, call, message).
+ */
 import { PageContainer } from "@/components/layouts/page-container";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";

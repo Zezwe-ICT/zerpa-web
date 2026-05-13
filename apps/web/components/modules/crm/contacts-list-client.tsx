@@ -1,3 +1,8 @@
+/**
+ * @file components/modules/crm/contacts-list-client.tsx
+ * @description Client component rendering the CRM contacts table with inline
+ * search by name/email/company. Receives `initialContacts` from the server page.
+ */
 "use client";
 
 import { useState } from "react";

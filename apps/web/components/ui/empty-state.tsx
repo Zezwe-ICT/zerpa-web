@@ -1,3 +1,8 @@
+/**
+ * @file components/ui/empty-state.tsx
+ * @description EmptyState centred placeholder displayed when a list has no data.
+ * Accepts an icon, title, description and optional action button.
+ */
 "use client";
 
 import { Button } from "@/components/ui/button";

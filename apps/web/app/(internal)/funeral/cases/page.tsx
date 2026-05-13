@@ -1,8 +1,12 @@
+/**
+ * @file app/(internal)/funeral/cases/page.tsx
+ * @description Internal funeral operations — active cases list. Server-fetches
+ * all funeral cases via getFuneralCases() and renders a table with status,
+ * scheduled date and a link to each case detail page.
+ */
 import { PageContainer } from "@/components/layouts/page-container";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { formatDate } from "@/lib/utils/dates";
-import { Eye, Calendar } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { getFuneralCases } from "@/lib/data/funeral";

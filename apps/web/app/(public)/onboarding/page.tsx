@@ -1,3 +1,9 @@
+/**
+ * @file app/(public)/onboarding/page.tsx
+ * @description Company onboarding page for newly registered users who have no
+ * company yet. Lets them create their first company (name, vertical, phone)
+ * before being redirected to the dashboard.
+ */
 "use client";
 
 import { useEffect, useState } from "react";

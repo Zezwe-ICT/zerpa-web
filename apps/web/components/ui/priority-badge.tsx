@@ -1,3 +1,8 @@
+/**
+ * @file components/ui/priority-badge.tsx
+ * @description PriorityBadge renders colour-coded labels for vertical tiers:
+ * FLAGSHIP (funeral), PRIORITY (automotive/restaurant), STANDARD (spa).
+ */
 "use client";
 
 import { cn } from "@/lib/utils";

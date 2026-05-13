@@ -1,3 +1,9 @@
+/**
+ * @file components/ui/page-header.tsx
+ * @description PageHeader renders the top section of every internal page:
+ * a bold title, optional subtitle (string or ReactNode), and an action slot
+ * (typically a button row). Has a bottom border separator.
+ */
 import { cn } from "@/lib/utils";
 
 interface PageHeaderProps {

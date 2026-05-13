@@ -1,3 +1,9 @@
+/**
+ * @file app/(public)/register/page.tsx
+ * @description Multi-step company registration page (3 steps).
+ * Step 1: User account — Step 2: Business profile — Step 3: Vertical details.
+ * On completion calls register() from AuthContext and redirects to /dashboard.
+ */
 "use client";
 
 import { useState } from "react";

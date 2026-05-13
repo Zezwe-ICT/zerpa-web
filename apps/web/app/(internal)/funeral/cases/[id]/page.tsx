@@ -1,3 +1,9 @@
+/**
+ * @file app/(internal)/funeral/cases/[id]/page.tsx
+ * @description Internal funeral case detail page. Server-fetches a case by id;
+ * 404s when not found. Shows deceased info, family contacts, services breakdown,
+ * financial summary and action buttons (Approve, Cancel, Download Report).
+ */
 import { PageContainer } from "@/components/layouts/page-container";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";

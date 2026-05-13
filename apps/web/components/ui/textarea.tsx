@@ -1,3 +1,8 @@
+/**
+ * @file components/ui/textarea.tsx
+ * @description Multi-line text input (textarea) with ZERPA design-system styling.
+ * Forwards refs so it works with react-hook-form and other form libraries.
+ */
 "use client";
 
 import * as React from "react";

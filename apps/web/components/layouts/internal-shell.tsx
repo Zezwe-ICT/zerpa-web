@@ -1,3 +1,8 @@
+/**
+ * @file components/layouts/internal-shell.tsx
+ * @description InternalShell is the outermost layout wrapper for all internal
+ * (admin) pages. Composes InternalSidebar + InternalTopBar + scrollable main area.
+ */
 "use client";
 
 import { InternalSidebar } from "./internal-sidebar";

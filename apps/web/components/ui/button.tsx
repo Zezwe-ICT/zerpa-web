@@ -1,3 +1,8 @@
+/**
+ * @file components/ui/button.tsx
+ * @description Polymorphic Button component with variant (default, outline, ghost,
+ * destructive) and size (sm, md, lg, icon) props. Used everywhere across the app.
+ */
 "use client";
 
 import * as React from "react";

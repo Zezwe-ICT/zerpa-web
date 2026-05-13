@@ -1,3 +1,9 @@
+/**
+ * @file components/modules/billing/billing-list-client.tsx
+ * @description Internal billing invoices list table with status filter tabs.
+ * Displays all invoices with amount, status, due date and quick-action buttons.
+ * Manages client state (filter, optimistic send) over server-fetched data.
+ */
 "use client";
 
 import { useState } from "react";

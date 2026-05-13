@@ -1,3 +1,9 @@
+/**
+ * @file components/layouts/client-portal-nav.tsx
+ * @description Top navigation bar for client-portal verticals. Renders the
+ * vertical name, active-link highlighting and responsive nav item list.
+ * Accepts a `vertical` type and an array of `navItems` to stay generic.
+ */
 "use client";
 
 import Link from "next/link";

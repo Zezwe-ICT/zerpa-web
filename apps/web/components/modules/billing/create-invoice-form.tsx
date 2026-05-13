@@ -1,3 +1,10 @@
+/**
+ * @file components/modules/billing/create-invoice-form.tsx
+ * @description Full invoice creation form for internal admins. Features include:
+ * tenant selector, invoice type, line-items table with add/remove/auto-total,
+ * quick-fill presets (setup, subscription, basic), notes field, live invoice
+ * preview panel and a submit that calls createInvoice() API.
+ */
 "use client";
 
 import { useState } from "react";

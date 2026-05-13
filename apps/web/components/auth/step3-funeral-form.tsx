@@ -1,3 +1,8 @@
+/**
+ * @file components/auth/step3-funeral-form.tsx
+ * @description Step 3 details form for Funeral Home vertical. Captures staff count,
+ * monthly case volume, current invoicing method, pain points and services offered.
+ */
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

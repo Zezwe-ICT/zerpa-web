@@ -1,3 +1,8 @@
+/**
+ * @file components/auth/step3-form.tsx
+ * @description Step 3 dispatcher: routes to the correct vertical-specific details
+ * form (funeral, auto, restaurant, spa) based on the selected vertical value.
+ */
 import { Step3FuneralForm } from "@/components/auth/step3-funeral-form";
 import { Step3AutoForm } from "@/components/auth/step3-auto-form";
 import { Step3RestaurantForm } from "@/components/auth/step3-restaurant-form";

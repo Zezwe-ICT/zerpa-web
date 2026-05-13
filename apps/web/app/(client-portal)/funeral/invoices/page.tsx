@@ -1,3 +1,9 @@
+/**
+ * @file app/(client-portal)/funeral/invoices/page.tsx
+ * @description Funeral client portal — invoices list. Force-dynamic; fetches all
+ * invoices and filters to FUNERAL vertical. Renders ClientInvoiceList with invoice
+ * number, amount, status and a link to each invoice detail page.
+ */
 import { PageContainer } from "@/components/layouts/page-container";
 import { PageHeader } from "@/components/ui/page-header";
 import { ClientInvoiceList } from "@/components/modules/billing/client-invoice-list";

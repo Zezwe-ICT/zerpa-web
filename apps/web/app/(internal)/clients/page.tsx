@@ -1,3 +1,9 @@
+/**
+ * @file app/(internal)/clients/page.tsx
+ * @description Internal clients list page. Displays all tenant companies that
+ * have signed up to ZERPA, with vertical badge, status, contact info and links.
+ * Currently uses mock data pending the clients API endpoint.
+ */
 import { PageContainer } from "@/components/layouts/page-container";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";

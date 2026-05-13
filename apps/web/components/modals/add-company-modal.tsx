@@ -1,3 +1,9 @@
+/**
+ * @file components/modals/add-company-modal.tsx
+ * @description Modal dialog for creating and adding a new company to the
+ * authenticated user's account. Fields: company name, vertical, phone.
+ * Calls createCompany() from lib/api/companies on submit.
+ */
 "use client";
 
 import { useState } from "react";

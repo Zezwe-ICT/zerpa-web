@@ -1,3 +1,8 @@
+/**
+ * @file app/(client-portal)/funeral/layout.tsx
+ * @description Layout for the Funeral Home client portal vertical. Wraps pages
+ * in ClientPortalNav with links to Dashboard, Active Cases and Invoices.
+ */
 import { ClientPortalNav } from "@/components/layouts/client-portal-nav";
 import type { Vertical } from "@zerpa/shared-types";
 

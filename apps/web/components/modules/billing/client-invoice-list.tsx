@@ -1,8 +1,13 @@
+/**
+ * @file components/modules/billing/client-invoice-list.tsx
+ * @description Client-portal invoice list table. Renders a filterable list of
+ * invoices for a single tenant with status badges, amounts and view/download links.
+ * Accepts `basePath` so the same component works across all four verticals.
+ */
 "use client";
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { StatusBadge } from "@/components/ui/status-badge";
 import { CurrencyDisplay } from "@/components/ui/currency-display";
 import { formatDate } from "@/lib/utils/dates";
 import { Download, Eye } from "lucide-react";

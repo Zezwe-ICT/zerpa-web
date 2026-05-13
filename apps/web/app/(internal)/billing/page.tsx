@@ -1,11 +1,17 @@
+/**
+ * @file app/(internal)/billing/page.tsx
+ * @description Internal billing (invoices) list page. Force-dynamic so it always
+ * fetches fresh data from the API via getInvoices(). Renders BillingListClient
+ * with status filter tabs and a Create Invoice button.
+ */
 import { PageContainer } from "@/components/layouts/page-container";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { BillingListClient } from "@/components/modules/billing/billing-list-client";
 import { getInvoices } from "@/lib/data/invoices";
+import { Plus } from "lucide-react";
 
 export const dynamic = "force-dynamic";
-import { Plus } from "lucide-react";
 
 export default async function BillingPage() {
   const invoices = await getInvoices();

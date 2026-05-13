@@ -1,3 +1,8 @@
+/**
+ * @file components/ui/dropdown-menu.tsx
+ * @description Dropdown component built on Radix UI Select. Used as a lightweight
+ * dropdown menu in the sidebar company switcher and other menus.
+ */
 "use client";
 
 import * as React from "react";

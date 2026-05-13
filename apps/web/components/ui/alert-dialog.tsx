@@ -1,3 +1,8 @@
+/**
+ * @file components/ui/alert-dialog.tsx
+ * @description AlertDialog modal used for destructive confirmations (e.g. void invoice).
+ * Renders a backdrop overlay with a centred content panel.
+ */
 "use client";
 
 import * as React from "react";

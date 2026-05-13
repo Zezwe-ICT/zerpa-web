@@ -1,3 +1,8 @@
+/**
+ * @file app/(client-portal)/spa/layout.tsx
+ * @description Layout for the Spa & Wellness client portal vertical. Wraps pages
+ * in ClientPortalNav with links to Dashboard, Bookings and Invoices.
+ */
 import { ClientPortalNav } from "@/components/layouts/client-portal-nav";
 
 const SPA_NAV_ITEMS = [

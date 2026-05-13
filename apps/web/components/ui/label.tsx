@@ -1,3 +1,8 @@
+/**
+ * @file components/ui/label.tsx
+ * @description Form Label component with ZERPA typography (semibold, sm, pointer).
+ * Forwards refs; pair with Input or Select for accessible forms.
+ */
 "use client";
 
 import * as React from "react";

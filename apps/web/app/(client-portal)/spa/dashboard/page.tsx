@@ -1,3 +1,9 @@
+/**
+ * @file app/(client-portal)/spa/dashboard/page.tsx
+ * @description Spa & Wellness client dashboard. Shows KPI cards for Today's
+ * Appointments, Active Clients, Monthly Revenue and Completed Sessions.
+ * Includes upcoming bookings table with therapist and service details.
+ */
 import { PageContainer } from "@/components/layouts/page-container";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatsCard } from "@/components/ui/stats-card";

@@ -1,3 +1,9 @@
+/**
+ * @file app/layout.tsx
+ * @description Root Next.js layout. Wraps the entire app in AuthProvider (global
+ * auth state) and mounts the Sonner toast stack. Sets HTML metadata, Open Graph
+ * tags and global CSS variables.
+ */
 import type { Metadata } from "next";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/lib/auth/context";

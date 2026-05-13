@@ -1,3 +1,8 @@
+/**
+ * @file components/modules/billing/mark-paid-modal.tsx
+ * @description Modal dialog to mark an invoice as paid. Captures payment date and
+ * optional reference, then calls markInvoiceAsPaid() to update the invoice status.
+ */
 "use client";
 
 import { useState } from "react";

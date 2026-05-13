@@ -1,3 +1,9 @@
+/**
+ * @file components/modules/billing/void-invoice-dialog.tsx
+ * @description AlertDialog confirmation step before voiding an invoice.
+ * Shows a warning, invoice number and reasons why void is irreversible.
+ * Only available on DRAFT invoices.
+ */
 "use client";
 
 import {

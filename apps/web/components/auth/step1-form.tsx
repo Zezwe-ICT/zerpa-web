@@ -1,8 +1,11 @@
+/**
+ * @file components/auth/step1-form.tsx
+ * @description Step 1 of the registration flow: captures full name, email and
+ * password. Calls onNext() on submit for the parent page to advance the step.
+ */
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-
-interface Step1FormProps {
+import { Label } from "@/components/ui/label"; {
   fullName: string;
   email: string;
   password: string;

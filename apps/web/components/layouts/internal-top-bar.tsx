@@ -1,3 +1,8 @@
+/**
+ * @file components/layouts/internal-top-bar.tsx
+ * @description Sticky top bar for the internal (admin) shell. Shows a global
+ * search input, notification bell, and the logged-in user's avatar/initials.
+ */
 "use client";
 
 import { Search, Bell, ChevronDown } from "lucide-react";

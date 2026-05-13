@@ -1,3 +1,8 @@
+/**
+ * @file components/layouts/page-container.tsx
+ * @description PageContainer constrains page content to a max width of 1280 px
+ * and adds consistent horizontal/vertical padding. Wraps every page body.
+ */
 "use client";
 
 import { cn } from "@/lib/utils";

@@ -1,3 +1,8 @@
+/**
+ * @file components/ui/select.tsx
+ * @description Accessible Select dropdown built on top of Radix UI Select primitive.
+ * Exports Select, SelectTrigger, SelectContent, SelectItem, SelectValue etc.
+ */
 "use client";
 
 import * as React from "react";

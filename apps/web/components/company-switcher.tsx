@@ -1,3 +1,9 @@
+/**
+ * @file components/company-switcher.tsx
+ * @description CompanySwitcher dropdown in the sidebar footer. Lists all companies
+ * the user belongs to, lets them switch active company, and opens the
+ * AddCompanyModal to create a new one.
+ */
 "use client";
 
 import { useAuth } from "@/lib/auth/context";

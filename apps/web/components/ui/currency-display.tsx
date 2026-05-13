@@ -1,3 +1,8 @@
+/**
+ * @file components/ui/currency-display.tsx
+ * @description CurrencyDisplay formats a number as a South-African Rand (ZAR)
+ * monetary value using the shared formatCurrency utility. Renders in mono font.
+ */
 "use client";
 
 import { formatCurrency } from "@/lib/utils/currency";

@@ -1,3 +1,9 @@
+/**
+ * @file components/modules/billing/invoice-detail-client.tsx
+ * @description Admin invoice detail view with full action bar: Send Invoice,
+ * Mark as Paid, Void Invoice. Shows overdue alerts, live status updates
+ * and renders the InvoicePreview for download or printing.
+ */
 "use client";
 
 import { useState } from "react";
