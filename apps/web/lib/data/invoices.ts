@@ -1,6 +1,6 @@
 import type { Invoice } from "@zerpa/shared-types";
 import { CONFIG } from "@/lib/config";
-import { apiRequest } from "./api/client";
+import { apiRequest } from "../api/client";
 import { MOCK_INVOICES } from "@/lib/mock/invoices";
 
 // Mock delay to simulate network latency
