@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { BillingListClient } from "@/components/modules/billing/billing-list-client";
 import { getInvoices } from "@/lib/data/invoices";
 import { Plus } from "lucide-react";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -32,10 +33,12 @@ export default async function BillingPage() {
             <Button variant="outline" size="sm">
               Bulk Actions
             </Button>
-            <Button size="sm">
-              <Plus size={14} className="mr-1.5" />
-              New Invoice
-            </Button>
+            <Link href="/billing/create">
+              <Button size="sm">
+                <Plus size={14} className="mr-1.5" />
+                New Invoice
+              </Button>
+            </Link>
           </div>
         }
       />

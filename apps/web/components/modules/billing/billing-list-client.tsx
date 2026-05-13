@@ -7,6 +7,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/utils/currency";
 import { formatDate, daysUntilDue, isOverdue } from "@/lib/utils/dates";
@@ -22,6 +23,7 @@ interface BillingListClientProps {
 }
 
 export function BillingListClient({ initialInvoices }: BillingListClientProps) {
+  const router = useRouter();
   const [invoices, setInvoices] = useState(initialInvoices);
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [sendModalOpen, setSendModalOpen] = useState(false);
@@ -50,9 +52,7 @@ export function BillingListClient({ initialInvoices }: BillingListClientProps) {
         description="Create your first invoice to get started"
         action={{
           label: "Create Invoice",
-          onClick: () => {
-            // Navigate to create invoice
-          },
+          onClick: () => router.push("/billing/create"),
         }}
       />
     );
