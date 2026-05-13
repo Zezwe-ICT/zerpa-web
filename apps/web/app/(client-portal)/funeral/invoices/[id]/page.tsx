@@ -6,6 +6,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getInvoiceById } from "@/lib/data/invoices";
 
+export const dynamic = "force-dynamic";
+
 interface FuneralInvoiceDetailPageProps {
   params: Promise<{ id: string }>;
 }

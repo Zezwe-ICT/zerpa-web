@@ -3,6 +3,8 @@ import { PageHeader } from "@/components/ui/page-header";
 import { ClientInvoiceList } from "@/components/modules/billing/client-invoice-list";
 import { getInvoices } from "@/lib/data/invoices";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Invoices - Client Portal",
   description: "View your invoices",

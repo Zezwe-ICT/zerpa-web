@@ -3,6 +3,8 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { BillingListClient } from "@/components/modules/billing/billing-list-client";
 import { getInvoices } from "@/lib/data/invoices";
+
+export const dynamic = "force-dynamic";
 import { Plus } from "lucide-react";
 
 export default async function BillingPage() {
