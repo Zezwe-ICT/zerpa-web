@@ -51,9 +51,9 @@ export type InvoiceType = "SETUP" | "SUBSCRIPTION" | "AD_HOC";
 export interface InvoiceLineItem {
   id?: string;
   description: string;
-  qty: number;
+  quantity: number;
   unitPrice: number;
-  total: number;
+  total?: number;
 }
 
 export interface Invoice {
@@ -64,16 +64,28 @@ export interface Invoice {
   tenantVertical: Vertical; // for client portal filtering
   type: InvoiceType;
   status: InvoiceStatus;
-  amount: number;
+  
+  // Amounts
+  subtotal: number;
   taxAmount: number;
-  total?: number;
+  total: number;
+  taxRate?: number;
   currency: string;
+  
+  // Dates
+  issuedDate: string;
   dueDate: string;
+  
+  // Status tracking
   paidAt?: string;
   sentAt?: string;
   voidedAt?: string;
+  
+  // Details
   lineItems: InvoiceLineItem[];
   notes?: string;
+  
+  // Metadata
   createdAt: string;
   updatedAt: string;
 }

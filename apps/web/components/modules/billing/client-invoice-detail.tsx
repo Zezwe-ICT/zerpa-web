@@ -92,7 +92,7 @@ export function ClientInvoiceDetail({ invoice }: ClientInvoiceDetailProps) {
           <div className="flex justify-between">
             <dt className="text-muted-fg">Subtotal</dt>
             <dd className="font-mono text-foreground text-right">
-              <CurrencyDisplay amount={invoice.amount} />
+              <CurrencyDisplay amount={invoice.subtotal} />
             </dd>
           </div>
           <div className="flex justify-between">

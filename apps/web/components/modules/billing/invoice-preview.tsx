@@ -117,7 +117,7 @@ export function InvoicePreview({ invoice, className }: InvoicePreviewProps) {
               {invoice.lineItems.map((item, idx) => (
                 <tr key={idx} className="border-b border-border hover:bg-surface transition-colors">
                   <td className="py-3 text-foreground">{item.description}</td>
-                  <td className="py-3 text-right font-mono text-muted-fg">{item.qty}</td>
+                  <td className="py-3 text-right font-mono text-muted-fg">{item.quantity}</td>
                   <td className="py-3 text-right font-mono text-muted-fg">
                     {formatCurrency(item.unitPrice)}
                   </td>
@@ -134,7 +134,7 @@ export function InvoicePreview({ invoice, className }: InvoicePreviewProps) {
         <div className="space-y-2 border-t-2 border-border pt-6 ml-auto w-64">
           <div className="flex justify-between text-sm">
             <span className="text-muted-fg">Subtotal:</span>
-            <span className="font-mono font-semibold">{formatCurrency(invoice.amount)}</span>
+            <span className="font-mono font-semibold">{formatCurrency(invoice.subtotal)}</span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-muted-fg">VAT (15%):</span>

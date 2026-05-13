@@ -30,14 +30,14 @@ const PRESETS: Record<string, InvoiceLineItem[]> = {
     {
       id: "1",
       description: "Initial Setup & Configuration",
-      qty: 1,
+      quantity: 1,
       unitPrice: 5000,
       total: 5000,
     },
     {
       id: "2",
       description: "Data Migration & Integration",
-      qty: 1,
+      quantity: 1,
       unitPrice: 3000,
       total: 3000,
     },
@@ -46,7 +46,7 @@ const PRESETS: Record<string, InvoiceLineItem[]> = {
     {
       id: "1",
       description: "Monthly Software License",
-      qty: 1,
+      quantity: 1,
       unitPrice: 2500,
       total: 2500,
     },
@@ -55,7 +55,7 @@ const PRESETS: Record<string, InvoiceLineItem[]> = {
     {
       id: "1",
       description: "Professional Services",
-      qty: 5,
+      quantity: 5,
       unitPrice: 500,
       total: 2500,
     },
@@ -130,9 +130,9 @@ export function CreateInvoiceForm({ onSuccess }: CreateInvoiceFormProps) {
     const updatedItems = formData.lineItems.map((item) => {
       if (item.id === id) {
         const updated = { ...item, [field]: value };
-        if (field === "qty" || field === "unitPrice") {
+        if (field === "quantity" || field === "unitPrice") {
           updated.total =
-            (parseFloat(String(item.qty)) || 0) *
+            (parseFloat(String(item.quantity)) || 0) *
             (parseFloat(String(item.unitPrice)) || 0);
         }
         return updated;
@@ -152,25 +152,24 @@ export function CreateInvoiceForm({ onSuccess }: CreateInvoiceFormProps) {
 
     setIsSubmitting(true);
     try {
-      // Simulate API call
-      await new Promise((r) => setTimeout(r, 500));
-
       const newInvoice: Invoice = {
         id: String(Date.now()),
         invoiceNumber: `ZRP-2025-${String(Math.floor(Math.random() * 10000)).padStart(4, "0")}`,
         tenantId: formData.tenantId,
         tenantName: selectedTenant.name,
         tenantVertical: selectedTenant.vertical as any,
-        amount: subtotal,
+        subtotal: subtotal,
         taxAmount,
         total,
+        taxRate: 15,
         status: "DRAFT",
         type: formData.invoiceType,
         lineItems: formData.lineItems,
         currency: "ZAR",
+        issuedDate: new Date().toISOString().split("T")[0],
+        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       };
 
       toast.success(`Draft invoice ${newInvoice.invoiceNumber} created`);
@@ -331,11 +330,11 @@ export function CreateInvoiceForm({ onSuccess }: CreateInvoiceFormProps) {
                       type="number"
                       min="1"
                       step="1"
-                      value={item.qty}
+                      value={item.quantity}
                       onChange={(e) =>
                         handleLineItemChange(
                           item.id,
-                          "qty",
+                          "quantity",
                           parseInt(e.target.value) || 0
                         )
                       }
