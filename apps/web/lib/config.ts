@@ -50,7 +50,7 @@ export const CONFIG = {
    * - API functions in lib/api/* still called, but intercepted
    * - Or lib/api/* functions can check and return mock data
    */
-  useMock: process.env.NEXT_PUBLIC_USE_MOCK === "true",
+  useMock: false, // Set to false for live AWS API testing
 
   /**
    * apiUrl: string
