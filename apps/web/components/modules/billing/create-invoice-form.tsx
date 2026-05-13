@@ -188,16 +188,18 @@ export function CreateInvoiceForm({ onSuccess }: CreateInvoiceFormProps) {
     tenantId: formData.tenantId,
     tenantName: selectedTenant.name,
     tenantVertical: selectedTenant.vertical as any,
-    amount: subtotal,
+    subtotal,
     taxAmount,
     total,
+    taxRate: 15,
     status: "DRAFT",
     type: formData.invoiceType,
     lineItems: formData.lineItems,
     currency: "ZAR",
+    issuedDate: new Date().toISOString().split("T")[0],
+    dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
   };
 
   return (
