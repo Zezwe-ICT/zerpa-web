@@ -9,6 +9,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CurrencyDisplay } from "@/components/ui/currency-display";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { formatDate } from "@/lib/utils/dates";
 import { Download, Eye } from "lucide-react";
 import Link from "next/link";
