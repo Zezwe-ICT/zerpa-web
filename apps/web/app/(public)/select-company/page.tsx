@@ -1,29 +1,56 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth/context";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
 import { MessageCircle, Building2 } from "lucide-react";
+import { getCompanies } from "@/lib/api/auth";
+import { ApiError } from "@/lib/api/client";
 
 export default function SelectCompanyPage() {
   const { companies, selectCompany, isLoading } = useAuth();
   const router = useRouter();
+  const [isFetching, setIsFetching] = useState(false);
+  const [displayCompanies, setDisplayCompanies] = useState(companies || []);
+
+  // Fetch companies on mount if not loaded
+  useEffect(() => {
+    const fetchCompaniesIfNeeded = async () => {
+      if (!companies || companies.length === 0) {
+        setIsFetching(true);
+        try {
+          const fetched = await getCompanies();
+          const companiesList = Array.isArray(fetched) ? fetched : [];
+          setDisplayCompanies(companiesList);
+        } catch (err) {
+          console.error("[SELECT-COMPANY] Failed to fetch companies:", err);
+          setDisplayCompanies([]);
+        } finally {
+          setIsFetching(false);
+        }
+      } else {
+        setDisplayCompanies(companies);
+      }
+    };
+
+    fetchCompaniesIfNeeded();
+  }, [companies]);
 
   // Deduplicate companies by name to handle backend duplicates
   const uniqueCompanies = useMemo(() => {
-    if (!companies) return [];
-    const seen = new Map<string, typeof companies[0]>();
-    for (const company of companies) {
+    if (!displayCompanies) return [];
+    const seen = new Map<string, typeof displayCompanies[0]>();
+    for (const company of displayCompanies) {
       if (!seen.has(company.name)) {
         seen.set(company.name, company);
       }
     }
     return Array.from(seen.values());
-  }, [companies]);
+  }, [displayCompanies]);
 
-  if (isLoading) {
+  if (isLoading || isFetching) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
