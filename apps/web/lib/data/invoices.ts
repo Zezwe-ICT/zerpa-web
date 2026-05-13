@@ -24,7 +24,7 @@ export async function getInvoices(tenantId?: string): Promise<Invoice[]> {
     return invoices || [];
   } catch (error) {
     console.error("Failed to fetch invoices:", error);
-    throw error;
+    return [];
   }
 }
 

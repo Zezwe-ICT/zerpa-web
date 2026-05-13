@@ -14,7 +14,13 @@ import { Plus } from "lucide-react";
 export const dynamic = "force-dynamic";
 
 export default async function BillingPage() {
-  const invoices = await getInvoices();
+  let invoices: import("@zerpa/shared-types").Invoice[] = [];
+  try {
+    invoices = await getInvoices();
+  } catch {
+    // API unreachable or unauthenticated server-side — render empty list,
+    // client components will re-fetch with the browser token.
+  }
 
   return (
     <PageContainer>

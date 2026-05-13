@@ -17,7 +17,12 @@ export const metadata = {
 };
 
 export default async function AutomotiveInvoicesPage() {
-  const invoices = await getInvoices();
+  let invoices: import("@zerpa/shared-types").Invoice[] = [];
+  try {
+    invoices = await getInvoices();
+  } catch {
+    // fall through with empty list
+  }
   const clientInvoices = invoices.filter(
     (inv) => inv.tenantVertical === "AUTOMOTIVE"
   );
