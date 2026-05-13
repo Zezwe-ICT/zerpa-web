@@ -7,6 +7,8 @@
 import { PageContainer } from "@/components/layouts/page-container";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { formatDate } from "@/lib/utils/dates";
+import { Eye, Calendar } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { getFuneralCases } from "@/lib/data/funeral";

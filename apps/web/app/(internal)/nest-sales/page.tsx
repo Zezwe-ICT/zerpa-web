@@ -6,6 +6,7 @@
 import { PageContainer } from "@/components/layouts/page-container";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { CurrencyDisplay } from "@/components/ui/currency-display";
 import { formatDate } from "@/lib/utils/dates";
 import { Eye } from "lucide-react";
 import Link from "next/link";
