@@ -117,7 +117,7 @@ export default function SelectCompanyPage() {
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-fg">Role</span>
                   <span className="font-medium text-foreground capitalize">
-                    {company.role || "Member"}
+                    {(company.role || "Member").toLowerCase()}
                   </span>
                 </div>
                 {company.slug && (

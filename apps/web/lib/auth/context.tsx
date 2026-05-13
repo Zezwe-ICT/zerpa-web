@@ -100,16 +100,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem(USER_KEY, JSON.stringify(res.user));
       setUser(res.user);
 
-      // Use companies from sign-in response, or fetch them separately
-      let companiesList = res.companies || (res.company ? [res.company] : []);
-
-      if (companiesList.length === 0) {
-        try {
-          const fetched = await apiGetCompanies();
-          companiesList = Array.isArray(fetched) ? fetched : [];
-        } catch {
-          // API may not support the endpoint yet — fall through to onboarding
-        }
+      // Always fetch full list of companies after sign-in
+      let companiesList: AuthCompany[] = [];
+      try {
+        const fetched = await apiGetCompanies();
+        companiesList = Array.isArray(fetched) ? fetched : [];
+      } catch {
+        // Fallback to API response if fetch fails
+        companiesList = res.companies || (res.company ? [res.company] : []);
       }
 
       if (companiesList.length > 0) {
