@@ -22,6 +22,7 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -151,14 +152,21 @@ export function InternalSidebar() {
                     {item.label}
                   </p>
                 )}
-                {item.children?.map((child) => (
-                  <NavItem
-                    key={child.href}
-                    item={child}
-                    collapsed={collapsed}
-                    isActive={isActive(child.href ?? "")}
-                  />
-                ))}
+                {item.children?.map((child) => {
+                  const childActive =
+                    isActive(child.href ?? "") ||
+                    (child.children?.some((gc) =>
+                      isActive(gc.href ?? "")
+                    ) ?? false);
+                  return (
+                    <NavItem
+                      key={child.href ?? child.label}
+                      item={child}
+                      collapsed={collapsed}
+                      isActive={childActive}
+                    />
+                  );
+                })}
               </div>
             );
           }
@@ -211,42 +219,71 @@ interface NavItemProps {
 }
 
 function NavItem({ item, collapsed, isActive, level = 0 }: NavItemProps) {
+  const hasChildren = Boolean(item.children?.length);
   const [expanded, setExpanded] = useState(isActive);
 
-  if (!item.href && item.children) {
-    return null;
+  const sharedClass = cn(
+    "flex items-center gap-3 px-3 py-2 rounded-[6px] text-sm font-medium transition-all group w-full",
+    isActive
+      ? "bg-primary-tint text-primary border-l-2 border-primary"
+      : "text-foreground-2 hover:bg-surface hover:text-foreground",
+    level > 0 && "pl-8 text-xs"
+  );
+
+  // Item with children: render as a toggle button + collapsible sub-list
+  if (hasChildren && !collapsed) {
+    return (
+      <div>
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className={sharedClass}
+        >
+          {item.icon}
+          <span className="flex-1 text-left">{item.label}</span>
+          <ChevronDown
+            size={14}
+            className={cn(
+              "transition-transform duration-200 text-muted-fg",
+              expanded && "rotate-180"
+            )}
+          />
+        </button>
+
+        {expanded && (
+          <div className="ml-2 border-l border-border mt-1 pl-3 space-y-1">
+            {item.children!.map((child) => (
+              <NavItem
+                key={child.href}
+                item={child}
+                collapsed={false}
+                isActive={isActive}
+                level={level + 1}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    );
   }
 
-  return (
-    <div>
-      <Link
-        href={item.href || "#"}
-        className={cn(
-          "flex items-center gap-3 px-3 py-2 rounded-[6px] text-sm font-medium transition-all group",
-          isActive
-            ? "bg-primary-tint text-primary border-l-2 border-primary"
-            : "text-foreground-2 hover:bg-surface hover:text-foreground",
-          level > 0 && "pl-8 text-xs"
-        )}
-      >
+  // Collapsed with children: just show icon, no dropdown
+  if (hasChildren && collapsed) {
+    return (
+      <div className={cn(sharedClass, "justify-center")}>
         {item.icon}
-        {!collapsed && <span className="flex-1">{item.label}</span>}
-      </Link>
+      </div>
+    );
+  }
 
-      {/* Nested items - for now keep hidden */}
-      {item.children && expanded && !collapsed && (
-        <div className="ml-2 border-l border-border mt-1 pl-3 space-y-1">
-          {item.children.map((child) => (
-            <NavItem
-              key={child.href}
-              item={child}
-              collapsed={false}
-              isActive={isActive || false}
-              level={level + 1}
-            />
-          ))}
-        </div>
-      )}
-    </div>
+  // Regular link item
+  return (
+    <Link
+      href={item.href || "#"}
+      className={sharedClass}
+    >
+      {item.icon}
+      {!collapsed && <span className="flex-1">{item.label}</span>}
+    </Link>
   );
 }
