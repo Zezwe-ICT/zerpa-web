@@ -1,44 +1,62 @@
-/**
- * @file app/(internal)/crm/leads/[id]/page.tsx
- * @description CRM lead detail page. Server-fetches a lead by id via getLeadById();
- * 404s if not found. Displays lead info, assigned user, interactions timeline
- * and quick-action buttons (email, call, message).
- */
+"use client";
+
+import { use, useEffect, useState } from "react";
 import { PageContainer } from "@/components/layouts/page-container";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { formatDate } from "@/lib/utils/dates";
 import { ArrowLeft, Edit2, MessageSquare, Phone, Mail } from "lucide-react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { getLeadById } from "@/lib/data/crm";
+import type { Lead } from "@zerpa/shared-types";
 
 interface LeadDetailPageProps {
   params: Promise<{ id: string }>;
 }
 
-export async function generateMetadata({ params }: LeadDetailPageProps) {
-  const { id } = await params;
-  const lead = await getLeadById(id);
+export default function LeadDetailPage({ params }: LeadDetailPageProps) {
+  const { id } = use(params);
+  const [lead, setLead] = useState<Lead | undefined>(undefined);
+  const [loading, setLoading] = useState(true);
+  const [isNotFound, setIsNotFound] = useState(false);
 
-  if (!lead) {
-    return { title: "Lead not found" };
+  useEffect(() => {
+    setLoading(true);
+    getLeadById(id)
+      .then((data) => {
+        if (!data) setIsNotFound(true);
+        else setLead(data);
+      })
+      .catch(() => setIsNotFound(true))
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  if (loading) {
+    return (
+      <PageContainer>
+        <div className="flex items-center justify-center h-64">
+          <p className="text-muted-fg">Loading lead...</p>
+        </div>
+      </PageContainer>
+    );
   }
 
-  return {
-    title: `${lead.company} - Leads`,
-    description: `Lead for ${lead.company}`,
-  };
-}
-
-export default async function LeadDetailPage({
-  params,
-}: LeadDetailPageProps) {
-  const { id } = await params;
-  const lead = await getLeadById(id);
-
-  if (!lead) {
-    return notFound();
+  if (isNotFound || !lead) {
+    return (
+      <PageContainer>
+        <div className="mb-6">
+          <Link href="/crm/leads">
+            <Button variant="ghost" size="sm" className="gap-1">
+              <ArrowLeft size={14} />
+              Back to Leads
+            </Button>
+          </Link>
+        </div>
+        <div className="flex items-center justify-center h-64">
+          <p className="text-muted-fg">Lead not found.</p>
+        </div>
+      </PageContainer>
+    );
   }
 
   return (
