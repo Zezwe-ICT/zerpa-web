@@ -5,19 +5,28 @@
  */
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, Eye, Edit2, Mail, Phone } from "lucide-react";
 import Link from "next/link";
 import type { Contact } from "@zerpa/shared-types";
+import { getContacts } from "@/lib/data/crm";
+import { useAuth } from "@/lib/auth/context";
 
-interface ContactsListClientProps {
-  initialContacts: Contact[];
-}
-
-export function ContactsListClient({ initialContacts }: ContactsListClientProps) {
-  const [contacts] = useState(initialContacts);
+export function ContactsListClient() {
+  const { company } = useAuth();
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [loadingContacts, setLoadingContacts] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+
+  useEffect(() => {
+    if (!company?.id) return;
+    setLoadingContacts(true);
+    getContacts(company.id)
+      .then(setContacts)
+      .catch(() => setContacts([]))
+      .finally(() => setLoadingContacts(false));
+  }, [company?.id]);
 
   const filtered = contacts.filter(
     (contact) =>
@@ -26,6 +35,14 @@ export function ContactsListClient({ initialContacts }: ContactsListClientProps)
       contact.company?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       contact.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  if (loadingContacts) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-muted-fg">Loading contacts...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">

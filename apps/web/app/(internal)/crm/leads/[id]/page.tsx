@@ -1,6 +1,7 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import { PageContainer } from "@/components/layouts/page-container";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -11,12 +12,9 @@ import { getLeadById } from "@/lib/data/crm";
 import { useAuth } from "@/lib/auth/context";
 import type { Lead } from "@zerpa/shared-types";
 
-interface LeadDetailPageProps {
-  params: Promise<{ id: string }>;
-}
-
-export default function LeadDetailPage({ params }: LeadDetailPageProps) {
-  const { id } = use(params);
+export default function LeadDetailPage() {
+  const params = useParams();
+  const id = params.id as string;
   const { company } = useAuth();
   const [lead, setLead] = useState<Lead | undefined>(undefined);
   const [loading, setLoading] = useState(true);
