@@ -84,7 +84,7 @@ export function NewLeadForm() {
         company: form.contactCompany || `${form.firstName} ${form.lastName}`,
       });
 
-      router.push(`/crm/leads/${lead.id}`);
+      router.push("/crm/leads");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create lead. Please try again.");
     } finally {
