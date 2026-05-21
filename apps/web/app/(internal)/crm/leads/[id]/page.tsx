@@ -8,6 +8,7 @@ import { formatDate } from "@/lib/utils/dates";
 import { ArrowLeft, Edit2, MessageSquare, Phone, Mail } from "lucide-react";
 import Link from "next/link";
 import { getLeadById } from "@/lib/data/crm";
+import { useAuth } from "@/lib/auth/context";
 import type { Lead } from "@zerpa/shared-types";
 
 interface LeadDetailPageProps {
@@ -16,13 +17,14 @@ interface LeadDetailPageProps {
 
 export default function LeadDetailPage({ params }: LeadDetailPageProps) {
   const { id } = use(params);
+  const { company } = useAuth();
   const [lead, setLead] = useState<Lead | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [isNotFound, setIsNotFound] = useState(false);
 
   useEffect(() => {
     setLoading(true);
-    getLeadById(id)
+    getLeadById(id, company?.id)
       .then((data) => {
         if (!data) setIsNotFound(true);
         else setLead(data);

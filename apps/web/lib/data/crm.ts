@@ -111,8 +111,11 @@ export async function getLeadById(
   }
 
   try {
-    const qs = tenantId ? `?tenantId=${encodeURIComponent(tenantId)}` : "";
-    const lead = await apiRequest<ApiLead>(`/api/v1/crm/leads/${id}${qs}`);
+    const params = new URLSearchParams();
+    if (tenantId) params.set("tenantId", tenantId);
+    const qs = params.toString();
+    const leads = await apiRequest<ApiLead[]>(`/api/v1/crm/leads${qs ? `?${qs}` : ""}`);
+    const lead = (leads ?? []).find((l) => l.id === id);
     return lead ? mapApiLead(lead) : undefined;
   } catch (error) {
     console.error("Failed to fetch lead:", error);
