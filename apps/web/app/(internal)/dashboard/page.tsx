@@ -6,9 +6,8 @@
  */
 import { PageContainer } from "@/components/layouts/page-container";
 import { PageHeader } from "@/components/ui/page-header";
-import { StatsCard } from "@/components/ui/stats-card";
 import { DashboardGreeting } from "@/components/modules/dashboard/dashboard-greeting";
-import { Building2, TrendingUp, AlertCircle, Users } from "lucide-react";
+import { DashboardStats } from "@/components/modules/dashboard/dashboard-stats";
 
 export default function DashboardPage() {
   return (
@@ -19,40 +18,7 @@ export default function DashboardPage() {
       />
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatsCard
-          label="Active Clients"
-          value="14"
-          sub="+2 this month"
-          icon={Building2}
-          iconColor="blue"
-          trend={{ value: "8%", positive: true }}
-        />
-        <StatsCard
-          label="Monthly Recurring Revenue"
-          value="R21,000"
-          sub="↑ 12% vs last month"
-          icon={TrendingUp}
-          iconColor="green"
-          trend={{ value: "12%", positive: true }}
-        />
-        <StatsCard
-          label="Overdue Invoices"
-          value="4"
-          sub="R8,590 outstanding"
-          icon={AlertCircle}
-          iconColor="red"
-          trend={{ value: "1 new", positive: false }}
-        />
-        <StatsCard
-          label="Open Leads"
-          value="23"
-          sub="8 funeral · 4 automotive"
-          icon={Users}
-          iconColor="violet"
-          trend={{ value: "5 this week", positive: true }}
-        />
-      </div>
+      <DashboardStats />
 
       {/* Main Grid - Coming Soon */}
       <div className="grid grid-cols-3 gap-6">
