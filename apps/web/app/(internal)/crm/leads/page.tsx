@@ -6,16 +6,13 @@
 import { PageContainer } from "@/components/layouts/page-container";
 import { PageHeader } from "@/components/ui/page-header";
 import { LeadsListClient } from "@/components/modules/crm/leads-list-client";
-import { getLeads } from "@/lib/data/crm";
 
 export const metadata = {
   title: "Leads - CRM",
   description: "Manage your sales pipeline",
 };
 
-export default async function LeadsPage() {
-  const leads = await getLeads();
-
+export default function LeadsPage() {
   return (
     <PageContainer>
       <div className="mb-8">
@@ -25,7 +22,7 @@ export default async function LeadsPage() {
         />
       </div>
 
-      <LeadsListClient initialLeads={leads} />
+      <LeadsListClient />
     </PageContainer>
   );
 }

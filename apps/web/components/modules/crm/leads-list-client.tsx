@@ -6,17 +6,15 @@
  */
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { formatDate } from "@/lib/utils/dates";
 import { Plus, Eye, Edit2 } from "lucide-react";
 import Link from "next/link";
 import type { Lead } from "@zerpa/shared-types";
-
-interface LeadsListClientProps {
-  initialLeads: Lead[];
-}
+import { getLeads } from "@/lib/data/crm";
+import { useAuth } from "@/lib/auth/context";
 
 const STATUS_COLORS: Record<string, string> = {
   NEW: "bg-muted text-muted-fg",
@@ -28,8 +26,19 @@ const STATUS_COLORS: Record<string, string> = {
   CLOSED_LOST: "bg-danger-bg text-danger",
 };
 
-export function LeadsListClient({ initialLeads }: LeadsListClientProps) {
-  const [leads] = useState(initialLeads);
+export function LeadsListClient() {
+  const { company } = useAuth();
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [loadingLeads, setLoadingLeads] = useState(true);
+
+  useEffect(() => {
+    if (!company?.id) return;
+    setLoadingLeads(true);
+    getLeads(undefined, company.id)
+      .then(setLeads)
+      .catch(() => setLeads([]))
+      .finally(() => setLoadingLeads(false));
+  }, [company?.id]);
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
 
   const statuses = [
@@ -56,6 +65,14 @@ export function LeadsListClient({ initialLeads }: LeadsListClientProps) {
       ])
     ),
   };
+
+  if (loadingLeads) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-muted-fg">Loading leads...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
