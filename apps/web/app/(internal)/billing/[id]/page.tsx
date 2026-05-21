@@ -1,29 +1,54 @@
-/**
- * @file app/(internal)/billing/[id]/page.tsx
- * @description Admin invoice detail page. Server-fetches a single invoice by id
- * via getInvoiceById(); 404s when not found. Renders InvoiceDetailClient which
- * shows the full invoice with Send, Void and Print actions.
- */
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import { PageContainer } from "@/components/layouts/page-container";
 import { Button } from "@/components/ui/button";
 import { InvoiceDetailClient } from "@/components/modules/billing/invoice-detail-client";
 import { getInvoiceById } from "@/lib/data/invoices";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import type { Invoice } from "@zerpa/shared-types";
 
-export const dynamic = "force-dynamic";
+export default function InvoiceDetailPage() {
+  const params = useParams();
+  const id = params.id as string;
+  const [invoice, setInvoice] = useState<Invoice | null>(null);
+  const [loading, setLoading] = useState(true);
 
-interface InvoiceDetailPageProps {
-  params: Promise<{ id: string }>;
-}
+  useEffect(() => {
+    getInvoiceById(id)
+      .then(setInvoice)
+      .catch(() => setInvoice(null))
+      .finally(() => setLoading(false));
+  }, [id]);
 
-export default async function InvoiceDetailPage({ params }: InvoiceDetailPageProps) {
-  const { id } = await params;
-  const invoice = await getInvoiceById(id);
+  if (loading) {
+    return (
+      <PageContainer>
+        <div className="flex items-center justify-center h-64">
+          <p className="text-muted-fg">Loading invoice...</p>
+        </div>
+      </PageContainer>
+    );
+  }
 
   if (!invoice) {
-    return notFound();
+    return (
+      <PageContainer>
+        <div className="mb-6">
+          <Link href="/billing">
+            <Button variant="ghost" size="sm" className="gap-1">
+              <ArrowLeft size={14} />
+              Back to Billing
+            </Button>
+          </Link>
+        </div>
+        <div className="flex items-center justify-center h-64">
+          <p className="text-muted-fg">Invoice not found.</p>
+        </div>
+      </PageContainer>
+    );
   }
 
   return (

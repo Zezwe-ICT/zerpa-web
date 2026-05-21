@@ -1,42 +1,45 @@
-/**
- * @file app/(internal)/nest-sales/[id]/page.tsx
- * @description Nest Sale detail page. Server-fetches a single sale and its
- * provisioning checklist then hands off to NestSaleDetailClient for interactive
- * task completion and status management.
- */
-import { notFound } from "next/navigation";
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import { getNestSaleById, getProvisioningChecklist } from "@/lib/data/nest-sales";
 import { NestSaleDetailClient } from "@/components/modules/nest-sales/nest-sale-detail-client";
+import { PageContainer } from "@/components/layouts/page-container";
 
-interface NestSaleDetailPageProps {
-  params: Promise<{ id: string }>;
-}
+export default function NestSaleDetailPage() {
+  const params = useParams();
+  const id = params.id as string;
+  const [sale, setSale] = useState<Awaited<ReturnType<typeof getNestSaleById>>>(undefined);
+  const [checklist, setChecklist] = useState<Awaited<ReturnType<typeof getProvisioningChecklist>>>([]);
+  const [loading, setLoading] = useState(true);
 
-export async function generateMetadata({ params }: NestSaleDetailPageProps) {
-  const { id } = await params;
-  const sale = await getNestSaleById(id);
+  useEffect(() => {
+    Promise.all([getNestSaleById(id), getProvisioningChecklist(id)])
+      .then(([saleData, checklistData]) => {
+        setSale(saleData);
+        setChecklist(checklistData);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [id]);
 
-  if (!sale) {
-    return { title: "Nest Sale not found" };
+  if (loading) {
+    return (
+      <PageContainer>
+        <div className="flex items-center justify-center h-64">
+          <p className="text-muted-fg">Loading...</p>
+        </div>
+      </PageContainer>
+    );
   }
 
-  return {
-    title: `${sale.tenant?.name || "Sale"} - Nest Sales`,
-    description: `Nest Sale for ${sale.tenant?.name}`,
-  };
-}
-
-export default async function NestSaleDetailPage({
-  params,
-}: NestSaleDetailPageProps) {
-  const { id } = await params;
-  const sale = await getNestSaleById(id);
-
   if (!sale) {
-    notFound();
+    return (
+      <PageContainer>
+        <p className="text-muted-fg">Sale not found.</p>
+      </PageContainer>
+    );
   }
-
-  const checklist = await getProvisioningChecklist(id);
 
   return <NestSaleDetailClient sale={sale} initialChecklist={checklist} />;
 }

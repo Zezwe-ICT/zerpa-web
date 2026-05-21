@@ -6,7 +6,7 @@
  */
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/utils/currency";
@@ -17,15 +17,24 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { CheckCircle2, Send, MoreHorizontal, FileText } from "lucide-react";
 import type { Invoice } from "@zerpa/shared-types";
 import { SendInvoiceModal } from "@/components/modules/billing/send-invoice-modal";
+import { getInvoices } from "@/lib/data/invoices";
+import { useAuth } from "@/lib/auth/context";
 
-interface BillingListClientProps {
-  initialInvoices: Invoice[];
-}
-
-export function BillingListClient({ initialInvoices }: BillingListClientProps) {
+export function BillingListClient() {
   const router = useRouter();
-  const [invoices, setInvoices] = useState(initialInvoices);
+  const { company } = useAuth();
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [loadingInvoices, setLoadingInvoices] = useState(true);
   const [selectedStatus, setSelectedStatus] = useState("all");
+
+  useEffect(() => {
+    if (!company?.id) return;
+    setLoadingInvoices(true);
+    getInvoices(company.id)
+      .then(setInvoices)
+      .catch(() => setInvoices([]))
+      .finally(() => setLoadingInvoices(false));
+  }, [company?.id]);
   const [sendModalOpen, setSendModalOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
 
@@ -43,6 +52,14 @@ export function BillingListClient({ initialInvoices }: BillingListClientProps) {
     PAID: invoices.filter((i) => i.status === "PAID").length,
     OVERDUE: invoices.filter((i) => i.status === "OVERDUE").length,
   };
+
+  if (loadingInvoices) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-muted-fg">Loading invoices...</p>
+      </div>
+    );
+  }
 
   if (invoices.length === 0) {
     return (

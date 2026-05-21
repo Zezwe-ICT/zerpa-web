@@ -1,9 +1,7 @@
-/**
- * @file app/(internal)/funeral/cases/[id]/page.tsx
- * @description Internal funeral case detail page. Server-fetches a case by id;
- * 404s when not found. Shows deceased info, family contacts, services breakdown,
- * financial summary and action buttons (Approve, Cancel, Download Report).
- */
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import { PageContainer } from "@/components/layouts/page-container";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -11,33 +9,47 @@ import { CurrencyDisplay } from "@/components/ui/currency-display";
 import { formatDate } from "@/lib/utils/dates";
 import { ArrowLeft, Check, X, Download } from "lucide-react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { getFuneralCaseById } from "@/lib/data/funeral";
 
-interface CaseDetailPageProps {
-  params: Promise<{ id: string }>;
-}
+export default function CaseDetailPage() {
+  const params = useParams();
+  const id = params.id as string;
+  const [funeralCase, setFuneralCase] = useState<Awaited<ReturnType<typeof getFuneralCaseById>>>(undefined);
+  const [loading, setLoading] = useState(true);
 
-export async function generateMetadata({ params }: CaseDetailPageProps) {
-  const { id } = await params;
-  const funeralCase = await getFuneralCaseById(id);
+  useEffect(() => {
+    getFuneralCaseById(id)
+      .then(setFuneralCase)
+      .catch(() => setFuneralCase(undefined))
+      .finally(() => setLoading(false));
+  }, [id]);
 
-  if (!funeralCase) {
-    return { title: "Case not found" };
+  if (loading) {
+    return (
+      <PageContainer>
+        <div className="flex items-center justify-center h-64">
+          <p className="text-muted-fg">Loading case...</p>
+        </div>
+      </PageContainer>
+    );
   }
 
-  return {
-    title: `${funeralCase.caseNumber} - Cases`,
-    description: `Case for ${funeralCase.deceasedFirstName} ${funeralCase.deceasedLastName}`,
-  };
-}
-
-export default async function CaseDetailPage({ params }: CaseDetailPageProps) {
-  const { id } = await params;
-  const funeralCase = await getFuneralCaseById(id);
-
   if (!funeralCase) {
-    notFound();
+    return (
+      <PageContainer>
+        <div className="mb-6">
+          <Link href="/funeral/cases">
+            <Button variant="ghost" size="sm" className="gap-1">
+              <ArrowLeft size={14} />
+              Back to Cases
+            </Button>
+          </Link>
+        </div>
+        <div className="flex items-center justify-center h-64">
+          <p className="text-muted-fg">Case not found.</p>
+        </div>
+      </PageContainer>
+    );
   }
 
   return (

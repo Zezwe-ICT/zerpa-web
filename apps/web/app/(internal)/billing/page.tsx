@@ -8,21 +8,10 @@ import { PageContainer } from "@/components/layouts/page-container";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { BillingListClient } from "@/components/modules/billing/billing-list-client";
-import { getInvoices } from "@/lib/data/invoices";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 
-export const dynamic = "force-dynamic";
-
-export default async function BillingPage() {
-  let invoices: import("@zerpa/shared-types").Invoice[] = [];
-  try {
-    invoices = await getInvoices();
-  } catch {
-    // API unreachable or unauthenticated server-side — render empty list,
-    // client components will re-fetch with the browser token.
-  }
-
+export default function BillingPage() {
   return (
     <PageContainer>
       <PageHeader
@@ -43,7 +32,7 @@ export default async function BillingPage() {
         }
       />
 
-      <BillingListClient initialInvoices={invoices} />
+      <BillingListClient />
     </PageContainer>
   );
 }
