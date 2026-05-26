@@ -75,7 +75,7 @@ const SIDEBAR_ITEMS: SidebarItem[] = [
         icon: <Receipt size={16} strokeWidth={1.5} />,
       },
       {
-        label: "Clients",
+        label: "Customers",
         href: "/clients",
         icon: <Building2 size={16} strokeWidth={1.5} />,
       },
