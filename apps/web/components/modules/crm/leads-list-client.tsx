@@ -41,29 +41,28 @@ export function LeadsListClient() {
   }, [company?.id]);
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
 
-  const statuses = [
-    "NEW",
-    "CONTACTED",
-    "QUALIFIED",
-    "PROPOSAL",
-    "NEGOTIATION",
-    "CLOSED_WON",
-    "CLOSED_LOST",
-  ] as const;
-
   const filtered =
     selectedStatus === "all"
       ? leads
-      : leads.filter((lead) => lead.status === selectedStatus);
+      : selectedStatus === "closed"
+      ? leads.filter(
+          (lead) =>
+            lead.status === "CLOSED_WON" || lead.status === "CLOSED_LOST"
+        )
+      : leads.filter(
+          (lead) => lead.status === selectedStatus.toUpperCase()
+        );
 
   const statusCounts: Record<string, number> = {
     all: leads.length,
-    ...Object.fromEntries(
-      statuses.map((status) => [
-        status.toLowerCase(),
-        leads.filter((lead) => lead.status === status).length,
-      ])
-    ),
+    new: leads.filter((l) => l.status === "NEW").length,
+    contacted: leads.filter((l) => l.status === "CONTACTED").length,
+    qualified: leads.filter((l) => l.status === "QUALIFIED").length,
+    proposal: leads.filter((l) => l.status === "PROPOSAL").length,
+    negotiation: leads.filter((l) => l.status === "NEGOTIATION").length,
+    closed: leads.filter(
+      (l) => l.status === "CLOSED_WON" || l.status === "CLOSED_LOST"
+    ).length,
   };
 
   if (loadingLeads) {
@@ -100,8 +99,7 @@ export function LeadsListClient() {
           { label: "Negotiation", value: "negotiation" },
           { label: "Closed", value: "closed" },
         ].map((tab) => {
-          const statusKey = tab.value === "all" ? "all" : tab.value;
-          const count = statusCounts[statusKey] || 0;
+          const count = statusCounts[tab.value] ?? 0;
 
           return (
             <button
@@ -127,6 +125,7 @@ export function LeadsListClient() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-muted/30">
+              <th className="px-4 py-3 text-left font-semibold">Title</th>
               <th className="px-4 py-3 text-left font-semibold">Company</th>
               <th className="px-4 py-3 text-left font-semibold">Contact</th>
               <th className="px-4 py-3 text-left font-semibold">Vertical</th>
@@ -139,8 +138,8 @@ export function LeadsListClient() {
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-muted-fg">
-                  No leads with status "{selectedStatus}"
+                <td colSpan={8} className="px-4 py-8 text-center text-muted-fg">
+                  No leads found in this stage.
                 </td>
               </tr>
             ) : (
@@ -149,7 +148,16 @@ export function LeadsListClient() {
                   key={lead.id}
                   className="border-b border-border hover:bg-muted/30 transition"
                 >
-                  <td className="px-4 py-3 font-medium">{lead.company}</td>
+                  <td className="px-4 py-3">
+                    <div className="font-medium text-foreground">
+                      {lead.title || lead.company}
+                    </div>
+                    {lead.title && (
+                      <div className="text-xs text-muted-fg mt-0.5">
+                        {lead.company}
+                      </div>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-sm text-muted-fg">
                     {lead.contact
                       ? `${lead.contact.firstName} ${lead.contact.lastName}`

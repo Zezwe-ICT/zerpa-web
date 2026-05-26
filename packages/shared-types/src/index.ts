@@ -100,6 +100,22 @@ export type LeadStatus =
   | "CLOSED_WON"
   | "CLOSED_LOST";
 
+export type LeadActivityType = "CALL" | "EMAIL" | "MEETING" | "NOTE" | "STAGE_CHANGE";
+
+export interface LeadActivity {
+  id: string;
+  leadId: string;
+  type: LeadActivityType;
+  date: string;
+  summary: string;
+  notes?: string;
+  nextSteps?: string;
+  agentName?: string;
+  durationMinutes?: number;
+  stageChangedTo?: LeadStatus;
+  stageChangedFrom?: LeadStatus;
+}
+
 export interface Contact {
   id: string;
   firstName: string;
@@ -117,6 +133,8 @@ export interface Lead {
   id: string;
   contactId: string;
   contact?: Contact;
+  /** Deal title – distinguishes leads from companies with similar names */
+  title?: string;
   company: string;
   vertical: Vertical;
   status: LeadStatus;
@@ -128,6 +146,7 @@ export interface Lead {
   updatedAt: string;
   lastActivityAt?: string;
   notes?: string;
+  activities?: LeadActivity[];
 }
 
 // ── Nest Sales ───────────────────────────────────────────────

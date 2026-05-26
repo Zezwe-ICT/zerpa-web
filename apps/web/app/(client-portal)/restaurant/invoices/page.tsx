@@ -4,6 +4,8 @@
  * invoices and filters to RESTAURANT vertical. Renders ClientInvoiceList with invoice
  * number, amount, status and a link to each invoice detail page.
  */
+
+
 import { PageContainer } from "@/components/layouts/page-container";
 import { PageHeader } from "@/components/ui/page-header";
 import { ClientInvoiceList } from "@/components/modules/billing/client-invoice-list";
@@ -11,10 +13,12 @@ import { getInvoices } from "@/lib/data/invoices";
 
 export const dynamic = "force-dynamic";
 
+
 export const metadata = {
   title: "Invoices - Client Portal",
   description: "View your invoices",
 };
+
 
 export default async function RestaurantInvoicesPage() {
   let invoices: import("@zerpa/shared-types").Invoice[] = [];

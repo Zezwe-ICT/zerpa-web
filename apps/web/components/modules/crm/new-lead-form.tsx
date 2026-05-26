@@ -40,6 +40,7 @@ export function NewLeadForm() {
     phone: "",
     contactCompany: "",
     // Lead fields
+    title: "",
     vertical: "FUNERAL" as typeof VERTICALS[number]["value"],
     stage: "NEW" as typeof STAGES[number]["value"],
     estimatedValue: "",
@@ -77,6 +78,7 @@ export function NewLeadForm() {
       const lead = await createLead({
         tenantId: company.id,
         contactId: contact.id,
+        title: form.title || undefined,
         vertical: form.vertical,
         status: form.stage,
         estimatedValue: form.estimatedValue ? Number(form.estimatedValue) : 0,
@@ -162,6 +164,20 @@ export function NewLeadForm() {
       {/* Lead Section */}
       <div className="rounded-[12px] border border-border bg-background p-6 space-y-4">
         <h2 className="font-semibold text-base">Lead Details</h2>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="title">Deal Title</Label>
+          <Input
+            id="title"
+            name="title"
+            value={form.title}
+            onChange={handleChange}
+            placeholder="e.g. Central Funeral – Compliance Module"
+          />
+          <p className="text-xs text-muted-fg">
+            Optional. Helps distinguish leads from companies with similar names.
+          </p>
+        </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">

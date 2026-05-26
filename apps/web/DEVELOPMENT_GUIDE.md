@@ -12,7 +12,7 @@
 2. [Getting Started](#getting-started)
 3. [Folder Structure](#folder-structure)
 4. [Key Concepts](#key-concepts)
-5. [Authentication System](#authentication-system)
+5. [Authentication System](#authentication-system) 
 6. [Component Patterns](#component-patterns)
 7. [API Integration](#api-integration)
 8. [Common Tasks](#common-tasks)
