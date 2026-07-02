@@ -34,6 +34,44 @@ export const STATUS_CONFIG: Record<string, BadgeVariant> = {
     label: "Void",
     className: "bg-surface-2 text-muted-fg border border-border line-through font-mono text-xs",
   },
+  APPROVED: {
+    label: "Approved",
+    className: "bg-info-bg text-info border border-info-ring font-mono text-xs",
+  },
+  PARTIALLY_PAID: {
+    label: "Part-Paid",
+    className: "bg-warning-bg text-warning border border-warning-ring font-mono text-xs",
+  },
+
+  // ── Quote statuses (lowercase keys per Quote type) ────────
+  draft: {
+    label: "Draft",
+    className: "bg-surface-2 text-muted-fg border border-border font-mono text-xs",
+  },
+  sent: {
+    label: "Sent",
+    className: "bg-info-bg text-info border border-info-ring font-mono text-xs",
+  },
+  accepted: {
+    label: "Accepted",
+    className: "bg-success-bg text-success border border-success-ring font-mono text-xs",
+  },
+  declined: {
+    label: "Declined",
+    className: "bg-danger-bg text-danger border border-danger-ring font-mono text-xs",
+  },
+  expired: {
+    label: "Expired",
+    className: "bg-warning-bg text-warning border border-warning-ring font-mono text-xs",
+  },
+  converted: {
+    label: "Converted",
+    className: "bg-funeral-bg text-funeral border border-[rgba(109,40,217,0.20)] font-mono text-xs",
+  },
+  void: {
+    label: "Void",
+    className: "bg-surface-2 text-muted-fg border border-border line-through font-mono text-xs",
+  },
 
   // ── Lead pipeline stages ──────────────────────────────────
   NEW: {

@@ -167,4 +167,29 @@
   .no-print {
     @apply hidden;
   }
+
+  /*
+   * Single-document print: when a billing document is open for printing, hide
+   * everything except the #billing-print-root element (invoice / quote PDF).
+   * visibility keeps layout stable; the print root is lifted to the top-left.
+   */
+  body.printing-document * {
+    visibility: hidden !important;
+  }
+  body.printing-document #billing-print-root,
+  body.printing-document #billing-print-root * {
+    visibility: visible !important;
+  }
+  body.printing-document #billing-print-root {
+    position: absolute !important;
+    left: 0;
+    top: 0;
+    width: 100%;
+    box-shadow: none !important;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
+  }
 }

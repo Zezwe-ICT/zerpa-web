@@ -20,6 +20,9 @@ import {
   Building2,
   UserCheck,
   Settings,
+  FileText,
+  Boxes,
+  CalendarClock,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
@@ -73,6 +76,28 @@ const SIDEBAR_ITEMS: SidebarItem[] = [
         label: "Billing",
         href: "/billing",
         icon: <Receipt size={16} strokeWidth={1.5} />,
+        children: [
+          {
+            label: "Quotes",
+            href: "/billing/quotes",
+            icon: <FileText size={16} strokeWidth={1.5} />,
+          },
+          {
+            label: "Invoices",
+            href: "/billing/invoices",
+            icon: <Receipt size={16} strokeWidth={1.5} />,
+          },
+          {
+            label: "Products & Services",
+            href: "/billing/products",
+            icon: <Boxes size={16} strokeWidth={1.5} />,
+          },
+          {
+            label: "Automated Invoices",
+            href: "/billing/automated",
+            icon: <CalendarClock size={16} strokeWidth={1.5} />,
+          },
+        ],
       },
       {
         label: "Customers",

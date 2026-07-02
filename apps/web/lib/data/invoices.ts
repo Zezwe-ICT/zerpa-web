@@ -1,7 +1,17 @@
-import type { Invoice } from "@zerpa/shared-types";
+import type {
+  Invoice,
+  InvoiceStatus,
+  InvoiceLineItem,
+  Payment,
+  PaymentMethod,
+  Quote,
+  Vertical,
+} from "@zerpa/shared-types";
 import { CONFIG } from "@/lib/config";
 import { apiRequest } from "../api/client";
 import { MOCK_INVOICES } from "@/lib/mock/invoices";
+import { computeBillingTotals, computeLineTotal, round2 } from "@/lib/utils/billing-calc";
+import { generateInvoiceDocumentNumber, nextSequenceForYear } from "@/lib/utils/invoice-number";
 
 // Mock delay to simulate network latency
 const MOCK_DELAY = 300;
@@ -221,4 +231,227 @@ export async function voidInvoice(id: string): Promise<Invoice | null> {
 
   // TODO: Replace with actual API call
   return null;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Internal Billing module — in-memory invoice store
+//
+// The functions above back the client portals against the live API. The
+// expanded internal Billing module (quotes → invoices, payments, automated
+// generation) has no backend yet, so the functions below operate on a
+// module-level in-memory store seeded from MOCK_INVOICES. This keeps the
+// internal Quotes/Invoices/Automated pages fully functional in the browser.
+// Swap the bodies for apiRequest(...) calls once the endpoints exist.
+// ─────────────────────────────────────────────────────────────
+
+const nowIso = () => new Date().toISOString();
+const delay = () => new Promise((r) => setTimeout(r, MOCK_DELAY));
+
+function addDays(dateStr: string, days: number): string {
+  const d = new Date(dateStr);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().split("T")[0];
+}
+
+let billingStore: Invoice[] = MOCK_INVOICES.map((i) => ({ ...i }));
+
+/** Recompute line totals, document totals and payment balance onto an invoice. */
+function recomputeInvoice(inv: Invoice): Invoice {
+  const lineItems: InvoiceLineItem[] = inv.lineItems.map((li, i) => {
+    const lineTotal = li.lineTotal ?? computeLineTotal(li);
+    return {
+      ...li,
+      sortOrder: li.sortOrder ?? i,
+      lineTotal,
+      total: lineTotal, // keep legacy field in sync
+    };
+  });
+  const totals = computeBillingTotals(
+    lineItems,
+    inv.discountType ?? "none",
+    inv.discountValue ?? 0
+  );
+  const amountPaid = round2(
+    (inv.payments ?? []).reduce((a, p) => a + p.amount, 0)
+  );
+  const balanceDue = round2(totals.total - amountPaid);
+
+  let status = inv.status;
+  if (status !== "VOID" && status !== "CANCELLED" && status !== "DRAFT") {
+    if (amountPaid >= totals.total && totals.total > 0) status = "PAID";
+    else if (amountPaid > 0) status = "PARTIALLY_PAID";
+  }
+
+  return {
+    ...inv,
+    lineItems,
+    subtotal: totals.subtotal,
+    discountAmount: totals.discountAmount,
+    taxAmount: totals.taxTotal,
+    total: totals.total,
+    amountPaid,
+    balanceDue,
+    status,
+  };
+}
+
+export async function getBillingInvoices(): Promise<Invoice[]> {
+  await delay();
+  return billingStore.map((i) => ({ ...i }));
+}
+
+export async function getBillingInvoiceById(
+  id: string
+): Promise<Invoice | null> {
+  await delay();
+  const found = billingStore.find((i) => i.id === id);
+  return found ? { ...found } : null;
+}
+
+export async function createManualInvoice(
+  data: Partial<Invoice>
+): Promise<Invoice> {
+  await delay();
+  const seq = nextSequenceForYear(
+    billingStore.map((i) => i.invoiceNumber),
+    "INV"
+  );
+  const issuedDate = data.issuedDate ?? nowIso().split("T")[0];
+  const base: Invoice = {
+    id: `inv-${Date.now()}`,
+    invoiceNumber: data.invoiceNumber ?? generateInvoiceDocumentNumber(seq),
+    tenantId: data.tenantId ?? "",
+    tenantName: data.tenantName ?? "",
+    tenantVertical: data.tenantVertical ?? "FUNERAL",
+    type: data.type ?? "AD_HOC",
+    status: "DRAFT",
+    source: data.source ?? "manual",
+    quoteId: data.quoteId ?? null,
+    reference: data.reference ?? null,
+    contactEmail: data.contactEmail ?? null,
+    salesRep: data.salesRep ?? null,
+    subject: data.subject ?? null,
+    subtotal: 0,
+    taxAmount: 0,
+    total: 0,
+    taxRate: data.taxRate ?? 15,
+    currency: data.currency ?? "ZAR",
+    discountType: data.discountType ?? "none",
+    discountValue: data.discountValue ?? 0,
+    discountAmount: 0,
+    amountPaid: 0,
+    balanceDue: 0,
+    payments: [],
+    issuedDate,
+    dueDate: data.dueDate ?? addDays(issuedDate, 30),
+    lineItems: data.lineItems ?? [],
+    notes: data.notes,
+    internalNotes: data.internalNotes ?? null,
+    createdAt: nowIso(),
+    updatedAt: nowIso(),
+  };
+  const invoice = recomputeInvoice(base);
+  billingStore = [invoice, ...billingStore];
+  return { ...invoice };
+}
+
+/** Create a DRAFT invoice cloned from a quote (used by quote conversion). */
+export async function createInvoiceFromQuote(
+  quote: Quote,
+  vertical: Vertical = "FUNERAL"
+): Promise<Invoice> {
+  const lineItems: InvoiceLineItem[] = quote.lineItems.map((li, i) => ({
+    id: `il-${Date.now()}-${i}`,
+    productServiceId: li.productServiceId ?? null,
+    description: li.description,
+    quantity: li.quantity,
+    unit: li.unit ?? null,
+    unitPrice: li.unitPrice,
+    discountPercent: li.discountPercent ?? 0,
+    taxRate: li.taxRate ?? 15,
+    lineTotal: computeLineTotal(li),
+    total: computeLineTotal(li),
+    sortOrder: i,
+  }));
+
+  return createManualInvoice({
+    tenantId: quote.customerId,
+    tenantName: quote.customerName,
+    tenantVertical: vertical,
+    type: "AD_HOC",
+    source: "converted_quote",
+    quoteId: quote.id,
+    reference: quote.reference ?? null,
+    contactEmail: quote.contactEmail ?? null,
+    salesRep: quote.salesRep ?? null,
+    subject: quote.subject ?? null,
+    discountType: quote.discountType,
+    discountValue: quote.discountValue,
+    lineItems,
+    notes: quote.notes ?? undefined,
+  });
+}
+
+export async function updateBillingInvoice(
+  id: string,
+  data: Partial<Invoice>
+): Promise<Invoice> {
+  await delay();
+  const idx = billingStore.findIndex((i) => i.id === id);
+  if (idx === -1) throw new Error("Invoice not found");
+  const merged = { ...billingStore[idx], ...data, id, updatedAt: nowIso() };
+  billingStore[idx] = recomputeInvoice(merged);
+  return { ...billingStore[idx] };
+}
+
+export async function updateBillingInvoiceStatus(
+  id: string,
+  status: InvoiceStatus
+): Promise<Invoice> {
+  const patch: Partial<Invoice> = { status };
+  if (status === "SENT") patch.sentAt = nowIso();
+  if (status === "VOID" || status === "CANCELLED") patch.voidedAt = nowIso();
+  return updateBillingInvoice(id, patch);
+}
+
+export async function sendBillingInvoice(id: string): Promise<Invoice> {
+  return updateBillingInvoiceStatus(id, "SENT");
+}
+
+export async function voidBillingInvoice(id: string): Promise<Invoice> {
+  return updateBillingInvoiceStatus(id, "VOID");
+}
+
+export async function recordInvoicePayment(
+  id: string,
+  payment: {
+    amount: number;
+    paymentDate: string;
+    method: PaymentMethod;
+    reference?: string | null;
+    notes?: string | null;
+  }
+): Promise<Invoice> {
+  await delay();
+  const idx = billingStore.findIndex((i) => i.id === id);
+  if (idx === -1) throw new Error("Invoice not found");
+  const inv = billingStore[idx];
+  const record: Payment = {
+    id: `pay-${Date.now()}`,
+    invoiceId: id,
+    amount: payment.amount,
+    paymentDate: payment.paymentDate,
+    method: payment.method,
+    reference: payment.reference ?? null,
+    notes: payment.notes ?? null,
+    createdAt: nowIso(),
+  };
+  const payments = [...(inv.payments ?? []), record];
+  const amountPaid = round2(payments.reduce((a, p) => a + p.amount, 0));
+  const patch: Partial<Invoice> = {
+    payments,
+    paidAt: amountPaid >= inv.total ? payment.paymentDate : inv.paidAt,
+  };
+  billingStore[idx] = recomputeInvoice({ ...inv, ...patch, updatedAt: nowIso() });
+  return { ...billingStore[idx] };
 }
