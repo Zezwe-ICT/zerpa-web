@@ -9,6 +9,10 @@ applications:
             - cd apps/web
         build:
           commands:
+            # Amplify console env vars are available at build time but NOT to the
+            # Next.js SSR runtime. Write server-only secrets into .env.production
+            # so the Next server loads them at runtime. Secret stays in the console.
+            - if [ -n "$SERPAPI_KEY" ]; then echo "SERPAPI_KEY=$SERPAPI_KEY" >> .env.production; fi
             - npm run build
         postBuild:
           commands:
