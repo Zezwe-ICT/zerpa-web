@@ -612,6 +612,43 @@ export interface SpaBooking {
   updatedAt: string;
 }
 
+// ── Lead Finder (map-based prospecting) ──────────────────────
+/** A business returned by a lead-finder provider (e.g. SerpApi Google Maps). */
+export interface ScrapedBusiness {
+  /** Provider place id (Google place_id via SerpApi). Stable dedupe key. */
+  id: string;
+  name: string;
+  category?: string;
+  address?: string;
+  phone?: string;
+  website?: string;
+  rating?: number;
+  reviews?: number;
+  latitude?: number;
+  longitude?: number;
+  thumbnail?: string;
+  /** Provider the result came from, e.g. "serpapi_google_maps". */
+  source: string;
+}
+
+export interface LeadFinderSearchParams {
+  /** What to search for, e.g. "funeral parlour". */
+  query: string;
+  /** Free-text location appended to the query, e.g. "Soweto, Johannesburg". */
+  location?: string;
+  /** Country bias (Google gl), default "za". */
+  country?: string;
+  /** Result page (0-based); maps to SerpApi start offset. */
+  page?: number;
+}
+
+export interface LeadFinderSearchResponse {
+  results: ScrapedBusiness[];
+  provider: string;
+  query: string;
+  error?: string;
+}
+
 // ── Activity / Timeline ──────────────────────────────────────
 export interface TimelineEvent {
   id: string;
