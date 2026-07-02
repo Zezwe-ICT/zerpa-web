@@ -286,7 +286,7 @@ export function LeadFinderClient() {
             </select>
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="estValue">Est. value (R)</Label>
+            <Label htmlFor="estValue">Est. deal value (R)</Label>
             <Input
               id="estValue"
               type="number"
@@ -304,6 +304,12 @@ export function LeadFinderClient() {
             Search
           </Button>
         </div>
+        <p className="text-xs text-muted-fg mt-3">
+          <span className="font-medium text-foreground">Est. deal value</span> = roughly
+          how much we&apos;d earn if they sign up (not what their business is worth).
+          It&apos;s applied to every lead you import — set your best guess, then refine
+          it per lead later.
+        </p>
       </form>
 
       {/* Provider / error notice */}
