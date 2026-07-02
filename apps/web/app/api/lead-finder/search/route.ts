@@ -16,6 +16,8 @@ import type { LeadFinderSearchResponse } from "@zerpa/shared-types";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+const NO_STORE = { "Cache-Control": "no-store, max-age=0" } as const;
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const query = (searchParams.get("query") ?? "").trim();
@@ -26,7 +28,7 @@ export async function GET(request: Request) {
   if (!query) {
     return NextResponse.json(
       { results: [], provider: "", query: "", error: "A search query is required." } satisfies LeadFinderSearchResponse,
-      { status: 400 }
+      { status: 400, headers: NO_STORE }
     );
   }
 
@@ -34,11 +36,14 @@ export async function GET(request: Request) {
 
   try {
     const results = await provider.search({ query, location, country, page });
-    return NextResponse.json({
-      results,
-      provider: provider.id,
-      query,
-    } satisfies LeadFinderSearchResponse);
+    return NextResponse.json(
+      {
+        results,
+        provider: provider.id,
+        query,
+      } satisfies LeadFinderSearchResponse,
+      { headers: NO_STORE }
+    );
   } catch (err) {
     const message =
       err instanceof LeadFinderConfigError
@@ -49,7 +54,7 @@ export async function GET(request: Request) {
     const status = err instanceof LeadFinderConfigError ? 503 : 502;
     return NextResponse.json(
       { results: [], provider: provider.id, query, error: message } satisfies LeadFinderSearchResponse,
-      { status }
+      { status, headers: NO_STORE }
     );
   }
 }

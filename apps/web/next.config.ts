@@ -17,8 +17,14 @@ const nextConfig: NextConfig = {
   },
   headers: async () => {
     return [
+      // API routes must never be cached (the CDN was caching stale 503s).
       {
-        source: "/:path*",
+        source: "/api/:path*",
+        headers: [{ key: "Cache-Control", value: "no-store, max-age=0" }],
+      },
+      // Cache everything else (excludes /api via negative lookahead).
+      {
+        source: "/((?!api/).*)",
         headers: [
           {
             key: "Cache-Control",
