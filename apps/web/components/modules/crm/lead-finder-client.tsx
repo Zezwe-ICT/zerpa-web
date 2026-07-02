@@ -40,6 +40,18 @@ const norm = (s?: string) =>
   (s ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
 const digits = (s?: string) => (s ?? "").replace(/\D/g, "");
 
+/**
+ * Scraped businesses have no person name, but the CRM requires a non-empty
+ * firstName AND lastName. Split the business name across the two fields, with a
+ * placeholder fallback so single-word names still pass validation.
+ */
+function businessNameParts(name: string): { firstName: string; lastName: string } {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return { firstName: "Business", lastName: "Lead" };
+  if (parts.length === 1) return { firstName: parts[0], lastName: "(Business)" };
+  return { firstName: parts[0], lastName: parts.slice(1).join(" ") };
+}
+
 interface Row extends ScrapedBusiness {
   selected: boolean;
   existing: boolean;
@@ -152,10 +164,11 @@ export function LeadFinderClient() {
 
     for (const b of toImport) {
       try {
+        const { firstName, lastName } = businessNameParts(b.name);
         const contact = await createContact({
           tenantId: company.id,
-          firstName: b.name,
-          lastName: "",
+          firstName,
+          lastName,
           phone: b.phone || undefined,
           company: b.name,
         });
