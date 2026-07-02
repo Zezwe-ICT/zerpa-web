@@ -161,6 +161,7 @@ export function LeadFinderClient() {
     setImporting(true);
     let ok = 0;
     let failed = 0;
+    let firstError = "";
 
     for (const b of toImport) {
       try {
@@ -172,6 +173,9 @@ export function LeadFinderClient() {
           phone: b.phone || undefined,
           company: b.name,
         });
+        if (!contact?.id) {
+          throw new Error("Contact created but no id was returned by the API");
+        }
         const notes = [
           "Imported via Lead Finder (Google Maps).",
           b.category && `Category: ${b.category}`,
@@ -198,14 +202,22 @@ export function LeadFinderClient() {
             r.id === b.id ? { ...r, imported: true, selected: false } : r
           )
         );
-      } catch {
+      } catch (err) {
         failed += 1;
+        if (!firstError) {
+          firstError = err instanceof Error ? err.message : String(err);
+        }
       }
     }
 
     setImporting(false);
     if (ok) toast.success(`Imported ${ok} lead${ok === 1 ? "" : "s"} into CRM`);
-    if (failed) toast.error(`${failed} failed to import`);
+    if (failed) {
+      toast.error(
+        `${failed} failed to import${firstError ? ` — ${firstError}` : ""}`,
+        { duration: 8000 }
+      );
+    }
 
     // Refresh dedupe set so re-imports are flagged.
     if (ok && company?.id) {
