@@ -63,6 +63,8 @@ export function LeadFinderClient() {
   const [query, setQuery] = useState("");
   const [location, setLocation] = useState("");
   const [vertical, setVertical] = useState<Vertical>("FUNERAL");
+  // Backend requires estimatedValue > 0; applied to every imported lead.
+  const [estValue, setEstValue] = useState(1000);
 
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(false);
@@ -193,7 +195,7 @@ export function LeadFinderClient() {
           company: b.name,
           vertical,
           status: "NEW",
-          estimatedValue: 0,
+          estimatedValue: estValue > 0 ? estValue : 1,
           notes,
         });
         ok += 1;
@@ -249,7 +251,7 @@ export function LeadFinderClient() {
         onSubmit={handleSearch}
         className="rounded-[12px] border border-border bg-background p-5 mb-6"
       >
-        <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_180px_auto] gap-3 items-end">
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_150px_130px_auto] gap-3 items-end">
           <div className="space-y-1.5">
             <Label htmlFor="query">Business type / keyword</Label>
             <Input
@@ -282,6 +284,16 @@ export function LeadFinderClient() {
                 </option>
               ))}
             </select>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="estValue">Est. value (R)</Label>
+            <Input
+              id="estValue"
+              type="number"
+              min={1}
+              value={estValue}
+              onChange={(e) => setEstValue(parseFloat(e.target.value) || 0)}
+            />
           </div>
           <Button type="submit" disabled={loading}>
             {loading ? (
