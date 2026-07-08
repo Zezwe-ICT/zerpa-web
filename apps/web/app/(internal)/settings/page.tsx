@@ -1,14 +1,24 @@
 /**
  * @file app/(internal)/settings/page.tsx
- * @description System settings page for ZERPA admins. Lists configuration sections
- * (Notifications, Security, Appearance, Integrations, Database, Email).
- * Also displays live API health status and logged-in account info.
+ * @description Settings home. Shows company/account info (+ dev-only API health)
+ * and a grid of section cards that link into each settings area. These cards are
+ * the primary settings navigation (there is no settings sub-sidebar).
  */
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bell, Shield, Palette, Globe, Database, Mail, Building2, Activity } from "lucide-react";
-import { PageContainer } from "@/components/layouts/page-container";
+import Link from "next/link";
+import {
+  Bell,
+  Shield,
+  Palette,
+  Globe,
+  Database,
+  Mail,
+  Building2,
+  Activity,
+  ChevronRight,
+} from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { useAuth } from "@/lib/auth/context";
 import { useIsDevUser } from "@/lib/auth/dev-access";
@@ -19,12 +29,14 @@ const SETTINGS_SECTIONS = [
   {
     icon: Bell,
     title: "Notifications",
+    href: "/settings/notifications",
     description: "Configure email and in-app notification preferences.",
     items: ["Invoice reminders", "Lead status changes", "System alerts"],
   },
   {
     icon: Shield,
     title: "Security",
+    href: "/settings/security",
     description: "Manage authentication, access control, and audit logs.",
     items: ["Two-factor authentication", "Session management", "Audit log"],
     devOnly: true,
@@ -32,24 +44,28 @@ const SETTINGS_SECTIONS = [
   {
     icon: Palette,
     title: "Appearance",
+    href: "/settings/appearance",
     description: "Customize the look and feel of the platform.",
-    items: ["Theme (light / dark)", "Brand colours", "Logo"],
+    items: ["Theme (light / dark)", "Brand colours", "Font size"],
   },
   {
     icon: Globe,
     title: "Localisation",
+    href: "/settings/localisation",
     description: "Set your region, currency, and date format.",
     items: ["Currency: ZAR (R)", "Date format: DD/MM/YYYY", "Timezone: Africa/Johannesburg"],
   },
   {
     icon: Mail,
     title: "Email & Integrations",
+    href: "/settings/integrations",
     description: "Connect your email provider and third-party tools.",
     items: ["SMTP configuration", "AWS SES", "Webhook endpoints"],
   },
   {
     icon: Database,
     title: "Data & Exports",
+    href: "/settings/data-exports",
     description: "Export your data or manage backups.",
     items: ["Export invoices (CSV)", "Export leads (CSV)", "Database backup"],
   },
@@ -71,7 +87,7 @@ export default function SettingsPage() {
   }, [isDev]);
 
   return (
-    <PageContainer>
+    <>
       <PageHeader
         title="Settings"
         subtitle="Platform configuration and preferences"
@@ -147,23 +163,28 @@ export default function SettingsPage() {
         )}
       </div>
 
-      {/* General Settings */}
+      {/* General Settings — cards link into each section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {sections.map((section) => {
           const Icon = section.icon;
           return (
-            <div
+            <Link
               key={section.title}
-              className="rounded-[12px] border border-border bg-background p-5 space-y-3"
+              href={section.href}
+              className="group rounded-[12px] border border-border bg-background p-5 space-y-3 transition-colors hover:border-primary hover:bg-surface"
             >
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-[6px] bg-surface border border-border flex items-center justify-center">
                   <Icon size={16} className="text-muted-fg" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <h3 className="font-semibold text-sm text-foreground">{section.title}</h3>
                   <p className="text-xs text-muted-fg">{section.description}</p>
                 </div>
+                <ChevronRight
+                  size={16}
+                  className="ml-auto text-muted-fg transition-transform group-hover:translate-x-0.5 group-hover:text-primary"
+                />
               </div>
               <ul className="space-y-1 pl-11">
                 {section.items.map((item) => (
@@ -173,15 +194,10 @@ export default function SettingsPage() {
                   </li>
                 ))}
               </ul>
-              <div className="pt-1 pl-11">
-                <span className="text-xs text-primary cursor-not-allowed opacity-50">
-                  Configure (coming soon)
-                </span>
-              </div>
-            </div>
+            </Link>
           );
         })}
       </div>
-    </PageContainer>
+    </>
   );
 }
