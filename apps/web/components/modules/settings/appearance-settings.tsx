@@ -1,24 +1,20 @@
 /**
  * @file components/modules/settings/appearance-settings.tsx
- * @description Appearance customization component
+ * @description Appearance customization component. Reads and writes the global
+ * AppearanceProvider, so changes (theme, brand colour, font size, sidebar)
+ * apply live to the whole app and persist across sessions.
  */
 "use client";
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Check, Monitor, Moon, Sun } from "lucide-react";
-
-const DEFAULT_APPEARANCE_SETTINGS = {
-  theme: "light" as const,
-  primaryColor: "#7c3aed",
-  fontSize: "medium" as const,
-  sidebarCollapsed: false,
-};
+import { useAppearance, DEFAULT_PRIMARY } from "@/lib/theme/context";
 
 const COLOR_PRESETS = [
-  { name: "Violet", value: "#7c3aed" },
+  { name: "Navy", value: DEFAULT_PRIMARY },
   { name: "Blue", value: "#0ea5e9" },
-  { name: "Cyan", value: "#06b6d4" },
+  { name: "Violet", value: "#7c3aed" },
   { name: "Emerald", value: "#10b981" },
   { name: "Amber", value: "#f59e0b" },
   { name: "Rose", value: "#f43f5e" },
@@ -28,29 +24,14 @@ const FONT_SIZES = [
   { label: "Small", value: "small", example: "text-sm" },
   { label: "Medium", value: "medium", example: "text-base" },
   { label: "Large", value: "large", example: "text-lg" },
-];
-
-interface AppearanceSettings {
-  theme: "light" | "dark" | "system";
-  primaryColor: string;
-  fontSize: "small" | "medium" | "large";
-  sidebarCollapsed: boolean;
-}
+] as const;
 
 export function AppearanceSettings() {
-  const [settings, setSettings] = useState<AppearanceSettings>(
-    DEFAULT_APPEARANCE_SETTINGS
-  );
+  const { settings, update, reset } = useAppearance();
   const [saved, setSaved] = useState(false);
 
-  const updateSetting = (key: keyof AppearanceSettings, value: any) => {
-    setSettings((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
-    setSaved(false);
-  };
-
+  // Changes apply live via the provider; "Save" just confirms the current state
+  // (already persisted to localStorage on every change).
   const handleSave = () => {
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
@@ -82,10 +63,10 @@ export function AppearanceSettings() {
             return (
               <button
                 key={theme.value}
-                onClick={() => updateSetting("theme", theme.value as any)}
+                onClick={() => update({ theme: theme.value as typeof settings.theme })}
                 className={`p-3 border rounded-[12px] flex flex-col items-center gap-2 transition-colors ${
                   settings.theme === theme.value
-                    ? "border-primary bg-primary/10"
+                    ? "border-primary bg-primary-tint"
                     : "border-border hover:border-foreground"
                 }`}
               >
@@ -109,7 +90,7 @@ export function AppearanceSettings() {
           {COLOR_PRESETS.map((color) => (
             <button
               key={color.value}
-              onClick={() => updateSetting("primaryColor", color.value)}
+              onClick={() => update({ primaryColor: color.value })}
               className="flex flex-col items-center gap-2 group"
               title={color.name}
             >
@@ -138,10 +119,10 @@ export function AppearanceSettings() {
           {FONT_SIZES.map((size) => (
             <button
               key={size.value}
-              onClick={() => updateSetting("fontSize", size.value as any)}
+              onClick={() => update({ fontSize: size.value })}
               className={`w-full flex items-center justify-between p-3 border rounded-[12px] transition-colors ${
                 settings.fontSize === size.value
-                  ? "border-primary bg-primary/10"
+                  ? "border-primary bg-primary-tint"
                   : "border-border hover:border-foreground"
               }`}
             >
@@ -167,7 +148,7 @@ export function AppearanceSettings() {
           <input
             type="checkbox"
             checked={settings.sidebarCollapsed}
-            onChange={(e) => updateSetting("sidebarCollapsed", e.target.checked)}
+            onChange={(e) => update({ sidebarCollapsed: e.target.checked })}
             className="sr-only peer"
           />
           <div className="w-11 h-6 bg-surface border border-border rounded-full peer peer-checked:bg-primary peer-checked:border-primary transition-colors" />
@@ -179,7 +160,7 @@ export function AppearanceSettings() {
       <div className="p-6 border border-border rounded-[12px] bg-surface">
         <h4 className="text-sm font-medium text-foreground mb-4">Preview</h4>
         <div className="space-y-2">
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
             <div
               className="w-4 h-4 rounded-full"
               style={{ backgroundColor: settings.primaryColor }}
@@ -188,7 +169,7 @@ export function AppearanceSettings() {
               Primary color preview
             </span>
           </div>
-          <p className={`text-${settings.fontSize === "small" ? "sm" : settings.fontSize === "large" ? "lg" : "base"}`}>
+          <p className={settings.fontSize === "small" ? "text-sm" : settings.fontSize === "large" ? "text-lg" : "text-base"}>
             This is how your text will look
           </p>
         </div>
@@ -197,17 +178,14 @@ export function AppearanceSettings() {
       {/* Actions */}
       <div className="flex gap-3">
         <Button onClick={handleSave}>Save Changes</Button>
-        <Button
-          variant="outline"
-          onClick={() => setSettings(DEFAULT_APPEARANCE_SETTINGS)}
-        >
+        <Button variant="outline" onClick={reset}>
           Reset to Default
         </Button>
       </div>
 
       {saved && (
         <div className="bg-success-bg text-success text-sm p-3 rounded-[8px]">
-          ✓ Appearance settings saved successfully
+          ✓ Appearance settings saved
         </div>
       )}
     </div>

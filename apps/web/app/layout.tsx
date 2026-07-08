@@ -7,7 +7,31 @@
 import type { Metadata } from "next";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/lib/auth/context";
+import { AppearanceProvider } from "@/lib/theme/context";
+import { LocaleProvider } from "@/lib/locale/context";
 import "./globals.css";
+
+/**
+ * Applies the persisted theme (and font size / brand colour) to <html> before
+ * first paint, so there is no light-mode flash before React hydrates. Mirrors
+ * the logic in lib/theme/context.tsx (applyAppearance).
+ */
+const THEME_INIT_SCRIPT = `(function(){try{
+  var d=document.documentElement;
+  var raw=localStorage.getItem('zerpa_appearance');
+  var s=raw?JSON.parse(raw):{};
+  var theme=s.theme||'system';
+  var resolved=theme==='system'
+    ?(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')
+    :theme;
+  d.dataset.theme=resolved;
+  d.style.fontSize={small:'14px',medium:'16px',large:'18px'}[s.fontSize||'medium'];
+  var def='#1d3461';
+  if(s.primaryColor&&s.primaryColor.toLowerCase()!==def){
+    d.style.setProperty('--color-primary',s.primaryColor);
+    d.style.setProperty('--color-primary-hover',s.primaryColor);
+  }
+}catch(e){}})();`;
 
 export const metadata: Metadata = {
   title: {
@@ -34,6 +58,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
@@ -43,7 +68,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="antialiased">
         <AuthProvider>
-          {children}
+          <AppearanceProvider>
+            <LocaleProvider>
+              {children}
+            </LocaleProvider>
+          </AppearanceProvider>
         </AuthProvider>
         <Toaster
           position="bottom-right"

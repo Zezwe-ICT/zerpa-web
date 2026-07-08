@@ -15,10 +15,11 @@ import {
   Database,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useIsDevUser } from "@/lib/auth/dev-access";
 
 const SETTINGS_MENU = [
   { href: "/settings/notifications", label: "Notifications", icon: Bell },
-  { href: "/settings/security", label: "Security", icon: Shield },
+  { href: "/settings/security", label: "Security", icon: Shield, devOnly: true },
   { href: "/settings/appearance", label: "Appearance", icon: Palette },
   { href: "/settings/localisation", label: "Localisation", icon: Globe },
   { href: "/settings/integrations", label: "Integrations", icon: Mail },
@@ -27,10 +28,12 @@ const SETTINGS_MENU = [
 
 export function SettingsSidebar() {
   const pathname = usePathname();
+  const isDev = useIsDevUser();
+  const menu = SETTINGS_MENU.filter((item) => !item.devOnly || isDev);
 
   return (
     <nav className="w-64 border-r border-border bg-surface p-4 space-y-1">
-      {SETTINGS_MENU.map((item) => {
+      {menu.map((item) => {
         const Icon = item.icon;
         const isActive = pathname === item.href || pathname.startsWith(item.href);
 

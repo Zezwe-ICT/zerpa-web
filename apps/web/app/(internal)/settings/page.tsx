@@ -11,6 +11,7 @@ import { Bell, Shield, Palette, Globe, Database, Mail, Building2, Activity } fro
 import { PageContainer } from "@/components/layouts/page-container";
 import { PageHeader } from "@/components/ui/page-header";
 import { useAuth } from "@/lib/auth/context";
+import { useIsDevUser } from "@/lib/auth/dev-access";
 import { getHealth } from "@/lib/api/companies";
 import type { HealthResponse } from "@/lib/api/companies";
 
@@ -26,6 +27,7 @@ const SETTINGS_SECTIONS = [
     title: "Security",
     description: "Manage authentication, access control, and audit logs.",
     items: ["Two-factor authentication", "Session management", "Audit log"],
+    devOnly: true,
   },
   {
     icon: Palette,
@@ -55,15 +57,18 @@ const SETTINGS_SECTIONS = [
 
 export default function SettingsPage() {
   const { user, company } = useAuth();
+  const isDev = useIsDevUser();
+  const sections = SETTINGS_SECTIONS.filter((s) => !s.devOnly || isDev);
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [healthLoading, setHealthLoading] = useState(true);
 
   useEffect(() => {
+    if (!isDev) return;
     getHealth()
       .then(setHealth)
       .catch(() => setHealth(null))
       .finally(() => setHealthLoading(false));
-  }, []);
+  }, [isDev]);
 
   return (
     <PageContainer>
@@ -73,7 +78,7 @@ export default function SettingsPage() {
       />
 
       {/* Company & Account */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      <div className={`grid grid-cols-1 ${isDev ? "md:grid-cols-2" : ""} gap-4 mb-6`}>
         {/* Company Info */}
         <div className="rounded-[12px] border border-border bg-background p-5 space-y-3">
           <div className="flex items-center gap-3">
@@ -93,7 +98,8 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* API Health */}
+        {/* API Health — dev-only */}
+        {isDev && (
         <div className="rounded-[12px] border border-border bg-background p-5 space-y-3">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-[6px] bg-surface border border-border flex items-center justify-center">
@@ -138,11 +144,12 @@ export default function SettingsPage() {
             )}
           </div>
         </div>
+        )}
       </div>
 
       {/* General Settings */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {SETTINGS_SECTIONS.map((section) => {
+        {sections.map((section) => {
           const Icon = section.icon;
           return (
             <div

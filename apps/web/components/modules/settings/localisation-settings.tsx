@@ -1,11 +1,14 @@
 /**
  * @file components/modules/settings/localisation-settings.tsx
- * @description Localization configuration component
+ * @description Localization configuration component. Reads and writes the global
+ * LocaleProvider so preferences persist and the live preview uses the shared
+ * formatting helpers (formatCurrency / formatDate / formatTime).
  */
 "use client";
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useLocale } from "@/lib/locale/context";
 
 const CURRENCY_OPTIONS = [
   { id: "ZAR", label: "South African Rand (R)" },
@@ -44,36 +47,13 @@ const LANGUAGE_OPTIONS = [
   { id: "xh", label: "Xhosa" },
 ];
 
-const DEFAULT_LOCALISATION_SETTINGS = {
-  currency: "ZAR",
-  dateFormat: "DD/MM/YYYY",
-  timeFormat: "24H",
-  timezone: "Africa/Johannesburg",
-  language: "en",
-};
-
-interface LocalisationSettings {
-  currency: string;
-  dateFormat: string;
-  timeFormat: string;
-  timezone: string;
-  language: string;
-}
-
 export function LocalisationSettings() {
-  const [settings, setSettings] = useState<LocalisationSettings>(
-    DEFAULT_LOCALISATION_SETTINGS
-  );
+  const { settings, update, reset, formatCurrency, formatDate, formatTime } =
+    useLocale();
   const [saved, setSaved] = useState(false);
+  const now = new Date();
 
-  const updateSetting = (key: keyof LocalisationSettings, value: string) => {
-    setSettings((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
-    setSaved(false);
-  };
-
+  // Changes persist live via the provider; "Save" confirms the current state.
   const handleSave = () => {
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
@@ -98,7 +78,7 @@ export function LocalisationSettings() {
           </label>
           <select
             value={settings.currency}
-            onChange={(e) => updateSetting("currency", e.target.value)}
+            onChange={(e) => update({ currency: e.target.value })}
             className="w-full px-3 py-2 border border-border rounded-[8px] text-sm bg-background focus:outline-none focus:border-primary"
           >
             {CURRENCY_OPTIONS.map((option) => (
@@ -119,7 +99,7 @@ export function LocalisationSettings() {
           </label>
           <select
             value={settings.language}
-            onChange={(e) => updateSetting("language", e.target.value)}
+            onChange={(e) => update({ language: e.target.value })}
             className="w-full px-3 py-2 border border-border rounded-[8px] text-sm bg-background focus:outline-none focus:border-primary"
           >
             {LANGUAGE_OPTIONS.map((option) => (
@@ -140,7 +120,7 @@ export function LocalisationSettings() {
           </label>
           <select
             value={settings.dateFormat}
-            onChange={(e) => updateSetting("dateFormat", e.target.value)}
+            onChange={(e) => update({ dateFormat: e.target.value })}
             className="w-full px-3 py-2 border border-border rounded-[8px] text-sm bg-background focus:outline-none focus:border-primary"
           >
             {DATE_FORMAT_OPTIONS.map((option) => (
@@ -161,7 +141,7 @@ export function LocalisationSettings() {
           </label>
           <select
             value={settings.timeFormat}
-            onChange={(e) => updateSetting("timeFormat", e.target.value)}
+            onChange={(e) => update({ timeFormat: e.target.value })}
             className="w-full px-3 py-2 border border-border rounded-[8px] text-sm bg-background focus:outline-none focus:border-primary"
           >
             {TIME_FORMAT_OPTIONS.map((option) => (
@@ -182,7 +162,7 @@ export function LocalisationSettings() {
           </label>
           <select
             value={settings.timezone}
-            onChange={(e) => updateSetting("timezone", e.target.value)}
+            onChange={(e) => update({ timezone: e.target.value })}
             className="w-full px-3 py-2 border border-border rounded-[8px] text-sm bg-background focus:outline-none focus:border-primary"
           >
             {TIMEZONE_OPTIONS.map((option) => (
@@ -197,30 +177,23 @@ export function LocalisationSettings() {
         </div>
       </div>
 
-      {/* Preview */}
+      {/* Preview — rendered with the live formatting helpers */}
       <div className="p-4 border border-border rounded-[12px] bg-surface space-y-3">
         <h4 className="text-sm font-medium text-foreground">Preview</h4>
         <div className="space-y-2 text-sm text-muted-fg">
           <p>
-            Currency: <span className="text-foreground">R 15,250.50</span>
+            Currency:{" "}
+            <span className="text-foreground">{formatCurrency(15250.5)}</span>
           </p>
           <p>
-            Date: <span className="text-foreground">
-              {settings.dateFormat === "DD/MM/YYYY"
-                ? "05/03/2024"
-                : settings.dateFormat === "MM/DD/YYYY"
-                ? "03/05/2024"
-                : "2024-03-05"}
-            </span>
+            Date: <span className="text-foreground">{formatDate(now)}</span>
           </p>
           <p>
-            Time:{" "}
-            <span className="text-foreground">
-              {settings.timeFormat === "24H" ? "14:30" : "2:30 PM"}
-            </span>
+            Time: <span className="text-foreground">{formatTime(now)}</span>
           </p>
           <p>
-            Timezone: <span className="text-foreground">{settings.timezone}</span>
+            Timezone:{" "}
+            <span className="text-foreground">{settings.timezone}</span>
           </p>
         </div>
       </div>
@@ -228,17 +201,14 @@ export function LocalisationSettings() {
       {/* Actions */}
       <div className="flex gap-3">
         <Button onClick={handleSave}>Save Changes</Button>
-        <Button
-          variant="outline"
-          onClick={() => setSettings(DEFAULT_LOCALISATION_SETTINGS)}
-        >
+        <Button variant="outline" onClick={reset}>
           Reset to Default
         </Button>
       </div>
 
       {saved && (
         <div className="bg-success-bg text-success text-sm p-3 rounded-[8px]">
-          ✓ Localisation settings saved successfully
+          ✓ Localisation settings saved
         </div>
       )}
     </div>

@@ -96,6 +96,91 @@
   --radius: 0.375rem;
 }
 
+/* ────────────────────────────────────────────────────────────────
+ * Dark theme. Activated by data-theme="dark" on <html> (set by the
+ * AppearanceProvider / anti-flash script). Because the whole app is
+ * driven by these tokens, overriding them here re-themes every screen.
+ * ──────────────────────────────────────────────────────────────── */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* ── Backgrounds ──────────────────────────── */
+  --color-background: #0d0d14;
+  --color-surface: #16161f;
+  --color-surface-2: #1e1e2a;
+
+  /* ── Text ─────────────────────────────────── */
+  --color-foreground: #f2f2f5;
+  --color-foreground-2: #c7c7d1;
+  --color-muted-fg: #9494a6;
+
+  /* ── Borders ──────────────────────────────── */
+  --color-border: #2a2a38;
+  --color-border-2: #3a3a4a;
+
+  /* ── Brand (lightened navy for contrast on dark) ── */
+  --color-primary: #4f74c0;
+  --color-primary-fg: #ffffff;
+  --color-primary-hover: #6a8cd0;
+  --color-primary-tint: rgba(79, 116, 192, 0.16);
+  --color-primary-ring: rgba(79, 116, 192, 0.35);
+
+  /* ── Semantic (lifted for dark backgrounds) ── */
+  --color-success: #4ade80;
+  --color-success-bg: rgba(74, 222, 128, 0.14);
+  --color-success-ring: rgba(74, 222, 128, 0.32);
+
+  --color-warning: #fbbf24;
+  --color-warning-bg: rgba(251, 191, 36, 0.14);
+  --color-warning-ring: rgba(251, 191, 36, 0.32);
+
+  --color-danger: #f87171;
+  --color-danger-bg: rgba(248, 113, 113, 0.14);
+  --color-danger-ring: rgba(248, 113, 113, 0.32);
+
+  --color-info: #60a5fa;
+  --color-info-bg: rgba(96, 165, 250, 0.14);
+  --color-info-ring: rgba(96, 165, 250, 0.32);
+
+  /* ── Vertical accents ─────────────────────── */
+  --color-funeral: #a78bfa;
+  --color-funeral-bg: rgba(167, 139, 250, 0.16);
+  --color-automotive: #60a5fa;
+  --color-automotive-bg: rgba(96, 165, 250, 0.16);
+  --color-restaurant: #34d399;
+  --color-restaurant-bg: rgba(52, 211, 153, 0.16);
+  --color-spa: #34d399;
+  --color-spa-bg: rgba(52, 211, 153, 0.16);
+
+  /* ── Shadows (deeper for dark surfaces) ───── */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.4);
+  --shadow-xl: 0 20px 48px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.45);
+
+  /* ── shadcn/ui triplet tokens ─────────────── */
+  --background: 13 13 20;
+  --foreground: 242 242 245;
+  --card: 22 22 31;
+  --card-foreground: 242 242 245;
+  --popover: 22 22 31;
+  --popover-foreground: 242 242 245;
+  --primary: 79 116 192;
+  --primary-foreground: 255 255 255;
+  --secondary: 30 30 42;
+  --secondary-foreground: 199 199 209;
+  --muted: 22 22 31;
+  --muted-foreground: 148 148 166;
+  --accent: 30 30 42;
+  --accent-foreground: 242 242 245;
+  --destructive: 248 113 113;
+  --destructive-foreground: 13 13 20;
+  --border: 42 42 56;
+  --input: 42 42 56;
+  --ring: 79 116 192;
+}
+
 @layer base {
   * {
     @apply border-border;
