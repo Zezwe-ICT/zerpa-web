@@ -23,6 +23,8 @@ import {
   Building2,
 } from "lucide-react";
 import Link from "next/link";
+import { Send } from "lucide-react";
+import { toast } from "sonner";
 import { getLeadById } from "@/lib/data/crm";
 import { useAuth } from "@/lib/auth/context";
 import type { Lead, LeadActivity, LeadStatus, LeadActivityType } from "@zerpa/shared-types";
@@ -78,7 +80,7 @@ const ACTIVITY_ICON_COLORS: Record<LeadActivityType, string> = {
 export default function LeadDetailPage() {
   const params = useParams();
   const id = params.id as string;
-  const { company } = useAuth();
+  const { company, user } = useAuth();
   const [lead, setLead] = useState<Lead | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [isNotFound, setIsNotFound] = useState(false);
@@ -98,6 +100,11 @@ export default function LeadDetailPage() {
     advanceStage: false,
   });
   const [submitting, setSubmitting] = useState(false);
+
+  // Email composer state
+  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [emailForm, setEmailForm] = useState({ subject: "", message: "" });
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -209,6 +216,55 @@ export default function LeadDetailPage() {
     setLogForm({ summary: "", notes: "", nextSteps: "", durationMinutes: "", advanceStage: false });
     setShowLogForm(false);
     setSubmitting(false);
+  }
+
+  async function handleSendEmail(e: React.FormEvent) {
+    e.preventDefault();
+    const to = lead?.contact?.email;
+    const subject = emailForm.subject.trim();
+    const message = emailForm.message.trim();
+    if (!to || !subject || !message) return;
+
+    setSendingEmail(true);
+    try {
+      const res = await fetch("/api/email/lead", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to,
+          subject,
+          message,
+          senderName: user?.fullName,
+          replyTo: user?.email,
+        }),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        error?: string;
+      };
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || "Failed to send email");
+      }
+
+      // Record the outreach as an EMAIL activity in the timeline.
+      const emailActivity: LeadActivity = {
+        id: `act-${Date.now()}`,
+        leadId: id,
+        type: "EMAIL",
+        date: new Date().toISOString(),
+        summary: `Emailed ${to}: ${subject}`,
+        notes: message,
+        agentName: user?.fullName || "You",
+      };
+      setActivities((prev) => [emailActivity, ...prev]);
+      setEmailForm({ subject: "", message: "" });
+      setShowEmailForm(false);
+      toast.success("Email sent");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to send email");
+    } finally {
+      setSendingEmail(false);
+    }
   }
 
   // ── Render guards ────────────────────────────────────────
@@ -452,6 +508,97 @@ export default function LeadDetailPage() {
               </div>
             )}
           </div>
+
+          {/* ── Email composer ───────────────────────────────── */}
+          {showEmailForm && (
+            <div className="rounded-[12px] border border-border bg-background p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-violet-100 text-violet-600 flex items-center justify-center">
+                    <Mail size={14} strokeWidth={1.5} />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-sm">Send Email</h3>
+                    <p className="text-xs text-muted-fg">
+                      To {lead.contact?.email ?? "—"}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowEmailForm(false)}
+                  className="text-muted-fg hover:text-foreground transition"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {!lead.contact?.email ? (
+                <p className="text-sm text-muted-fg">
+                  This lead has no contact email address on file.
+                </p>
+              ) : (
+                <form onSubmit={handleSendEmail} className="space-y-4">
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-muted-fg">
+                      Subject *
+                    </label>
+                    <input
+                      className="w-full h-9 rounded-[6px] border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                      placeholder={`Introduction from ${company?.name ?? "our team"}`}
+                      value={emailForm.subject}
+                      onChange={(e) =>
+                        setEmailForm((p) => ({ ...p, subject: e.target.value }))
+                      }
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-muted-fg">
+                      Message *
+                    </label>
+                    <textarea
+                      className="w-full rounded-[6px] border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+                      rows={7}
+                      placeholder={`Hi ${lead.contact?.firstName ?? "there"},\n\n`}
+                      value={emailForm.message}
+                      onChange={(e) =>
+                        setEmailForm((p) => ({ ...p, message: e.target.value }))
+                      }
+                      required
+                    />
+                  </div>
+                  <p className="text-xs text-muted-fg">
+                    Sent via Zerpa. Replies go to{" "}
+                    {user?.email ?? "your account email"}.
+                  </p>
+                  <div className="flex gap-2 pt-1">
+                    <Button
+                      type="submit"
+                      size="sm"
+                      className="gap-1.5"
+                      disabled={
+                        sendingEmail ||
+                        !emailForm.subject.trim() ||
+                        !emailForm.message.trim()
+                      }
+                    >
+                      <Send size={14} />
+                      {sendingEmail ? "Sending..." : "Send Email"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowEmailForm(false)}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </form>
+              )}
+            </div>
+          )}
 
           {/* ── Log Activity section ─────────────────────────── */}
           <div className="rounded-[12px] border border-border bg-background p-6">
@@ -848,7 +995,21 @@ export default function LeadDetailPage() {
             </dl>
           </div>
 
-          {/* Quick Log Button */}
+          {/* Quick action buttons */}
+          {!showEmailForm && (
+            <Button
+              variant="outline"
+              className="w-full justify-start gap-2"
+              disabled={!lead.contact?.email}
+              onClick={() => {
+                setShowEmailForm(true);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+            >
+              <Send size={14} />
+              {lead.contact?.email ? "Send Email" : "No contact email"}
+            </Button>
+          )}
           {!showLogForm && (
             <Button
               variant="outline"

@@ -28,7 +28,7 @@ interface ApiKey {
 }
 
 export function SecuritySettings() {
-  const { company } = useAuth();
+  const { company, user } = useAuth();
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
   const [loading, setLoading] = useState(true);
@@ -87,6 +87,24 @@ export function SecuritySettings() {
       setAddingMember(true);
       const member = await addTeamMember(company.id, newMemberEmail);
       setTeamMembers([...teamMembers, member]);
+
+      // Send the invitation email (best-effort — the member is already added,
+      // so a mail failure must not roll back or block the UI).
+      try {
+        await fetch("/api/email/invite", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            to: newMemberEmail,
+            companyName: company.name,
+            inviterName: user?.fullName,
+            role: member.role,
+          }),
+        });
+      } catch {
+        // Ignore — invitation email is non-critical.
+      }
+
       setNewMemberEmail("");
       setShowNewMemberForm(false);
     } catch (err) {

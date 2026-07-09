@@ -59,7 +59,7 @@ interface Row extends ScrapedBusiness {
 }
 
 export function LeadFinderClient() {
-  const { company } = useAuth();
+  const { company, user } = useAuth();
   const [query, setQuery] = useState("");
   const [location, setLocation] = useState("");
   const [vertical, setVertical] = useState<Vertical>("FUNERAL");
@@ -164,6 +164,7 @@ export function LeadFinderClient() {
     let ok = 0;
     let failed = 0;
     let firstError = "";
+    const importedLeads: { company: string; contactName?: string; estimatedValue?: number }[] = [];
 
     for (const b of toImport) {
       try {
@@ -199,6 +200,11 @@ export function LeadFinderClient() {
           notes,
         });
         ok += 1;
+        importedLeads.push({
+          company: b.name,
+          contactName: `${firstName} ${lastName}`.trim() || undefined,
+          estimatedValue: estValue > 0 ? estValue : undefined,
+        });
         setRows((rs) =>
           rs.map((r) =>
             r.id === b.id ? { ...r, imported: true, selected: false } : r
@@ -214,6 +220,22 @@ export function LeadFinderClient() {
 
     setImporting(false);
     if (ok) toast.success(`Imported ${ok} lead${ok === 1 ? "" : "s"} into CRM`);
+
+    // Notify the sales team of the newly imported leads (best-effort).
+    if (ok && importedLeads.length) {
+      fetch("/api/email/lead-notify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          count: ok,
+          vertical,
+          importedBy: user?.fullName,
+          leads: importedLeads,
+        }),
+      }).catch(() => {
+        // Ignore — the notification is non-critical.
+      });
+    }
     if (failed) {
       toast.error(
         `${failed} failed to import${firstError ? ` — ${firstError}` : ""}`,
