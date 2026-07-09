@@ -3,6 +3,11 @@ node_modules/
 .pnp
 .pnp.js
 
+# Root lockfile is intentionally not committed: a Windows-generated lockfile
+# omits Linux native optional deps (e.g. lightningcss-linux-x64-gnu), which
+# breaks the Amplify build. Amplify runs `npm install` and resolves per-platform.
+/package-lock.json
+
 # Testing
 coverage/
 .nyc_output/
