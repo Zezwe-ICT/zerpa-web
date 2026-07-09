@@ -5,6 +5,10 @@ applications:
         preBuild:
           commands:
             - cd ../..
+            # Remove any cached node_modules: a previously cached tree can be
+            # missing platform-native optional deps (e.g. lightningcss-linux-x64-gnu),
+            # and `npm install` won't refetch them if the parent pkg is present.
+            - rm -rf node_modules
             - npm install --legacy-peer-deps
             - cd apps/web
         build:
@@ -30,8 +34,10 @@ applications:
         files:
           - '**/*'
       cache:
+        # node_modules intentionally NOT cached: caching it re-introduced a
+        # broken tree missing Linux-native optional deps. .next/cache still
+        # gives most of the build-speed benefit.
         paths:
-          - node_modules/**/*
           - .next/cache/**/*
       env:
         variables:
