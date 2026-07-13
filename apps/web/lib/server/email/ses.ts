@@ -35,6 +35,8 @@ export interface SendEmailParams {
   text?: string;
   /** Optional Reply-To addresses. */
   replyTo?: string | string[];
+  /** Optional CC addresses. */
+  cc?: string | string[];
   /** Override the default sender. Must be a verified SES identity. */
   from?: string;
 }
@@ -110,6 +112,7 @@ export async function sendEmail(params: SendEmailParams): Promise<string> {
     subject: params.subject,
     ...(params.html ? { html: params.html } : {}),
     ...(params.text ? { text: params.text } : {}),
+    ...(params.cc ? { cc: toList(params.cc) } : {}),
     ...(params.replyTo ? { replyTo: toList(params.replyTo) } : {}),
   });
 

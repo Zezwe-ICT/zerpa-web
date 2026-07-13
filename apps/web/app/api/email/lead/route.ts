@@ -8,7 +8,7 @@
  */
 import { NextResponse } from "next/server";
 import { sendEmail, EmailConfigError } from "@/lib/server/email/ses";
-import { buildOutreachEmail } from "@/lib/server/email/templates";
+import { buildOutreachEmail, formatFrom, SALES_FROM_EMAIL } from "@/lib/server/email/templates";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -58,10 +58,14 @@ export async function POST(request: Request) {
 
   const replyTo = body.replyTo?.trim();
   const { html, text } = buildOutreachEmail({ message, senderName: body.senderName });
+  // Send from the sales role identity, showing the rep's name — not no-reply.
+  // Replies route to the rep via Reply-To.
+  const from = formatFrom(body.senderName?.trim() || undefined, SALES_FROM_EMAIL);
 
   try {
     const messageId = await sendEmail({
       to,
+      from,
       subject,
       html,
       text,

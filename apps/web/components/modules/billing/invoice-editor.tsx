@@ -23,6 +23,7 @@ import { CustomerSelect } from "./customer-select";
 import { LineItemEditor } from "./line-item-editor";
 import { TotalsPanel } from "./totals-panel";
 import { DocumentPreviewModal } from "./document-preview-modal";
+import { SendInvoiceModal } from "./send-invoice-modal";
 import {
   getBillingInvoiceById,
   createManualInvoice,
@@ -93,6 +94,7 @@ export function InvoiceEditor({ invoiceId }: InvoiceEditorProps) {
   const [form, setForm] = useState<EditorState>(BLANK);
   const [items, setItems] = useState<BillingLineItem[]>([]);
   const [previewDoc, setPreviewDoc] = useState<Invoice | null>(null);
+  const [sendOpen, setSendOpen] = useState(false);
 
   // record-payment form
   const [payAmount, setPayAmount] = useState<number>(0);
@@ -424,10 +426,10 @@ export function InvoiceEditor({ invoiceId }: InvoiceEditorProps) {
                   <Button
                     variant="outline"
                     className="w-full"
-                    onClick={() => handleStatus("SENT")}
+                    onClick={() => setSendOpen(true)}
                   >
                     <Send size={14} className="mr-1.5" />
-                    Mark Sent
+                    Send Invoice
                   </Button>
                 )}
                 {invoice.status !== "VOID" && invoice.status !== "PAID" && (
@@ -539,6 +541,15 @@ export function InvoiceEditor({ invoiceId }: InvoiceEditorProps) {
         kind="invoice"
         invoice={previewDoc ?? undefined}
       />
+
+      {invoice && (
+        <SendInvoiceModal
+          invoice={invoice}
+          open={sendOpen}
+          onOpenChange={setSendOpen}
+          onSent={() => handleStatus("SENT")}
+        />
+      )}
     </PageContainer>
   );
 }

@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Send, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { Invoice } from "@zerpa/shared-types";
-import { sendInvoice } from "@/lib/data/invoices";
+import { useAuth } from "@/lib/auth/context";
 
 interface SendInvoiceModalProps {
   invoice: Invoice;
@@ -23,7 +23,7 @@ interface SendInvoiceModalProps {
   onSent?: () => void;
 }
 
-const DEFAULT_EMAIL_TEMPLATE = (invoice: Invoice, clientEmail: string) => `Dear ${invoice.tenantName},
+const DEFAULT_EMAIL_TEMPLATE = (invoice: Invoice) => `Dear ${invoice.tenantName},
 
 Please find attached invoice ${invoice.invoiceNumber} for ${new Intl.NumberFormat("en-ZA", {
   style: "currency",
@@ -47,12 +47,13 @@ export function SendInvoiceModal({
   onOpenChange,
   onSent,
 }: SendInvoiceModalProps) {
-  const [toEmail, setToEmail] = useState("billing@client.co.za");
-  const [ccEmail, setCcEmail] = useState("billing@zerpa.co.za");
+  const { user, company } = useAuth();
+  const [toEmail, setToEmail] = useState(invoice.contactEmail ?? "");
+  const [ccEmail, setCcEmail] = useState("");
   const [subject, setSubject] = useState(
-    `Invoice ${invoice.invoiceNumber} from Zerpa ICT — Due ${invoice.dueDate}`
+    `Invoice ${invoice.invoiceNumber} from ${company?.name ?? "Zerpa"} — Due ${invoice.dueDate}`
   );
-  const [body, setBody] = useState(DEFAULT_EMAIL_TEMPLATE(invoice, "billing@client.co.za"));
+  const [body, setBody] = useState(DEFAULT_EMAIL_TEMPLATE(invoice));
   const [sending, setSending] = useState(false);
 
   const handleSend = async () => {
@@ -63,12 +64,28 @@ export function SendInvoiceModal({
 
     setSending(true);
     try {
-      await sendInvoice(invoice.id, toEmail);
+      const res = await fetch("/api/email/invoice", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: toEmail,
+          cc: ccEmail || undefined,
+          subject,
+          message: body,
+          replyTo: user?.email,
+          companyName: company?.name,
+          invoice,
+        }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || "Failed to send invoice");
+      }
       toast.success(`Invoice sent to ${toEmail}`);
       onOpenChange(false);
       onSent?.();
     } catch (error) {
-      toast.error("Failed to send invoice. Please try again.");
+      toast.error(error instanceof Error ? error.message : "Failed to send invoice. Please try again.");
       console.error(error);
     } finally {
       setSending(false);
