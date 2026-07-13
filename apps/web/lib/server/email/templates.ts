@@ -52,12 +52,18 @@ export interface InviteEmailInput {
   companyName?: string;
   inviterName?: string;
   role?: string;
+  /** The address the new user signs in with. */
+  loginEmail?: string;
+  /** Temporary password the admin set — included so the user can sign in. */
+  tempPassword?: string;
 }
 
 export function buildInviteEmail(input: InviteEmailInput): { subject: string; html: string; text: string } {
   const company = input.companyName?.trim() || "the team";
   const inviter = input.inviterName?.trim();
   const role = input.role?.trim();
+  const loginEmail = input.loginEmail?.trim();
+  const tempPassword = input.tempPassword?.trim();
   const loginUrl = `${APP_URL}/login`;
 
   const subject = `You've been invited to join ${company} on ${BRAND}`;
@@ -65,13 +71,36 @@ export function buildInviteEmail(input: InviteEmailInput): { subject: string; ht
     ? `${escapeHtml(inviter)} has invited you to join <strong>${escapeHtml(company)}</strong> on ${escapeHtml(BRAND)}.`
     : `You've been invited to join <strong>${escapeHtml(company)}</strong> on ${escapeHtml(BRAND)}.`;
 
+  // Credentials block — only when a temporary password was provided.
+  const credsHtml =
+    loginEmail && tempPassword
+      ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;background:#f4f4f5;border-radius:10px;">
+          <tr><td style="padding:16px 18px;">
+            <p style="margin:0 0 10px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:#71717a;">Your login details</p>
+            <p style="margin:0 0 6px;font-size:14px;color:#18181b;">Email: <strong>${escapeHtml(loginEmail)}</strong></p>
+            <p style="margin:0;font-size:14px;color:#18181b;">Temporary password: <strong style="font-family:ui-monospace,Menlo,Consolas,monospace;">${escapeHtml(tempPassword)}</strong></p>
+          </td></tr>
+        </table>
+        <p style="margin:0 0 4px;color:#71717a;font-size:13px;">For your security, please change this password after your first sign-in.</p>`
+      : `<p style="margin:0 0 4px;">Sign in with this email address to get started.</p>`;
+
   const html = layout(`
     <p style="margin:0 0 12px;">Hi there,</p>
     <p style="margin:0 0 12px;">${intro}${role ? ` Your role: <strong>${escapeHtml(role)}</strong>.` : ""}</p>
-    <p style="margin:0 0 4px;">Sign in with this email address to get started.</p>
-    ${button("Open " + BRAND, loginUrl)}
+    ${credsHtml}
+    ${button("Sign in to " + BRAND, loginUrl)}
     <p style="margin:12px 0 0;color:#71717a;font-size:13px;">If you weren't expecting this invitation, you can safely ignore this email.</p>
   `);
+
+  const credsText =
+    loginEmail && tempPassword
+      ? [
+          `Your login details:`,
+          `  Email: ${loginEmail}`,
+          `  Temporary password: ${tempPassword}`,
+          `(For your security, please change this password after your first sign-in.)`,
+        ].join("\n")
+      : `Sign in with this email address to get started.`;
 
   const text = [
     `Hi there,`,
@@ -81,7 +110,9 @@ export function buildInviteEmail(input: InviteEmailInput): { subject: string; ht
       : `You've been invited to join ${company} on ${BRAND}.`,
     role ? `Your role: ${role}.` : ``,
     ``,
-    `Sign in with this email address to get started: ${loginUrl}`,
+    credsText,
+    ``,
+    `Sign in here: ${loginUrl}`,
     ``,
     `If you weren't expecting this invitation, you can safely ignore this email.`,
   ]

@@ -22,6 +22,7 @@ export async function POST(request: Request) {
     companyName?: string;
     inviterName?: string;
     role?: string;
+    tempPassword?: string;
   };
   try {
     body = await request.json();
@@ -44,6 +45,8 @@ export async function POST(request: Request) {
     companyName: body.companyName,
     inviterName: body.inviterName,
     role: body.role,
+    loginEmail: to,
+    tempPassword: body.tempPassword,
   });
 
   try {

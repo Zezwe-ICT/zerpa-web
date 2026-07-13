@@ -84,6 +84,7 @@ export default function HRPage() {
             companyName: company.name,
             inviterName: user?.fullName,
             role: res.membership.role,
+            tempPassword: password,
           }),
         });
         if (!mailRes.ok) {
