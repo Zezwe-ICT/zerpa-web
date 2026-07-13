@@ -28,7 +28,7 @@ interface TeamMember {
 const ROLES = ["ADMIN", "STAFF"] as const;
 
 export default function HRPage() {
-  const { company } = useAuth();
+  const { company, user } = useAuth();
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -72,6 +72,27 @@ export default function HRPage() {
       toast.success(
         `${res.membership.user.fullName} added as ${res.membership.role}.`
       );
+
+      // Send the invitation email (best-effort — the member is already added,
+      // so a mail failure must not block the flow, but we surface a warning).
+      try {
+        const mailRes = await fetch("/api/email/invite", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            to: res.membership.user.email,
+            companyName: company.name,
+            inviterName: user?.fullName,
+            role: res.membership.role,
+          }),
+        });
+        if (!mailRes.ok) {
+          toast.warning("Member added, but the invitation email couldn't be sent.");
+        }
+      } catch {
+        toast.warning("Member added, but the invitation email couldn't be sent.");
+      }
+
       resetForm();
     } catch (err) {
       const message =
