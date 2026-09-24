@@ -50,7 +50,7 @@ export const CONFIG = {
    * - API functions in lib/api/* still called, but intercepted
    * - Or lib/api/* functions can check and return mock data
    */
-  useMock: false, // Set to false for live AWS API testing
+  useMock: process.env.NEXT_PUBLIC_USE_MOCK === "true",
 
   /**
    * apiUrl: string
@@ -212,9 +212,12 @@ export const CONFIG = {
    * Update as market priorities shift
    */
   verticalPriority: {
-    FUNERAL: 1,
-    AUTOMOTIVE: 2,
-    RESTAURANT: 3,
+    MSP: 1,
+    TELECOM: 1,
+    FUNERAL: 2,
     SPA: 3,
+    RESTAURANT: 3,
+    AUTOMOTIVE: 4,
+    GENERIC: 5,
   },
 } as const;  // 'as const' ensures type narrowing and prevents accidental mutations

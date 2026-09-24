@@ -10,6 +10,7 @@ import { formatDate } from "@/lib/utils/dates";
 import { ArrowLeft, Check, X, Download } from "lucide-react";
 import Link from "next/link";
 import { getFuneralCaseById } from "@/lib/data/funeral";
+import { CustomFieldsPanel } from "@/components/modules/customization/custom-fields-panel";
 
 export default function CaseDetailPage() {
   const params = useParams();
@@ -315,6 +316,7 @@ export default function CaseDetailPage() {
           </div>
         </div>
       </div>
+      <CustomFieldsPanel entity="funeral_case" recordId={id} />
     </PageContainer>
   );
 }

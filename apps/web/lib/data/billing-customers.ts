@@ -1,12 +1,67 @@
 /**
  * @file lib/data/billing-customers.ts
- * @description Projects the app's customers (CLOSED_WON leads) into the
- * lightweight BillingCustomer shape used by quote/invoice/automation selectors.
- * Merges any live customers with a small seed list so the billing selectors
- * always have the sample customers referenced by the mock fixtures.
+ * @description Customers for quotes, invoices and the Customers page. Live mode reads
+ * CRM accounts (/crm/accounts) — the same records invoices, payments and the customer
+ * portal are linked to. Mock mode keeps the seed list plus won leads for demos.
  */
 import type { BillingCustomer, Lead } from "@zerpa/shared-types";
+import { CONFIG } from "@/lib/config";
+import { apiRequest } from "@/lib/api/client";
 import { getLeads } from "./crm";
+
+interface ApiAccount {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  contactPerson: string;
+  vatNumber: string;
+  billingAddress: string;
+  paymentTermsDays: number;
+  notes: string;
+  createdAt: string;
+}
+
+function accountToCustomer(a: ApiAccount): BillingCustomer {
+  return {
+    id: a.id,
+    name: a.name,
+    contactPerson: a.contactPerson || undefined,
+    contactEmail: a.email || undefined,
+    contactPhone: a.phone || undefined,
+    vatNumber: a.vatNumber || undefined,
+    postalAddress: a.billingAddress || undefined,
+    paymentTermsDays: a.paymentTermsDays,
+  };
+}
+
+export interface NewCustomer {
+  name: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+  vatNumber?: string;
+  billingAddress?: string;
+  paymentTermsDays?: number;
+  notes?: string;
+}
+
+/** Creates a customer (CRM account, plus a contact when a person's name is given). */
+export async function createBillingCustomer(data: NewCustomer): Promise<BillingCustomer> {
+  if (CONFIG.useMock) {
+    return {
+      id: `cust-${Date.now()}`,
+      name: data.name,
+      contactPerson: [data.firstName, data.lastName].filter(Boolean).join(" ") || undefined,
+      contactEmail: data.email,
+      contactPhone: data.phone,
+      vatNumber: data.vatNumber,
+      paymentTermsDays: data.paymentTermsDays ?? 30,
+    };
+  }
+  return accountToCustomer(await apiRequest<ApiAccount>("/crm/accounts", { method: "POST", body: data }));
+}
 
 /** Seed customers matching the ids used across the billing mock fixtures. */
 const SEED_CUSTOMERS: BillingCustomer[] = [
@@ -68,12 +123,15 @@ function leadToBillingCustomer(lead: Lead): BillingCustomer {
 }
 
 /**
- * Returns billing customers: live CLOSED_WON leads (mapped) merged with the
- * seed list, deduped by id. Never throws — falls back to the seed list.
+ * Live: the company's CRM accounts. Mock: won leads merged with the seed list.
  */
 export async function getBillingCustomers(
   tenantId?: string
 ): Promise<BillingCustomer[]> {
+  if (!CONFIG.useMock) {
+    const accounts = await apiRequest<ApiAccount[]>("/crm/accounts");
+    return (accounts ?? []).map(accountToCustomer);
+  }
   let live: BillingCustomer[] = [];
   try {
     const leads = await getLeads("CLOSED_WON", tenantId);

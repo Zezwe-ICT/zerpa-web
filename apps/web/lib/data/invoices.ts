@@ -27,13 +27,11 @@ export async function getInvoices(tenantId?: string): Promise<Invoice[]> {
   }
 
   try {
-    const queryParams = tenantId ? `?tenantId=${encodeURIComponent(tenantId)}` : "";
-    const invoices = await apiRequest<Invoice[]>(
-      `/api/v1/billing/invoices${queryParams}`
-    );
-    return invoices || [];
-  } catch (error) {
-    console.error("Failed to fetch invoices:", error);
+    // Prefer company header from api client; tenantId kept for callers.
+    void tenantId;
+    const rows = await apiRequest<any[]>("/billing/invoices");
+    return (rows || []).map(mapApiInvoice);
+  } catch {
     return [];
   }
 }
@@ -50,12 +48,10 @@ export async function getInvoiceById(
     return MOCK_INVOICES.find((i) => i.id === id) ?? null;
   }
 
+  void tenantId;
   try {
-    const queryParams = tenantId ? `?tenantId=${encodeURIComponent(tenantId)}` : "";
-    const invoice = await apiRequest<Invoice>(
-      `/api/v1/billing/invoices/${id}${queryParams}`
-    );
-    return invoice || null;
+    const invoice = await apiRequest<any>(`/billing/invoices/${id}`);
+    return invoice ? mapApiInvoice(invoice) : null;
   } catch (error) {
     console.error("Failed to fetch invoice:", error);
     return null;
@@ -75,15 +71,11 @@ export async function getInvoicesByStatus(
     return MOCK_INVOICES.filter((i) => i.status === status);
   }
 
+  void tenantId;
   try {
-    const queryParams = new URLSearchParams({
-      ...(tenantId && { tenantId }),
-      ...(status !== "all" && { status }),
-    });
-    const invoices = await apiRequest<Invoice[]>(
-      `/api/v1/billing/invoices?${queryParams.toString()}`
-    );
-    return invoices || [];
+    const invoices = await getBillingInvoices();
+    if (status === "all") return invoices;
+    return invoices.filter((i) => i.status === status);
   } catch (error) {
     console.error("Failed to fetch invoices by status:", error);
     return [];
@@ -195,7 +187,7 @@ export async function sendInvoice(id: string, email: string): Promise<Invoice | 
 }
 
 /**
- * Mark invoice as paid (future phase - not implemented in current API)
+ * Mark invoice as paid by recording the outstanding balance as one payment.
  */
 export async function markInvoiceAsPaid(
   id: string,
@@ -213,8 +205,14 @@ export async function markInvoiceAsPaid(
     return invoice ?? null;
   }
 
-  console.warn("markInvoiceAsPaid: Not yet implemented - will be added in future phase");
-  return null;
+  const current = await getBillingInvoiceById(id);
+  if (!current) return null;
+  const known = ["eft", "cash", "card", "other"];
+  return recordInvoicePayment(id, {
+    amount: current.balanceDue ?? current.total,
+    paymentDate,
+    method: (known.includes(method.toLowerCase()) ? method.toLowerCase() : "other") as PaymentMethod,
+  });
 }
 
 export async function voidInvoice(id: string): Promise<Invoice | null> {
@@ -234,14 +232,11 @@ export async function voidInvoice(id: string): Promise<Invoice | null> {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Internal Billing module — in-memory invoice store
+// Internal Billing module
 //
-// The functions above back the client portals against the live API. The
-// expanded internal Billing module (quotes → invoices, payments, automated
-// generation) has no backend yet, so the functions below operate on a
-// module-level in-memory store seeded from MOCK_INVOICES. This keeps the
-// internal Quotes/Invoices/Automated pages fully functional in the browser.
-// Swap the bodies for apiRequest(...) calls once the endpoints exist.
+// Live mode talks to /billing/invoices (the API recomputes totals from line
+// items and owns numbering, status rules and payments). Mock mode
+// (NEXT_PUBLIC_USE_MOCK=true) keeps the in-memory store below for demos.
 // ─────────────────────────────────────────────────────────────
 
 const nowIso = () => new Date().toISOString();
@@ -296,21 +291,142 @@ function recomputeInvoice(inv: Invoice): Invoice {
 }
 
 export async function getBillingInvoices(): Promise<Invoice[]> {
-  await delay();
-  return billingStore.map((i) => ({ ...i }));
+  if (CONFIG.useMock) {
+    await delay();
+    return billingStore.map((i) => ({ ...i }));
+  }
+  try {
+    const rows = await apiRequest<any[]>("/billing/invoices");
+    return (rows || []).map(mapApiInvoice);
+  } catch {
+    return [];
+  }
 }
 
 export async function getBillingInvoiceById(
   id: string
 ): Promise<Invoice | null> {
-  await delay();
-  const found = billingStore.find((i) => i.id === id);
-  return found ? { ...found } : null;
+  if (CONFIG.useMock) {
+    await delay();
+    const found = billingStore.find((i) => i.id === id);
+    return found ? { ...found } : null;
+  }
+  try {
+    const row = await apiRequest<any>(`/billing/invoices/${id}`);
+    return row ? mapApiInvoice(row) : null;
+  } catch {
+    return null;
+  }
+}
+
+function mapApiInvoice(row: any): Invoice {
+  const total = Number(row.total || 0);
+  const amountPaid = Number(row.amountPaid || 0);
+  return {
+    id: String(row.id),
+    invoiceNumber: row.invoiceNumber || row.number || String(row.id),
+    tenantId: row.customerId || row.accountId || "",
+    tenantName: row.customerName || row.accountName || "",
+    tenantVertical: "GENERIC",
+    type: (row.type || "AD_HOC") as Invoice["type"],
+    status: String(row.status || "DRAFT").toUpperCase() as InvoiceStatus,
+    source: (row.source || "manual") as Invoice["source"],
+    quoteId: row.quoteId ?? null,
+    reference: row.reference ?? null,
+    contactEmail: row.contactEmail ?? null,
+    issuer: row.issuer ?? undefined,
+    salesRep: row.salesRep ?? null,
+    subject: row.subject ?? null,
+    lineItems: (row.lineItems || []).map((li: any, idx: number) => {
+      const unitPrice = Number(li.unitPrice ?? li.amount ?? 0);
+      const lineTotal = Number(li.lineTotal ?? li.total ?? li.amount ?? 0);
+      return {
+        id: String(li.id || idx),
+        productServiceId: li.productServiceId ?? null,
+        description: li.description || "Line",
+        quantity: Number(li.quantity ?? 1),
+        unit: li.unit ?? null,
+        unitPrice,
+        discountPercent: Number(li.discountPercent ?? 0),
+        taxRate: Number(li.taxRate ?? 15),
+        lineTotal,
+        total: lineTotal,
+        sortOrder: li.sortOrder ?? idx,
+      };
+    }),
+    subtotal: Number(row.subtotal || 0),
+    discountType: row.discountType || "none",
+    discountValue: Number(row.discountValue || 0),
+    discountAmount: Number(row.discountAmount || 0),
+    taxAmount: Number(row.taxAmount || 0),
+    total,
+    amountPaid,
+    balanceDue: row.balanceDue != null ? Number(row.balanceDue) : Math.max(total - amountPaid, 0),
+    payments: (row.payments || []).map((p: any) => ({
+      id: String(p.id),
+      invoiceId: String(p.invoiceId),
+      amount: Number(p.amount),
+      paymentDate: p.paymentDate,
+      method: p.method,
+      reference: p.reference ?? null,
+      notes: p.notes ?? null,
+      provider: p.provider,
+      createdAt: p.createdAt,
+    })),
+    payUrl: row.payUrl ?? null,
+    emailDelivery: row.emailDelivery ?? null,
+    creditOfId: row.creditOfId ?? null,
+    currency: row.currency || "ZAR",
+    issuedDate: row.issuedDate || new Date().toISOString().split("T")[0],
+    dueDate: row.dueDate || "",
+    paidAt: row.paidAt ?? undefined,
+    sentAt: row.sentAt ?? undefined,
+    voidedAt: row.voidedAt ?? undefined,
+    notes: row.notes || "",
+    internalNotes: row.internalNotes ?? null,
+    createdAt: row.createdAt || row.issuedDate || new Date().toISOString(),
+    updatedAt: row.updatedAt || row.issuedDate || new Date().toISOString(),
+  } as Invoice;
+}
+
+/** Only the fields the API accepts; totals are always recomputed server-side. */
+function toApiBody(data: Partial<Invoice>): Record<string, unknown> {
+  const body: Record<string, unknown> = {
+    customerId: data.tenantId,
+    customerName: data.tenantName,
+    contactEmail: data.contactEmail,
+    reference: data.reference,
+    subject: data.subject,
+    salesRep: data.salesRep,
+    notes: data.notes,
+    internalNotes: data.internalNotes,
+    issuedDate: data.issuedDate,
+    dueDate: data.dueDate,
+    discountType: data.discountType,
+    discountValue: data.discountValue,
+    type: data.type,
+    source: data.source,
+    quoteId: data.quoteId,
+    lineItems: data.lineItems?.map((li) => ({
+      id: li.id,
+      productServiceId: li.productServiceId ?? null,
+      description: li.description,
+      quantity: li.quantity,
+      unit: li.unit ?? null,
+      unitPrice: li.unitPrice,
+      discountPercent: li.discountPercent ?? 0,
+      taxRate: li.taxRate ?? 15,
+    })),
+  };
+  return Object.fromEntries(Object.entries(body).filter(([, v]) => v !== undefined));
 }
 
 export async function createManualInvoice(
   data: Partial<Invoice>
 ): Promise<Invoice> {
+  if (!CONFIG.useMock) {
+    return mapApiInvoice(await apiRequest<any>("/billing/invoices", { method: "POST", body: toApiBody(data) }));
+  }
   await delay();
   const seq = nextSequenceForYear(
     billingStore.map((i) => i.invoiceNumber),
@@ -396,6 +512,11 @@ export async function updateBillingInvoice(
   id: string,
   data: Partial<Invoice>
 ): Promise<Invoice> {
+  if (!CONFIG.useMock) {
+    const body = toApiBody(data);
+    if (data.status) body.status = data.status;
+    return mapApiInvoice(await apiRequest<any>(`/billing/invoices/${id}`, { method: "PATCH", body }));
+  }
   await delay();
   const idx = billingStore.findIndex((i) => i.id === id);
   if (idx === -1) throw new Error("Invoice not found");
@@ -408,6 +529,9 @@ export async function updateBillingInvoiceStatus(
   id: string,
   status: InvoiceStatus
 ): Promise<Invoice> {
+  if (!CONFIG.useMock) {
+    return mapApiInvoice(await apiRequest<any>(`/billing/invoices/${id}`, { method: "PATCH", body: { status } }));
+  }
   const patch: Partial<Invoice> = { status };
   if (status === "SENT") patch.sentAt = nowIso();
   if (status === "VOID" || status === "CANCELLED") patch.voidedAt = nowIso();
@@ -432,6 +556,11 @@ export async function recordInvoicePayment(
     notes?: string | null;
   }
 ): Promise<Invoice> {
+  if (!CONFIG.useMock) {
+    return mapApiInvoice(
+      await apiRequest<any>(`/billing/invoices/${id}/payments`, { method: "POST", body: payment }),
+    );
+  }
   await delay();
   const idx = billingStore.findIndex((i) => i.id === id);
   if (idx === -1) throw new Error("Invoice not found");

@@ -5,7 +5,7 @@
  */
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -13,8 +13,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Send, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import type { Invoice } from "@zerpa/shared-types";
+import type { BillingSettings, Invoice } from "@zerpa/shared-types";
 import { useAuth } from "@/lib/auth/context";
+import { getBillingSettings } from "@/lib/data/billing-settings";
+import { updateBillingInvoiceStatus } from "@/lib/data/invoices";
+import { createPayLink } from "@/lib/api/payments";
+import { apiRequest } from "@/lib/api/client";
 
 interface SendInvoiceModalProps {
   invoice: Invoice;
@@ -23,23 +27,32 @@ interface SendInvoiceModalProps {
   onSent?: () => void;
 }
 
-const DEFAULT_EMAIL_TEMPLATE = (invoice: Invoice) => `Dear ${invoice.tenantName},
+const PAY_LINK = "{pay_link}";
 
-Please find attached invoice ${invoice.invoiceNumber} for ${new Intl.NumberFormat("en-ZA", {
-  style: "currency",
-  currency: "ZAR",
-}).format(invoice.total || 0)} (incl. 15% VAT), due on ${invoice.dueDate}.
+/** Uses the business's own bank details — never hardcode one company's account into every email. */
+const DEFAULT_EMAIL_TEMPLATE = (invoice: Invoice, settings: BillingSettings | null, companyName: string) => {
+  const bank = settings?.bankAccountNumber
+    ? `
+Or pay by EFT:
+  Bank:      ${settings.bankName ?? ""}
+  Account:   ${settings.bankAccountNumber}${settings.accountHolder ? `\n  Holder:    ${settings.accountHolder}` : ""}
+  Branch:    ${settings.bankBranchCode ?? ""}
+  Reference: ${invoice.invoiceNumber}  ← please use this as your payment reference
+`
+    : "";
+  const contact = settings?.proofOfPaymentEmail ? `\nPlease send proof of payment to ${settings.proofOfPaymentEmail}.\n` : "";
+  return `Dear ${invoice.tenantName},
 
-Payment Details:
-  Bank:      FNB
-  Account:   62 800 123 456
-  Branch:    250 655
-  Reference: ${invoice.invoiceNumber}  ← Please use this as your payment reference
+Please find invoice ${invoice.invoiceNumber} for ${new Intl.NumberFormat("en-ZA", {
+    style: "currency",
+    currency: "ZAR",
+  }).format(invoice.balanceDue ?? invoice.total ?? 0)}, due on ${invoice.dueDate}.
 
-If you have any queries, please contact us at billing@zerpa.co.za or call 011 888 0000.
-
+Pay online (card or instant EFT): ${PAY_LINK}
+${bank}${contact}
 Kind regards,
-Zerpa ICT Billing Team`;
+${companyName}`;
+};
 
 export function SendInvoiceModal({
   invoice,
@@ -47,14 +60,23 @@ export function SendInvoiceModal({
   onOpenChange,
   onSent,
 }: SendInvoiceModalProps) {
-  const { user, company } = useAuth();
+  const { company } = useAuth();
   const [toEmail, setToEmail] = useState(invoice.contactEmail ?? "");
   const [ccEmail, setCcEmail] = useState("");
   const [subject, setSubject] = useState(
     `Invoice ${invoice.invoiceNumber} from ${company?.name ?? "Zerpa"} — Due ${invoice.dueDate}`
   );
-  const [body, setBody] = useState(DEFAULT_EMAIL_TEMPLATE(invoice));
+  const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const name = company?.name ?? "";
+    setBody(DEFAULT_EMAIL_TEMPLATE(invoice, null, name));
+    getBillingSettings()
+      .then((settings) => setBody(DEFAULT_EMAIL_TEMPLATE(invoice, settings, settings.companyName || name)))
+      .catch(() => undefined);
+  }, [open, invoice, company?.name]);
 
   const handleSend = async () => {
     if (!toEmail) {
@@ -64,24 +86,25 @@ export function SendInvoiceModal({
 
     setSending(true);
     try {
-      const res = await fetch("/api/email/invoice", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          to: toEmail,
-          cc: ccEmail || undefined,
-          subject,
-          message: body,
-          replyTo: user?.email,
-          companyName: company?.name,
-          invoice,
-        }),
-      });
-      const data = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
-      if (!res.ok || !data.ok) {
-        throw new Error(data.error || "Failed to send invoice");
+      let message = body;
+      if (message.includes(PAY_LINK)) {
+        // A pay link needs an approved invoice; approving here is what "send" implies anyway.
+        if (invoice.status === "DRAFT") await updateBillingInvoiceStatus(invoice.id, "APPROVED");
+        const { payUrl } = await createPayLink(invoice.id);
+        message = message.split(PAY_LINK).join(payUrl);
       }
-      toast.success(`Invoice sent to ${toEmail}`);
+      const result = await apiRequest<{ emailDelivery?: { status: string; note?: string } }>(
+        `/billing/invoices/${invoice.id}/email`,
+        { method: "POST", body: { to: toEmail, cc: ccEmail || undefined, subject, message } },
+      );
+      if (result.emailDelivery?.status === "failed") {
+        throw new Error(result.emailDelivery.note || "The email did not leave Zerpa.");
+      }
+      toast.success(
+        result.emailDelivery?.status === "queued"
+          ? `Invoice queued for ${toEmail}`
+          : `Invoice sent to ${toEmail}`,
+      );
       onOpenChange(false);
       onSent?.();
     } catch (error) {
@@ -129,6 +152,9 @@ export function SendInvoiceModal({
 
           <div className="space-y-1.5">
             <Label htmlFor="body">Message</Label>
+            <p className="text-xs text-muted-fg">
+              {PAY_LINK} is replaced with this invoice&apos;s secure payment link when you send.
+            </p>
             <Textarea
               id="body"
               value={body}

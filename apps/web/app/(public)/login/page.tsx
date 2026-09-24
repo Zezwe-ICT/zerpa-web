@@ -46,6 +46,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth/context";
 import { ApiError } from "@/lib/api/client";
+import { ZerpaLogo } from "@/components/brand/zerpa-logo";
 
 /**
  * Component: LoginPage
@@ -119,13 +120,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md space-y-8">
         {/* Logo header */}
         <div className="flex justify-center">
-          <div className="flex items-center gap-3">
-            {/* Branding badge with Z icon */}
-            <div className="w-10 h-10 rounded-[8px] bg-primary text-primary-fg flex items-center justify-center font-bold text-xl">
-              Z
-            </div>
-            <span className="font-display text-xl font-normal">Zerpa</span>
-          </div>
+          <ZerpaLogo className="h-12" />
         </div>
 
         {/* Main form card */}
@@ -175,13 +170,14 @@ export default function LoginPage() {
 
         {/* Sign up link footer */}
         <p className="text-center text-xs text-muted-fg">
-          Don't have an account?{" "}
+          Don&apos;t have an account?{" "}
           <button
             onClick={() => router.push("/register")}
             className="text-primary hover:underline font-medium"
           >
-            Create one
+            Create a free account
           </button>
+          <span className="block mt-1 text-[11px]">We&apos;ll walk you through setting up your business step by step.</span>
         </p>
       </div>
     </div>

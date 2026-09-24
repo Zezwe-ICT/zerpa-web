@@ -1,15 +1,8 @@
-/**
- * @file app/(client-portal)/automotive/layout.tsx
- * @description Layout for the Automotive client portal vertical. Wraps pages
- * in ClientPortalNav with links to Dashboard, Job Cards and Invoices.
- */
 import { ClientPortalNav } from "@/components/layouts/client-portal-nav";
 
 const AUTOMOTIVE_NAV_ITEMS = [
   { label: "Dashboard", href: "/automotive/dashboard" },
   { label: "Job Cards", href: "/automotive/job-cards" },
-  { label: "Vehicles", href: "/automotive/vehicles" },
-  { label: "Inventory", href: "/automotive/inventory" },
   { label: "Invoices", href: "/automotive/invoices" },
 ];
 

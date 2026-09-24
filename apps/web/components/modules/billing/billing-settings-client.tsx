@@ -17,8 +17,10 @@ import {
   getBillingSettings,
   updateBillingSettings,
 } from "@/lib/data/billing-settings";
+import { removeCompanyLogo, uploadCompanyLogo } from "@/lib/api/books";
 import type { BillingSettings } from "@zerpa/shared-types";
 import Link from "next/link";
+import { OnlinePaymentsSettings } from "./online-payments-settings";
 
 const REMINDER_OPTIONS = [3, 7, 14, 30];
 
@@ -40,8 +42,8 @@ export function BillingSettingsClient() {
     try {
       await updateBillingSettings(settings);
       toast.success("Billing settings saved");
-    } catch {
-      toast.error("Could not save settings");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not save settings");
     } finally {
       setSaving(false);
     }
@@ -153,6 +155,53 @@ export function BillingSettingsClient() {
                 onChange={(e) => set("companyName", e.target.value)}
               />
             </Field>
+            <Field label="Logo">
+              <div className="space-y-2">
+                {settings.logoUrl ? (
+                  <img src={settings.logoUrl} alt="" className="h-12 w-auto rounded-[6px] border border-border object-contain" />
+                ) : (
+                  <p className="text-xs text-muted-fg">Shown on quotes and invoices. PNG, JPEG, or WebP, up to 400 KB.</p>
+                )}
+                <Input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = "";
+                    if (!file) return;
+                    if (file.size > 400_000) {
+                      toast.error("Logo must be 400 KB or smaller.");
+                      return;
+                    }
+                    try {
+                      const saved = await uploadCompanyLogo(file);
+                      set("logoUrl", saved.logoUrl || "");
+                      toast.success("Logo uploaded");
+                    } catch (err) {
+                      toast.error(err instanceof Error ? err.message : "Could not upload the logo");
+                    }
+                  }}
+                />
+                {settings.logoUrl ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={async () => {
+                      try {
+                        await removeCompanyLogo();
+                        set("logoUrl", "");
+                        toast.success("Logo removed");
+                      } catch (err) {
+                        toast.error(err instanceof Error ? err.message : "Could not remove the logo");
+                      }
+                    }}
+                  >
+                    Remove logo
+                  </Button>
+                ) : null}
+              </div>
+            </Field>
             <Field label="VAT Number">
               <Input
                 value={settings.companyVatNumber ?? ""}
@@ -185,13 +234,37 @@ export function BillingSettingsClient() {
         </Section>
 
         {/* Bank details */}
-        <Section title="Bank Details (printed on invoices)">
+        <Section title="Bank Details (printed on invoices and the payment page)">
+          <p className="text-sm text-muted-fg -mt-2">
+            Customers see these on the payment page with the invoice number as their reference, so bank statement
+            matching can pick the payment up automatically.
+          </p>
           <Grid>
             <Field label="Bank Name">
               <Input
                 value={settings.bankName ?? ""}
                 onChange={(e) => set("bankName", e.target.value)}
+                placeholder="e.g. FNB, Capitec, Standard Bank"
               />
+            </Field>
+            <Field label="Account Holder">
+              <Input
+                value={settings.accountHolder ?? ""}
+                onChange={(e) => set("accountHolder", e.target.value)}
+                placeholder="Name on the bank account"
+              />
+            </Field>
+            <Field label="Account Type">
+              <select
+                value={settings.bankAccountType ?? ""}
+                onChange={(e) => set("bankAccountType", e.target.value)}
+                className="w-full h-10 rounded-[6px] border border-border bg-background px-3 text-sm"
+              >
+                <option value="">Select…</option>
+                <option value="Cheque / Current">Cheque / Current</option>
+                <option value="Savings">Savings</option>
+                <option value="Transmission">Transmission</option>
+              </select>
             </Field>
             <Field label="Account Number">
               <Input
@@ -232,6 +305,8 @@ export function BillingSettingsClient() {
             />
           </Field>
         </Section>
+
+        <OnlinePaymentsSettings />
 
         {/* Overdue reminders */}
         <Section title="Overdue Reminder Schedule">

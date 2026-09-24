@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Zerpa is offline</title>
+    <style>
+      body { font-family: sans-serif; margin: 2rem; color: #1d3461; }
+      a { color: #1d3461; }
+    </style>
+  </head>
+  <body>
+    <h1>You are offline</h1>
+    <p>Zerpa could not reach the server. Notes you already saved on this device are still on the capture page.</p>
+    <p><a href="/capture">Open capture</a></p>
+    <script>
+      if (navigator.onLine && "serviceWorker" in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function (regs) {
+          return Promise.all(regs.map(function (reg) { return reg.unregister(); }));
+        }).then(function () {
+          location.replace("/dashboard");
+        });
+      }
+    </script>
+  </body>
+</html>

@@ -1,140 +1,97 @@
 /**
  * @file components/modules/settings/notifications-settings.tsx
- * @description Notification preferences component
+ * @description Per-person notification preferences, stored on the server so they apply to the bell
+ * and to emails: for each kind of event, choose in-app and/or email.
  */
 "use client";
 
 import { useEffect, useState } from "react";
-import { Mail, Bell, MessageSquare } from "lucide-react";
+import { Bell, Mail } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/lib/auth/context";
-import { getUserSettings, updateUserSettings } from "@/lib/api/settings";
-import type { UserSettings } from "@/lib/api/settings";
-
-const NOTIFICATION_KEYS = [
-  { id: "invoiceReminders", name: "Invoice Reminders", description: "Get notified when invoices are due or overdue" },
-  { id: "leadUpdates", name: "Lead Status Changes", description: "Alerts when leads move between stages" },
-  { id: "systemAlerts", name: "System Alerts", description: "Important system notifications and maintenance notices" },
-  { id: "paymentReceived", name: "Payment Received", description: "Notifications when payments are received" },
-  { id: "newLeads", name: "New Leads", description: "Alerts when new leads are assigned to you" },
-];
+import {
+  getNotificationPreferences,
+  updateNotificationPreferences,
+  type NotificationKindPref,
+} from "@/lib/api/notifications";
 
 export function NotificationsSettings() {
-  const { company } = useAuth();
-  const [settings, setSettings] = useState<UserSettings | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [kinds, setKinds] = useState<NotificationKindPref[] | null>(null);
+  const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    const loadSettings = async () => {
-      try {
-        setLoading(true);
-        const data = await getUserSettings();
-        setSettings(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load settings");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadSettings();
+    getNotificationPreferences()
+      .then((res) => {
+        setKinds(res.kinds);
+        setEmail(res.email);
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : "Failed to load preferences"));
   }, []);
 
-  const toggleChannel = (key: keyof UserSettings["notifications"]) => {
-    if (!settings) return;
-    setSettings((prev) => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        notifications: {
-          ...prev.notifications,
-          [key]: !prev.notifications[key],
-        },
-      };
-    });
-  };
+  function toggle(key: string, channel: "inApp" | "email") {
+    setKinds((prev) => prev?.map((k) => (k.key === key ? { ...k, [channel]: !k[channel] } : k)) ?? null);
+  }
 
-  const handleSave = async () => {
-    if (!settings) return;
+  async function save() {
+    if (!kinds) return;
+    setSaving(true);
     try {
-      setSaving(true);
-      await updateUserSettings(settings);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save settings");
+      const res = await updateNotificationPreferences(
+        Object.fromEntries(kinds.map((k) => [k.key, { inApp: k.inApp, email: k.email }])),
+      );
+      setKinds(res.kinds);
+      toast.success("Notification preferences saved");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to save preferences");
     } finally {
       setSaving(false);
     }
-  };
+  }
 
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold text-foreground mb-1">
-          Notification Preferences
-        </h3>
+        <h3 className="text-lg font-semibold text-foreground mb-1">Notification preferences</h3>
         <p className="text-sm text-muted-fg">
-          Choose how you want to be notified about important events
+          Choose how you hear about customers accepting quotes and paying. These settings are just for you
+          {email ? ` (emails go to ${email})` : ""}.
         </p>
       </div>
 
-      {error && (
-        <div className="bg-danger-bg text-danger text-sm p-3 rounded-[8px]">
-          ✕ {error}
-        </div>
-      )}
+      {error && <div className="bg-danger-bg text-danger text-sm p-3 rounded-[8px]">{error}</div>}
+      {!kinds && !error && <div className="text-center py-8 text-muted-fg">Loading preferences…</div>}
 
-      {loading ? (
-        <div className="text-center py-8 text-muted-fg">Loading preferences...</div>
-      ) : settings ? (
+      {kinds && (
         <>
-          <div className="space-y-4">
-            {NOTIFICATION_KEYS.map((key) => (
-              <div
-                key={key.id}
-                className="border border-border rounded-[12px] p-4 space-y-3"
-              >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="font-medium text-foreground">{key.name}</h4>
-                    <p className="text-xs text-muted-fg mt-0.5">{key.description}</p>
-                  </div>
+          <div className="rounded-[12px] border border-border divide-y divide-border">
+            {kinds.map((k) => (
+              <div key={k.key} className="flex flex-wrap items-center justify-between gap-4 p-4">
+                <div className="min-w-0">
+                  <h4 className="font-medium text-foreground">{k.label}</h4>
+                  <p className="text-xs text-muted-fg mt-0.5">{k.description}</p>
                 </div>
-
-                <div className="flex gap-4 pl-0">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={settings.notifications[key.id as keyof typeof settings.notifications] || false}
-                      onChange={() => toggleChannel(key.id as keyof typeof settings.notifications)}
-                      className="w-4 h-4 rounded border-border"
-                    />
-                    <Bell size={14} className="text-muted-fg" />
-                    <span className="text-xs text-muted-fg">Enabled</span>
+                <div className="flex gap-5">
+                  <label className="flex items-center gap-2 cursor-pointer text-sm">
+                    <input type="checkbox" checked={k.inApp} onChange={() => toggle(k.key, "inApp")} className="w-4 h-4" />
+                    <Bell size={14} className="text-muted-fg" /> In app
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer text-sm">
+                    <input type="checkbox" checked={k.email} onChange={() => toggle(k.key, "email")} className="w-4 h-4" />
+                    <Mail size={14} className="text-muted-fg" /> Email
                   </label>
                 </div>
               </div>
             ))}
           </div>
-
-          <div className="flex gap-3">
-            <Button onClick={handleSave} disabled={saving}>
-              {saving ? "Saving..." : "Save Changes"}
-            </Button>
-          </div>
-
-          {saved && (
-            <div className="bg-success-bg text-success text-sm p-3 rounded-[8px]">
-              ✓ Notification preferences saved successfully
-            </div>
-          )}
+          <p className="text-xs text-muted-fg">
+            Only people who can see billing get these. You won&apos;t be notified about payments you record yourself.
+          </p>
+          <Button onClick={save} disabled={saving}>
+            {saving ? "Saving…" : "Save changes"}
+          </Button>
         </>
-      ) : (
-        <div className="text-center py-8 text-danger">Failed to load preferences</div>
       )}
     </div>
   );

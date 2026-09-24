@@ -1,37 +1,29 @@
-/**
- * @file app/(client-portal)/automotive/dashboard/page.tsx
- * @description Automotive client dashboard. Shows KPI cards for Open Job Cards,
- * Completed This Month, Revenue MTD and Parts in Stock. Includes activity feed
- * with recent vehicle service records.
- */
+"use client";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { PageContainer } from "@/components/layouts/page-container";
 import { PageHeader } from "@/components/ui/page-header";
-import { StatsCard } from "@/components/ui/stats-card";
-import { Wrench, CheckCircle2, TrendingUp, Package } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { getAutomotivePortalSummary } from "@/lib/api/verticals";
+import { toast } from "sonner";
 
-export default function AutomotiveDashboardPage() {
+export default function AutomotivePortalDashboard() {
+  const [summary, setSummary] = useState<Awaited<ReturnType<typeof getAutomotivePortalSummary>> | null>(null);
+  useEffect(() => {
+    getAutomotivePortalSummary()
+      .then(setSummary)
+      .catch((e) => toast.error(e.message));
+  }, []);
   return (
     <PageContainer>
-      <PageHeader
-        title="Dashboard"
-        subtitle="Automotive Workshop Operations"
-      />
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatsCard label="Open Job Cards" value="6" icon={Wrench} iconColor="blue" />
-        <StatsCard label="Completed This Week" value="12" icon={CheckCircle2} iconColor="green" />
-        <StatsCard label="Parts Low in Stock" value="3" icon={Package} iconColor="red" />
-        <StatsCard label="Revenue This Month" value="R45,200" icon={TrendingUp} iconColor="violet" />
-      </div>
-
-      <div className="rounded-[12px] border border-border bg-background p-6">
-        <h2 className="section-title">Job Cards</h2>
-        <div className="h-96 flex items-center justify-center text-muted-fg mt-4">
-          Job cards list coming soon
-        </div>
+      <PageHeader title="Workshop portal" subtitle="Job status and invoices" />
+      <div className="rounded-[12px] border border-border p-5 space-y-2">
+        <p className="text-sm text-muted-fg">{summary?.openJobs ?? "—"} open job(s)</p>
+        <p className="text-sm text-muted-fg">{summary?.awaitingApproval ?? "—"} awaiting approval</p>
+        <Button className="mt-4" asChild>
+          <Link href="/automotive/job-cards">View job cards</Link>
+        </Button>
       </div>
     </PageContainer>
   );
 }
-
-

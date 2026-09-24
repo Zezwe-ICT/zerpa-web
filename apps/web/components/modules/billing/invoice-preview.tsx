@@ -16,6 +16,88 @@ interface InvoicePreviewProps {
   className?: string;
 }
 
+function IssuerBlock({ invoice }: { invoice: Invoice }) {
+  const issuer = invoice.issuer;
+  const name = issuer?.name?.trim() || "Your company";
+  const lines = [issuer?.address, issuer?.email, issuer?.phone, issuer?.vatNumber ? `VAT ${issuer.vatNumber}` : ""]
+    .map((line) => line?.trim())
+    .filter(Boolean) as string[];
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-3">
+        {issuer?.logoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={issuer.logoUrl} alt="" className="h-10 w-10 rounded-[6px] object-contain" />
+        ) : (
+          <div className="w-10 h-10 rounded-[6px] bg-primary text-primary-fg flex items-center justify-center font-bold text-lg">
+            {name.slice(0, 1).toUpperCase()}
+          </div>
+        )}
+        <p className="font-display text-lg font-normal">{name}</p>
+      </div>
+      {lines.length > 0 ? (
+        <div className="text-xs text-muted-fg space-y-0.5 mt-3">
+          {lines.map((line) => (
+            <p key={line}>{line}</p>
+          ))}
+        </div>
+      ) : (
+        <p className="text-xs text-muted-fg mt-3">Add your company details in Billing settings.</p>
+      )}
+    </div>
+  );
+}
+
+function BankBlock({ invoice }: { invoice: Invoice }) {
+  const bank = invoice.issuer;
+  const hasBank = Boolean(bank?.bankName || bank?.accountNumber);
+  return (
+    <div className="space-y-1 text-foreground">
+      {hasBank ? (
+        <>
+          {bank?.bankName ? (
+            <p>
+              <span className="font-semibold">Bank:</span> {bank.bankName}
+            </p>
+          ) : null}
+          {bank?.accountHolder ? (
+            <p>
+              <span className="font-semibold">Account name:</span> {bank.accountHolder}
+            </p>
+          ) : null}
+          {bank?.accountNumber ? (
+            <p>
+              <span className="font-semibold">Account:</span> {bank.accountNumber}
+            </p>
+          ) : null}
+          {bank?.branchCode ? (
+            <p>
+              <span className="font-semibold">Branch:</span> {bank.branchCode}
+            </p>
+          ) : null}
+        </>
+      ) : (
+        <p className="text-muted-fg">Bank details have not been added yet.</p>
+      )}
+      <p>
+        <span className="font-semibold">Reference:</span>{" "}
+        <span className="font-mono">{invoice.invoiceNumber}</span>
+      </p>
+    </div>
+  );
+}
+
+function QueriesLine({ invoice }: { invoice: Invoice }) {
+  const email = invoice.issuer?.email?.trim();
+  const phone = invoice.issuer?.phone?.trim();
+  if (!email && !phone) return null;
+  return (
+    <p className="mt-1">
+      For queries, contact {[email, phone].filter(Boolean).join(" or ")}
+    </p>
+  );
+}
+
 export function InvoicePreview({ invoice, className }: InvoicePreviewProps) {
   const isPaid = invoice.status === "PAID";
   const isOverdue = invoice.status === "OVERDUE";
@@ -50,23 +132,7 @@ export function InvoicePreview({ invoice, className }: InvoicePreviewProps) {
       <div className="relative z-10 p-12 space-y-8">
         {/* Header */}
         <div className="flex items-start justify-between pb-8 border-b-2 border-border">
-          <div className="space-y-2">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-[6px] bg-primary text-primary-fg flex items-center justify-center font-bold text-lg">
-                Z
-              </div>
-              <div>
-                <p className="font-display text-lg font-normal">ZERPA</p>
-                <p className="text-xs text-muted-fg">ICT (PTY) LTD</p>
-              </div>
-            </div>
-            <div className="text-xs text-muted-fg space-y-0.5 mt-3">
-              <p>123 Business Park</p>
-              <p>Sandton, Johannesburg 2196</p>
-              <p>billing@zerpa.co.za</p>
-              <p>011 888 0000</p>
-            </div>
-          </div>
+          <IssuerBlock invoice={invoice} />
 
           <div className="text-right space-y-1">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-fg">
@@ -95,8 +161,7 @@ export function InvoicePreview({ invoice, className }: InvoicePreviewProps) {
           </p>
           <div className="space-y-0.5">
             <p className="font-semibold text-foreground">{invoice.tenantName}</p>
-            {/* In production, add client address, contact info */}
-            <p className="text-xs text-muted-fg">billing@client.co.za</p>
+            {invoice.contactEmail ? <p className="text-xs text-muted-fg">{invoice.contactEmail}</p> : null}
           </div>
         </div>
 
@@ -157,21 +222,7 @@ export function InvoicePreview({ invoice, className }: InvoicePreviewProps) {
         {/* Payment Details */}
         <div className="space-y-2 text-xs pt-6 border-t-2 border-border">
           <p className="font-semibold uppercase tracking-wide text-muted-fg">Payment Details</p>
-          <div className="space-y-1 text-foreground">
-            <p>
-              <span className="font-semibold">Bank:</span> FNB
-            </p>
-            <p>
-              <span className="font-semibold">Account:</span> 62 800 123 456
-            </p>
-            <p>
-              <span className="font-semibold">Branch:</span> 250 655
-            </p>
-            <p>
-              <span className="font-semibold">Reference:</span>{" "}
-              <span className="font-mono">{invoice.invoiceNumber}</span>
-            </p>
-          </div>
+          <BankBlock invoice={invoice} />
         </div>
 
         {/* Notes */}
@@ -185,9 +236,7 @@ export function InvoicePreview({ invoice, className }: InvoicePreviewProps) {
         {/* Footer */}
         <div className="text-center text-xs text-muted-fg border-t-2 border-border pt-6">
           <p>Thank you for your business.</p>
-          <p className="mt-1">
-            For queries, contact billing@zerpa.co.za or call 011 888 0000
-          </p>
+          <QueriesLine invoice={invoice} />
         </div>
       </div>
     </div>

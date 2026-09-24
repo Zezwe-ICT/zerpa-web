@@ -1,12 +1,9 @@
-/**
- * @file components/layouts/internal-top-bar.tsx
- * @description Sticky top bar for the internal (admin) shell. Shows a global
- * search input, notification bell, and the logged-in user's avatar/initials.
- */
 "use client";
 
-import { Search, Bell, ChevronDown } from "lucide-react";
+import { Search, ChevronDown } from "lucide-react";
+import { NotificationBell } from "./notification-bell";
 import { useAuth } from "@/lib/auth/context";
+import { CompanySwitcher } from "@/components/company-switcher";
 
 interface TopBarProps {
   title?: string;
@@ -25,29 +22,25 @@ export function InternalTopBar({ title }: TopBarProps) {
         {title && <h2 className="text-sm font-semibold text-foreground">{title}</h2>}
         <div className="flex-1" />
 
-        {/* Search */}
-        <div className="flex items-center gap-2 bg-surface rounded-[6px] px-3 py-2 border border-border w-64">
+        <CompanySwitcher />
+
+        <div className="flex items-center gap-2 bg-surface rounded-[6px] px-3 py-2 border border-border w-56">
           <Search size={14} className="text-muted-fg" />
           <input
             type="text"
             placeholder="Search..."
             className="bg-transparent text-sm placeholder-muted-fg focus:outline-none flex-1"
+            aria-label="Search"
           />
-          <span className="text-xs text-muted-fg">⌘K</span>
         </div>
 
-        {/* Notifications */}
-        <button className="relative p-2 hover:bg-surface rounded-[6px] transition-colors">
-          <Bell size={16} className="text-foreground-2" />
-          <span className="absolute top-1 right-1 w-2 h-2 bg-danger rounded-full" />
-        </button>
+        <NotificationBell />
 
-        {/* User Menu */}
-        <button className="flex items-center gap-2 px-3 py-1.5 hover:bg-surface rounded-[6px] transition-colors">
+        <button type="button" className="flex items-center gap-2 px-3 py-1.5 hover:bg-surface rounded-[6px] transition-colors">
           <div className="w-6 h-6 rounded-full bg-primary text-primary-fg flex items-center justify-center text-xs font-semibold">
             {initials}
           </div>
-          <span className="text-sm font-medium text-foreground">
+          <span className="text-sm font-medium text-foreground hidden md:inline">
             {user?.fullName ?? "—"}
           </span>
           <ChevronDown size={14} className="text-muted-fg" />

@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Plus, X, Search, Pencil, Archive, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/utils/currency";
+import { AppChecklist } from "@/components/modules/setup/app-checklist";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -174,6 +175,8 @@ export function ProductsClient() {
           </Button>
         }
       />
+
+      <AppChecklist app="invoicing" />
 
       {/* Category tabs */}
       <div className="flex items-center gap-1 flex-wrap border-b border-border mb-4">

@@ -38,3 +38,6 @@ out/
 
 # OS
 Thumbs.db
+
+# Turborepo cache/logs
+.turbo/

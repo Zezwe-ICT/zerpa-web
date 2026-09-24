@@ -28,7 +28,7 @@ import type {
   AuthCompany,
   CreateCompanyPayload,
 } from "@/lib/api/auth";
-import { clearToken, getToken, setToken } from "@/lib/api/client";
+import { clearToken, getToken, setToken, setRefreshToken, AUTH_INVALID_EVENT, resetAuthInvalidLatch } from "@/lib/api/client";
 
 /**
  * Represents an authenticated user in the ZERPA system
@@ -82,6 +82,7 @@ interface AuthContextValue {
   register: (payload: RegisterPayload) => Promise<AuthResponse>;
   selectCompany: (companyId: string) => void;
   addCompany: (payload: CreateCompanyPayload) => Promise<AuthCompany>;
+  attachCompany: (company: AuthCompany) => void;
   setCompany: (company: AuthCompany) => void;
   signOut: () => void;
 }
@@ -147,40 +148,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const storedCompany = localStorage.getItem(COMPANY_KEY);
     const storedCompanies = localStorage.getItem(COMPANIES_KEY);
 
-    // Only load user if we have a valid token
+    // Only restore session when a token is present. Company without auth caused
+    // dashboard fetches to hit the API with 401 (no Authorization header).
     if (token && storedUser) {
       try {
         setUser(JSON.parse(storedUser));
       } catch {
-        // Data corrupted, clear auth
         clearToken();
         localStorage.removeItem(USER_KEY);
       }
-    }
 
-    // Load active company (regardless of token)
-    if (storedCompany) {
-      try {
-        setCompanyState(JSON.parse(storedCompany));
-      } catch {
-        // Data corrupted, clear it
-        localStorage.removeItem(COMPANY_KEY);
+      if (storedCompany) {
+        try {
+          setCompanyState(JSON.parse(storedCompany));
+        } catch {
+          localStorage.removeItem(COMPANY_KEY);
+        }
       }
-    }
 
-    // Load all companies (regardless of token)
-    if (storedCompanies) {
-      try {
-        setCompaniesState(JSON.parse(storedCompanies));
-      } catch {
-        // Data corrupted, clear it
-        localStorage.removeItem(COMPANIES_KEY);
+      if (storedCompanies) {
+        try {
+          setCompaniesState(JSON.parse(storedCompanies));
+        } catch {
+          localStorage.removeItem(COMPANIES_KEY);
+        }
       }
+    } else {
+      clearToken();
+      localStorage.removeItem(USER_KEY);
+      // Keep company keys so select-company can still hint after re-login,
+      // but do not hydrate active company into React without a token.
     }
 
     // Mark rehydration complete
     setIsLoading(false);
   }, []);
+
+  // Invalid / expired JWT → clear session and return to login
+  useEffect(() => {
+    function onAuthInvalid() {
+      clearToken();
+      localStorage.removeItem(USER_KEY);
+      localStorage.removeItem(COMPANY_KEY);
+      localStorage.removeItem(COMPANIES_KEY);
+      setUser(null);
+      setCompanyState(null);
+      setCompaniesState([]);
+      router.replace("/login");
+    }
+    window.addEventListener(AUTH_INVALID_EVENT, onAuthInvalid);
+    return () => window.removeEventListener(AUTH_INVALID_EVENT, onAuthInvalid);
+  }, [router]);
 
   /**
    * Function: signIn
@@ -211,11 +229,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    */
   const signIn = useCallback(
     async (payload: SignInPayload) => {
+      resetAuthInvalidLatch();
       // Authenticate with backend
       const res = await apiSignIn(payload);
       
       // Store JWT token (for subsequent API calls)
       setToken(res.token);
+      setRefreshToken(res.refreshToken);
       
       // Store user info in localStorage and context
       localStorage.setItem(USER_KEY, JSON.stringify(res.user));
@@ -338,6 +358,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [companies]
   );
 
+  /** Attach an already-created company without a second POST. */
+  const attachCompany = useCallback((company: AuthCompany) => {
+    setCompaniesState((prev) => {
+      const exists = prev.some((c) => c.id === company.id);
+      const updated = exists ? prev : [...prev, company];
+      localStorage.setItem(COMPANIES_KEY, JSON.stringify(updated));
+      return updated;
+    });
+    localStorage.setItem(COMPANY_KEY, JSON.stringify(company));
+    setCompanyState(company);
+  }, []);
+
   /**
    * Function: register
    * 
@@ -360,8 +392,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * @throws {Error} - If API call fails
    */
   const register = useCallback(async (payload: RegisterPayload) => {
+    resetAuthInvalidLatch();
     const res = await apiRegister(payload);
     setToken(res.token);
+    setRefreshToken(res.refreshToken);
     
     // Save user to context and storage
     localStorage.setItem(USER_KEY, JSON.stringify(res.user));
@@ -441,6 +475,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         register,
         selectCompany,
         addCompany,
+        attachCompany,
         setCompany,
         signOut,
       }}

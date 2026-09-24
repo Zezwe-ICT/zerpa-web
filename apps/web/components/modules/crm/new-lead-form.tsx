@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { useAuth } from "@/lib/auth/context";
 import { createContact, createLead } from "@/lib/data/crm";
+import { DEFAULT_LEAD_STAGES, getLeadStages } from "@/lib/data/lead-stages";
+import type { PipelineStage } from "@/lib/api/customization";
+import type { Lead } from "@zerpa/shared-types";
 
 const VERTICALS = [
   { value: "FUNERAL", label: "Funeral" },
@@ -17,19 +20,19 @@ const VERTICALS = [
   { value: "SPA", label: "Spa" },
 ] as const;
 
-const STAGES = [
-  { value: "NEW", label: "New" },
-  { value: "CONTACTED", label: "Contacted" },
-  { value: "QUALIFIED", label: "Qualified" },
-  { value: "PROPOSAL", label: "Proposal" },
-  { value: "NEGOTIATION", label: "Negotiation" },
-] as const;
 
 export function NewLeadForm() {
   const router = useRouter();
   const { company } = useAuth();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [stages, setStages] = useState<PipelineStage[]>(DEFAULT_LEAD_STAGES.filter((s) => s.kind === "open"));
+
+  useEffect(() => {
+    getLeadStages()
+      .then((all) => setStages(all.filter((s) => s.kind === "open")))
+      .catch(() => undefined);
+  }, [company?.id]);
   const [error, setError] = useState<string | null>(null);
 
   const [form, setForm] = useState({
@@ -42,7 +45,7 @@ export function NewLeadForm() {
     // Lead fields
     title: "",
     vertical: "FUNERAL" as typeof VERTICALS[number]["value"],
-    stage: "NEW" as typeof STAGES[number]["value"],
+    stage: "",
     estimatedValue: "",
     notes: "",
   });
@@ -80,7 +83,7 @@ export function NewLeadForm() {
         contactId: contact.id,
         title: form.title || undefined,
         vertical: form.vertical,
-        status: form.stage,
+        status: (form.stage || stages[0]?.key || "NEW") as Lead["status"],
         estimatedValue: form.estimatedValue ? Number(form.estimatedValue) : 0,
         notes: form.notes || undefined,
         company: form.contactCompany || `${form.firstName} ${form.lastName}`,
@@ -206,8 +209,8 @@ export function NewLeadForm() {
               onChange={handleChange}
               className="w-full h-10 rounded-[8px] border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             >
-              {STAGES.map((s) => (
-                <option key={s.value} value={s.value}>
+              {stages.map((s) => (
+                <option key={s.key} value={s.key}>
                   {s.label}
                 </option>
               ))}

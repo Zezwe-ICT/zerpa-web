@@ -16,6 +16,8 @@ export interface CreateCompanyPayload {
   phone?: string;
   description?: string;
   details?: Record<string, any>;
+  /** App keys chosen during onboarding; the API adds dependencies. Omit for the industry's recommended set. */
+  apps?: string[];
 }
 
 export interface TeamMemberPayload {

@@ -193,8 +193,8 @@ export function AutomatedConfigEditor({ configId }: Props) {
           : await createAutomatedConfig(payload);
       hydrate(saved);
       return saved;
-    } catch {
-      toast.error("Could not save automation");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not save automation");
       return null;
     } finally {
       setSaving(false);

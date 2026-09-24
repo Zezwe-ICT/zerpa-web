@@ -28,6 +28,7 @@ import { useAuth } from "@/lib/auth/context";
 import { searchBusinesses } from "@/lib/data/lead-finder";
 import { getLeads, createContact, createLead } from "@/lib/data/crm";
 import type { ScrapedBusiness, Vertical } from "@zerpa/shared-types";
+import { emailHeaders } from "@/lib/api/email";
 
 const VERTICALS: { value: Vertical; label: string }[] = [
   { value: "FUNERAL", label: "Funeral" },
@@ -225,7 +226,7 @@ export function LeadFinderClient() {
     if (ok && importedLeads.length) {
       fetch("/api/email/lead-notify", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: emailHeaders(),
         body: JSON.stringify({
           count: ok,
           vertical,

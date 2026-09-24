@@ -1,101 +1,94 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { Building2, FileText, Mail, Phone, Plus, Receipt, Search, X } from "lucide-react";
+import { toast } from "sonner";
 import { PageContainer } from "@/components/layouts/page-container";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Building2, Plus, X, Mail, Phone } from "lucide-react";
-import { createContact, createLead, getLeads } from "@/lib/data/crm";
+import { AppChecklist } from "@/components/modules/setup/app-checklist";
 import { useAuth } from "@/lib/auth/context";
-import type { Lead } from "@zerpa/shared-types";
-
-const VERTICALS = [
-  { value: "FUNERAL", label: "Funeral" },
-  { value: "AUTOMOTIVE", label: "Automotive" },
-  { value: "RESTAURANT", label: "Restaurant" },
-  { value: "SPA", label: "Spa" },
-] as const;
-
-const VERTICAL_COLORS: Record<string, string> = {
-  FUNERAL: "bg-funeral-bg text-funeral",
-  AUTOMOTIVE: "bg-info-bg text-info",
-  RESTAURANT: "bg-warning-bg text-warning",
-  SPA: "bg-success-bg text-success",
-};
+import { createBillingCustomer, getBillingCustomers } from "@/lib/data/billing-customers";
+import type { BillingCustomer } from "@zerpa/shared-types";
 
 const EMPTY_FORM = {
-  company: "",
-  vertical: "FUNERAL" as typeof VERTICALS[number]["value"],
+  name: "",
   firstName: "",
   lastName: "",
   email: "",
   phone: "",
+  vatNumber: "",
+  paymentTermsDays: "30",
+  billingAddress: "",
   notes: "",
 };
 
 export default function CustomersPage() {
   const { company } = useAuth();
-  const [customers, setCustomers] = useState<Lead[]>([]);
+  const [customers, setCustomers] = useState<BillingCustomer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
     if (!company?.id) return;
     setLoading(true);
-    getLeads("CLOSED_WON", company.id)
-      .then(setCustomers)
-      .catch(() => setCustomers([]))
+    getBillingCustomers(company.id)
+      .then((rows) => {
+        setCustomers(rows);
+        setLoadError(null);
+      })
+      .catch((e) => setLoadError(e instanceof Error ? e.message : "Could not load customers"))
       .finally(() => setLoading(false));
   }, [company?.id]);
 
-  function handleChange(
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
-  ) {
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return customers;
+    return customers.filter((c) =>
+      [c.name, c.contactPerson, c.contactEmail, c.contactPhone].some((v) => v?.toLowerCase().includes(q)),
+    );
+  }, [customers, query]);
+
+  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  }
+
+  function closeForm() {
+    setShowForm(false);
+    setError(null);
+    setForm(EMPTY_FORM);
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!company?.id) return;
     setSubmitting(true);
     setError(null);
-
     try {
-      const contact = await createContact({
-        tenantId: company.id,
-        firstName: form.firstName,
-        lastName: form.lastName,
-        email: form.email || undefined,
-        phone: form.phone || undefined,
-        company: form.company,
+      const created = await createBillingCustomer({
+        name: form.name.trim(),
+        firstName: form.firstName.trim() || undefined,
+        lastName: form.lastName.trim() || undefined,
+        email: form.email.trim() || undefined,
+        phone: form.phone.trim() || undefined,
+        vatNumber: form.vatNumber.replace(/\s/g, "") || undefined,
+        paymentTermsDays: Number(form.paymentTermsDays) || 0,
+        billingAddress: form.billingAddress.trim() || undefined,
+        notes: form.notes.trim() || undefined,
       });
-
-      const lead = await createLead({
-        tenantId: company.id,
-        contactId: contact.id,
-        contact,
-        company: form.company,
-        vertical: form.vertical,
-        status: "CLOSED_WON",
-        estimatedValue: 0,
-        notes: form.notes || undefined,
-      });
-
-      setCustomers((prev) => [lead, ...prev]);
-      setForm(EMPTY_FORM);
-      setShowForm(false);
+      setCustomers((prev) => [...prev, created].sort((a, b) => a.name.localeCompare(b.name)));
+      toast.success(`${created.name} added`);
+      closeForm();
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to add customer."
-      );
+      setError(err instanceof Error ? err.message : "Failed to add customer.");
     } finally {
       setSubmitting(false);
     }
@@ -103,13 +96,13 @@ export default function CustomersPage() {
 
   return (
     <PageContainer>
-      <div className="mb-8">
+      <div className="mb-6">
         <PageHeader
           title="Customers"
           subtitle={
             loading
               ? "Loading..."
-              : `${customers.length} customer${customers.length !== 1 ? "s" : ""} on record`
+              : `${customers.length} customer${customers.length !== 1 ? "s" : ""}. Won leads are added here automatically.`
           }
           action={
             !showForm ? (
@@ -122,137 +115,103 @@ export default function CustomersPage() {
         />
       </div>
 
-      {/* Add customer form */}
+      <AppChecklist app="customers" />
+
       {showForm && (
         <div className="rounded-[12px] border border-border bg-background p-6 mb-6">
           <div className="flex items-center justify-between mb-5">
             <h2 className="font-semibold text-base">Add Customer</h2>
-            <button
-              type="button"
-              onClick={() => {
-                setShowForm(false);
-                setError(null);
-                setForm(EMPTY_FORM);
-              }}
-              className="text-muted-fg hover:text-foreground transition"
-            >
+            <button type="button" onClick={closeForm} className="text-muted-fg hover:text-foreground transition" aria-label="Close">
               <X size={16} />
             </button>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="company">Company / Business Name *</Label>
-                <Input
-                  id="company"
-                  name="company"
-                  value={form.company}
-                  onChange={handleChange}
-                  placeholder="e.g. Dignity Funeral Home"
-                  required
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="vertical">Vertical *</Label>
-                <select
-                  id="vertical"
-                  name="vertical"
-                  value={form.vertical}
-                  onChange={handleChange}
-                  className="w-full h-10 rounded-[8px] border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                  required
-                >
-                  {VERTICALS.map((v) => (
-                    <option key={v.value} value={v.value}>
-                      {v.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="name">Business or person&apos;s name *</Label>
+              <Input
+                id="name"
+                name="name"
+                value={form.name}
+                onChange={handleChange}
+                placeholder="e.g. Dignity Funeral Home"
+                required
+              />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label htmlFor="firstName">Contact First Name *</Label>
-                <Input
-                  id="firstName"
-                  name="firstName"
-                  value={form.firstName}
-                  onChange={handleChange}
-                  placeholder="John"
-                  required
-                />
+                <Label htmlFor="firstName">Contact first name</Label>
+                <Input id="firstName" name="firstName" value={form.firstName} onChange={handleChange} placeholder="Nomsa" />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="lastName">Contact Last Name *</Label>
-                <Input
-                  id="lastName"
-                  name="lastName"
-                  value={form.lastName}
-                  onChange={handleChange}
-                  placeholder="Smith"
-                  required
-                />
+                <Label htmlFor="lastName">Contact last name</Label>
+                <Input id="lastName" name="lastName" value={form.lastName} onChange={handleChange} placeholder="Mokoena" />
               </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">Email for invoices</Label>
                 <Input
                   id="email"
                   name="email"
                   type="email"
                   value={form.email}
                   onChange={handleChange}
-                  placeholder="john@company.co.za"
+                  placeholder="accounts@company.co.za"
                 />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="phone">Phone</Label>
+                <Input id="phone" name="phone" value={form.phone} onChange={handleChange} placeholder="082 123 4567" />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="vatNumber">VAT number</Label>
                 <Input
-                  id="phone"
-                  name="phone"
-                  value={form.phone}
+                  id="vatNumber"
+                  name="vatNumber"
+                  value={form.vatNumber}
                   onChange={handleChange}
-                  placeholder="+27 11 123 4567"
+                  placeholder="4123456789"
+                  inputMode="numeric"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="paymentTermsDays">Pays within (days)</Label>
+                <Input
+                  id="paymentTermsDays"
+                  name="paymentTermsDays"
+                  type="number"
+                  min={0}
+                  max={365}
+                  value={form.paymentTermsDays}
+                  onChange={handleChange}
                 />
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="notes">Notes</Label>
+              <Label htmlFor="billingAddress">Billing address</Label>
               <Textarea
-                id="notes"
-                name="notes"
-                value={form.notes}
+                id="billingAddress"
+                name="billingAddress"
+                value={form.billingAddress}
                 onChange={handleChange}
-                placeholder="Any notes about this customer..."
+                placeholder="Printed on quotes and invoices"
                 rows={2}
               />
             </div>
 
-            {error && (
-              <p className="text-sm text-danger bg-danger-bg rounded-[8px] px-4 py-3">
-                {error}
-              </p>
-            )}
+            <div className="space-y-1.5">
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea id="notes" name="notes" value={form.notes} onChange={handleChange} rows={2} />
+            </div>
+
+            {error && <p className="text-sm text-danger bg-danger-bg rounded-[8px] px-4 py-3">{error}</p>}
 
             <div className="flex gap-3 pt-1">
               <Button type="submit" disabled={submitting}>
                 {submitting ? "Saving..." : "Add Customer"}
               </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setShowForm(false);
-                  setError(null);
-                  setForm(EMPTY_FORM);
-                }}
-                disabled={submitting}
-              >
+              <Button type="button" variant="outline" onClick={closeForm} disabled={submitting}>
                 Cancel
               </Button>
             </div>
@@ -260,11 +219,25 @@ export default function CustomersPage() {
         </div>
       )}
 
-      {/* Customers list */}
+      {customers.length > 5 && (
+        <div className="relative mb-4">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-fg" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search customers"
+            className="pl-8"
+            aria-label="Search customers"
+          />
+        </div>
+      )}
+
       {loading ? (
         <div className="flex items-center justify-center h-48">
           <p className="text-muted-fg">Loading customers...</p>
         </div>
+      ) : loadError ? (
+        <p className="text-sm text-danger">{loadError}</p>
       ) : customers.length === 0 && !showForm ? (
         <div className="rounded-[12px] border border-border bg-background p-12 text-center">
           <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
@@ -272,7 +245,7 @@ export default function CustomersPage() {
           </div>
           <p className="font-semibold text-foreground mb-1">No customers yet</p>
           <p className="text-sm text-muted-fg mb-5">
-            Add your existing customers to keep track of them here.
+            Add the people and businesses you quote and invoice. Leads you win are added automatically.
           </p>
           <Button className="gap-2" onClick={() => setShowForm(true)}>
             <Plus size={16} />
@@ -280,72 +253,52 @@ export default function CustomersPage() {
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4">
-          {customers.map((customer) => (
+        <div className="grid grid-cols-1 gap-3">
+          {visible.map((customer) => (
             <div
               key={customer.id}
-              className="rounded-[12px] border border-border bg-background p-5 flex items-start justify-between gap-4"
+              className="rounded-[12px] border border-border bg-background p-5 flex flex-wrap items-start justify-between gap-4"
             >
-              <div className="flex items-start gap-4">
+              <div className="flex items-start gap-4 min-w-0">
                 <div className="w-10 h-10 rounded-[8px] bg-surface border border-border flex items-center justify-center flex-shrink-0">
                   <Building2 size={18} className="text-muted-fg" />
                 </div>
-                <div>
-                  <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <h3 className="font-semibold text-foreground">
-                      {customer.company}
-                    </h3>
-                    <span
-                      className={`text-xs font-medium px-2 py-0.5 rounded-[4px] ${
-                        VERTICAL_COLORS[customer.vertical] ??
-                        "bg-muted text-muted-fg"
-                      }`}
-                    >
-                      {customer.vertical}
-                    </span>
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-foreground">{customer.name}</h3>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1.5 text-xs text-muted-fg">
+                    {customer.contactPerson && <span>{customer.contactPerson}</span>}
+                    {customer.contactEmail && (
+                      <a href={`mailto:${customer.contactEmail}`} className="flex items-center gap-1.5 hover:text-primary">
+                        <Mail size={12} />
+                        {customer.contactEmail}
+                      </a>
+                    )}
+                    {customer.contactPhone && (
+                      <a href={`tel:${customer.contactPhone}`} className="flex items-center gap-1.5 hover:text-primary">
+                        <Phone size={12} />
+                        {customer.contactPhone}
+                      </a>
+                    )}
+                    {customer.vatNumber && <span>VAT {customer.vatNumber}</span>}
+                    <span>Pays within {customer.paymentTermsDays ?? 30} days</span>
                   </div>
-
-                  {customer.contact && (
-                    <div className="flex flex-wrap gap-4 mt-2">
-                      <span className="text-xs text-muted-fg">
-                        {customer.contact.firstName} {customer.contact.lastName}
-                        {customer.contact.jobTitle &&
-                          ` · ${customer.contact.jobTitle}`}
-                      </span>
-                      {customer.contact.email && (
-                        <a
-                          href={`mailto:${customer.contact.email}`}
-                          className="flex items-center gap-1.5 text-xs text-muted-fg hover:text-primary transition"
-                        >
-                          <Mail size={12} />
-                          {customer.contact.email}
-                        </a>
-                      )}
-                      {customer.contact.phone && (
-                        <a
-                          href={`tel:${customer.contact.phone}`}
-                          className="flex items-center gap-1.5 text-xs text-muted-fg hover:text-primary transition"
-                        >
-                          <Phone size={12} />
-                          {customer.contact.phone}
-                        </a>
-                      )}
-                    </div>
-                  )}
-
-                  {customer.notes && (
-                    <p className="text-xs text-muted-fg mt-2 max-w-lg">
-                      {customer.notes}
-                    </p>
-                  )}
                 </div>
               </div>
-
-              <span className="text-xs font-medium px-2 py-1 rounded-full bg-success-bg text-success flex-shrink-0">
-                Customer
-              </span>
+              <div className="flex gap-2">
+                <Button asChild size="sm" variant="outline">
+                  <Link href={`/billing/quotes/new?customer=${customer.id}`}>
+                    <FileText size={14} className="mr-1.5" /> Quote
+                  </Link>
+                </Button>
+                <Button asChild size="sm" variant="outline">
+                  <Link href={`/billing/invoices/new?customer=${customer.id}`}>
+                    <Receipt size={14} className="mr-1.5" /> Invoice
+                  </Link>
+                </Button>
+              </div>
             </div>
           ))}
+          {visible.length === 0 && <p className="text-sm text-muted-fg">No customers match “{query}”.</p>}
         </div>
       )}
     </PageContainer>

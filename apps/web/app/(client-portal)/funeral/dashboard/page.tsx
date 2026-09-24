@@ -1,77 +1,65 @@
-/**
- * @file app/(client-portal)/funeral/dashboard/page.tsx
- * @description Funeral home client dashboard. Shows KPI cards for Active Cases,
- * Completed Cases, Pending Arrangements and Notifications. Displays a recent
- * activity table with case status and scheduled dates.
- */
+"use client";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { PageContainer } from "@/components/layouts/page-container";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatsCard } from "@/components/ui/stats-card";
+import { Button } from "@/components/ui/button";
+import { getFuneralPortalSummary } from "@/lib/api/verticals";
 import { Building2, Calendar, Clock, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 
 export default function FuneralDashboardPage() {
+  const [summary, setSummary] = useState<Awaited<ReturnType<typeof getFuneralPortalSummary>> | null>(null);
+  useEffect(() => {
+    getFuneralPortalSummary()
+      .then(setSummary)
+      .catch((e) => toast.error(e instanceof Error ? e.message : "Failed to load"));
+  }, []);
+
   return (
     <PageContainer>
-      <PageHeader
-        title="Dashboard"
-        subtitle="Funeral Parlour Operations"
-      />
-
-      {/* KPI Cards */}
+      <PageHeader title="Family portal" subtitle="Cases, schedule, and billing" />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <StatsCard label="Active Cases" value={String(summary?.activeCases ?? "—")} sub="Open cases" icon={Building2} iconColor="blue" />
+        <StatsCard label="This week" value={String(summary?.funeralsThisWeek ?? "—")} sub="Scheduled services" icon={Calendar} iconColor="violet" />
+        <StatsCard label="Missing docs" value={String(summary?.missingDocsCases ?? "—")} sub="Cases with gaps" icon={Clock} iconColor="amber" />
         <StatsCard
-          label="Active Cases"
-          value="8"
-          sub="Open cases"
-          icon={Building2}
-          iconColor="blue"
-        />
-        <StatsCard
-          label="Cases This Month"
-          value="12"
-          sub="2 more than last month"
-          icon={Calendar}
-          iconColor="violet"
-        />
-        <StatsCard
-          label="Funerals This Week"
-          value="3"
-          sub="Next: Saturday 2pm"
-          icon={Clock}
-          iconColor="amber"
-        />
-        <StatsCard
-          label="Outstanding Payments"
-          value="R12,500"
-          sub="2 invoices overdue"
+          label="Invoices"
+          value={String(summary?.invoices?.length ?? "—")}
+          sub="Recent"
           icon={AlertCircle}
           iconColor="red"
         />
       </div>
-
-      {/* Content Grid */}
-      <div className="grid grid-cols-3 gap-6">
-        <div className="col-span-2 space-y-6">
-          <div className="rounded-[12px] border border-border bg-background p-6">
-            <h2 className="section-title mb-4">Today's Schedule</h2>
-            <div className="h-64 flex items-center justify-center text-muted-fg">
-              Schedule coming soon
-            </div>
-          </div>
-
-          <div className="rounded-[12px] border border-border bg-background p-6">
-            <h2 className="section-title mb-4">Recent Cases</h2>
-            <div className="h-64 flex items-center justify-center text-muted-fg">
-              Cases list coming soon
-            </div>
-          </div>
+      <div className="grid gap-6 md:grid-cols-2">
+        <div className="rounded-[12px] border border-border p-6">
+          <h2 className="section-title mb-4">Upcoming schedule</h2>
+          <ul className="space-y-2 text-sm">
+            {(summary?.schedule || []).slice(0, 5).map((c) => (
+              <li key={c.id}>
+                {c.deceasedName} · {c.serviceDate || "TBD"}
+              </li>
+            ))}
+            {!summary?.schedule?.length && <li className="text-muted-fg">No scheduled services.</li>}
+          </ul>
+          <Button className="mt-4" size="sm" asChild>
+            <Link href="/funeral/schedule">Full schedule</Link>
+          </Button>
         </div>
-
-        <div className="rounded-[12px] border border-border bg-background p-6">
-          <h2 className="section-title mb-4">Quick Actions</h2>
-          <div className="h-96 flex items-center justify-center text-muted-fg">
-            Actions coming soon
-          </div>
+        <div className="rounded-[12px] border border-border p-6">
+          <h2 className="section-title mb-4">Recent cases</h2>
+          <ul className="space-y-2 text-sm">
+            {(summary?.cases || []).slice(0, 5).map((c) => (
+              <li key={c.id}>
+                {c.number} · {c.deceasedName} · {c.status}
+              </li>
+            ))}
+            {!summary?.cases?.length && <li className="text-muted-fg">No cases yet.</li>}
+          </ul>
+          <Button className="mt-4" size="sm" asChild>
+            <Link href="/funeral/cases">View cases</Link>
+          </Button>
         </div>
       </div>
     </PageContainer>

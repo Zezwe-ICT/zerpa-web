@@ -6,6 +6,7 @@
 import { PageContainer } from "@/components/layouts/page-container";
 import { PageHeader } from "@/components/ui/page-header";
 import { LeadsListClient } from "@/components/modules/crm/leads-list-client";
+import { AppChecklist } from "@/components/modules/setup/app-checklist";
 
 export const metadata = {
   title: "Leads - CRM",
@@ -22,6 +23,7 @@ export default function LeadsPage() {
         />
       </div>
 
+      <AppChecklist app="sales" />
       <LeadsListClient />
     </PageContainer>
   );

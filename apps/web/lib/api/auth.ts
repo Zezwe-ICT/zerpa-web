@@ -73,6 +73,7 @@ export interface AuthCompany {
  */
 export interface AuthResponse {
   token: string;
+  refreshToken?: string;
   user: {
     id: string;
     email: string;
@@ -101,6 +102,10 @@ export interface RegisterPayload {
   email: string;
   fullName: string;
   password: string;
+  phone?: string;
+  /** Must be true — POPIA / terms acceptance is required by the API. */
+  acceptTerms: true;
+  marketingOptIn?: boolean;
 }
 
 /**

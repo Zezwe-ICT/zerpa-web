@@ -1,9 +1,40 @@
 /**
- * @file app/(client-portal)/layout.tsx
- * @description Root layout for the client-portal route group. Acts as a
- * transparent pass-through; each vertical sub-layout (funeral, automotive,
- * restaurant, spa) adds its own top nav and branding.
+ * Client portal layout — requires authentication and active company.
+ * Invoices and portal data must be company-scoped, never vertical-only.
  */
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/auth/context";
+
 export default function ClientPortalLayout({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading, company } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.replace("/login");
+    }
+  }, [isLoading, isAuthenticated, router]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-surface">
+        <div className="text-muted-fg text-sm">Loading…</div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) return null;
+
+  if (!company) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-surface">
+        <div className="text-sm text-muted-fg">Select a company to continue.</div>
+      </div>
+    );
+  }
+
   return <>{children}</>;
 }

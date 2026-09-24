@@ -18,6 +18,15 @@ import {
   Building2,
   Activity,
   ChevronRight,
+  Boxes,
+  ListPlus,
+  Workflow,
+  UserCog,
+  Rocket,
+  BadgeDollarSign,
+  MessageCircle,
+  Landmark,
+  FileSpreadsheet,
 } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { useAuth } from "@/lib/auth/context";
@@ -26,6 +35,41 @@ import { getHealth } from "@/lib/api/companies";
 import type { HealthResponse } from "@/lib/api/companies";
 
 const SETTINGS_SECTIONS = [
+  {
+    icon: Rocket,
+    title: "Guided setup",
+    href: "/settings/setup",
+    description: "Shape Zerpa around your business in a few clicks. Safe to run again.",
+    items: ["What you track", "Sales stages", "Team roles"],
+  },
+  {
+    icon: Boxes,
+    title: "Record types",
+    href: "/settings/record-types",
+    description: "Track anything your business runs on, from industry templates or your own design.",
+    items: ["Industry templates", "Your own record types", "Stages per type"],
+  },
+  {
+    icon: ListPlus,
+    title: "Custom fields",
+    href: "/settings/fields",
+    description: "Add the fields your team needs to any record.",
+    items: ["13 field types incl. SA ID number", "Required fields", "POPIA-sensitive fields"],
+  },
+  {
+    icon: Workflow,
+    title: "Pipelines",
+    href: "/settings/pipelines",
+    description: "Name and order the stages your team works through.",
+    items: ["Lead stages", "Custom record stages", "Won / lost outcomes"],
+  },
+  {
+    icon: UserCog,
+    title: "Roles & permissions",
+    href: "/settings/roles",
+    description: "Decide what each role can see and do, and assign your team.",
+    items: ["Permission matrix", "Custom roles", "Team role assignment"],
+  },
   {
     icon: Bell,
     title: "Notifications",
@@ -63,11 +107,46 @@ const SETTINGS_SECTIONS = [
     items: ["SMTP configuration", "AWS SES", "Webhook endpoints"],
   },
   {
+    icon: BadgeDollarSign,
+    title: "Plan",
+    href: "/settings/plan",
+    description: "Free, Standard, or Industry Pack. A trial does not charge a card.",
+    items: ["1 app and 3 users on Free", "R 249 or R 399 per user", "Portal customers are free"],
+  },
+  {
+    icon: MessageCircle,
+    title: "WhatsApp",
+    href: "/settings/whatsapp",
+    description: "Send quotes, invoices, and reminders on WhatsApp Business.",
+    items: ["Quotes and pay links", "Overdue reminders", "Skipped until a token is saved"],
+  },
+  {
+    icon: Landmark,
+    title: "Debit orders",
+    href: "/settings/debit-orders",
+    description: "Mandates and collections. Live DebiCheck waits until Netcash is connected.",
+    items: ["Customer mandates", "Queued collections", "Failed collections"],
+  },
+  {
+    icon: FileSpreadsheet,
+    title: "Accounting export",
+    href: "/settings/accounting",
+    description: "Download a journal or people file for Sage, Xero, or SimplePay.",
+    items: ["Sage CSV", "Xero CSV", "SimplePay CSV"],
+  },
+  {
     icon: Database,
     title: "Data & Exports",
     href: "/settings/data-exports",
     description: "Export your data or manage backups.",
     items: ["Export invoices (CSV)", "Export leads (CSV)", "Database backup"],
+  },
+  {
+    icon: Rocket,
+    title: "Offline capture",
+    href: "/capture",
+    description: "Write a note on this device during load-shedding, then save it as a lead.",
+    items: ["Saved on this phone", "Sent when you are back online"],
   },
 ];
 

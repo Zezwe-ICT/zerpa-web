@@ -20,6 +20,7 @@ import {
   getAutomatedConfigs,
   toggleAutomatedConfigActive,
   deleteAutomatedConfig,
+  runAutomatedConfig,
 } from "@/lib/data/automated-invoices";
 import type {
   AutomatedInvoiceConfig,
@@ -173,6 +174,18 @@ export function AutomatedListClient() {
                           {
                             label: c.isActive ? "Pause" : "Resume",
                             onClick: () => handleToggle(c),
+                          },
+                          {
+                            label: "Create this month's invoice",
+                            onClick: async () => {
+                              try {
+                                const invoice = await runAutomatedConfig(c.id);
+                                toast.success(`${invoice.invoiceNumber} created`);
+                                reload();
+                              } catch (e) {
+                                toast.error(e instanceof Error ? e.message : "Could not create the invoice");
+                              }
+                            },
                           },
                           {
                             label: "Delete",

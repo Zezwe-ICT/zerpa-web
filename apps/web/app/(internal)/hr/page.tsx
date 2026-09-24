@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth/context";
 import { addTeamMember } from "@/lib/api/companies";
 import { ApiError } from "@/lib/api/client";
+import { emailHeaders } from "@/lib/api/email";
 
 interface TeamMember {
   id: string;
@@ -78,7 +79,7 @@ export default function HRPage() {
       try {
         const mailRes = await fetch("/api/email/invite", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: emailHeaders(),
           body: JSON.stringify({
             to: res.membership.user.email,
             companyName: company.name,

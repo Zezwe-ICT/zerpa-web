@@ -8,6 +8,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { AppRouteGuard } from "@/components/layouts/app-route-guard";
 import { InternalShell } from "@/components/layouts/internal-shell";
 import { useAuth } from "@/lib/auth/context";
 
@@ -31,5 +32,9 @@ export default function InternalLayout({ children }: { children: React.ReactNode
 
   if (!isAuthenticated) return null;
 
-  return <InternalShell>{children}</InternalShell>;
+  return (
+    <InternalShell>
+      <AppRouteGuard>{children}</AppRouteGuard>
+    </InternalShell>
+  );
 }

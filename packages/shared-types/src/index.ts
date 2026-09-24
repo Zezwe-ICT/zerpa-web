@@ -1,7 +1,18 @@
 // Core domain types for ZERPA ERP
+// Canonical vertical IDs — see docs/GLOSSARY.md and @zerpa/vertical-manifests
 
 // ── Verticals ───────────────────────────────────────────────
-export type Vertical = "FUNERAL" | "AUTOMOTIVE" | "RESTAURANT" | "SPA";
+export type Vertical =
+  | "MSP"
+  | "TELECOM"
+  | "FUNERAL"
+  | "SPA"
+  | "RESTAURANT"
+  | "AUTOMOTIVE"
+  | "GENERIC";
+
+/** @deprecated Use AUTOMOTIVE */
+export type LegacyVerticalAlias = "AUTO" | "TECH";
 
 export type VerticalPriority = "FLAGSHIP" | "PRIORITY" | "STANDARD";
 
@@ -152,6 +163,27 @@ export interface Quote {
   createdAt: string;
   updatedAt: string;
   sentAt?: string | null;
+  /** Customer link for viewing and accepting online, once shared. */
+  shareUrl?: string | null;
+  /** When and by whom the customer accepted or declined online. */
+  respondedAt?: string | null;
+  responderName?: string | null;
+  responderEmail?: string | null;
+  declineReason?: string | null;
+  /** Deposit asked for on acceptance, as a % of the total (0 = none). */
+  depositPercent?: number;
+  deposit?: QuoteDeposit | null;
+  emailDelivery?: { status: "queued" | "sent" | "failed"; at?: string; note?: string } | null;
+}
+
+export interface QuoteDeposit {
+  percent: number;
+  amount: number;
+  invoiceId: string | null;
+  invoiceNumber: string | null;
+  invoiceStatus: string | null;
+  payUrl: string | null;
+  paid: boolean;
 }
 
 // ── Invoices ─────────────────────────────────────────────────
@@ -169,7 +201,7 @@ export type InvoiceType = "SETUP" | "SUBSCRIPTION" | "AD_HOC";
 
 export type InvoiceSource = "manual" | "converted_quote" | "automated";
 
-export type PaymentMethod = "eft" | "cash" | "card" | "other";
+export type PaymentMethod = "eft" | "cash" | "card" | "other" | "instant_eft";
 
 export interface Payment {
   id: string;
@@ -179,6 +211,8 @@ export interface Payment {
   method: PaymentMethod;
   reference?: string | null;
   notes?: string | null;
+  /** manual | payfast | ozow | bank_import */
+  provider?: string;
   createdAt: string;
 }
 
@@ -203,11 +237,27 @@ export interface InvoiceLineItem {
   total: number;
 }
 
+export interface InvoiceIssuer {
+  name: string;
+  email?: string;
+  phone?: string;
+  vatNumber?: string;
+  address?: string;
+  bankName?: string;
+  accountHolder?: string;
+  accountNumber?: string;
+  branchCode?: string;
+  accountType?: string;
+  logoUrl?: string;
+}
+
 export interface Invoice {
   id: string;
   invoiceNumber: string; // INV-YYYY-XXXX (legacy data may be ZRP-YYYY-XXXX)
   tenantId: string;
   tenantName: string;
+  /** The company that issued this invoice. Shown on the customer portal. */
+  issuer?: InvoiceIssuer;
   tenantVertical: Vertical; // for client portal filtering
   type: InvoiceType;
   status: InvoiceStatus;
@@ -237,6 +287,11 @@ export interface Invoice {
   amountPaid?: number;
   balanceDue?: number;
   payments?: Payment[];
+  /** Public pay page link, once one has been created. */
+  payUrl?: string | null;
+  /** Latest customer email for this document. */
+  emailDelivery?: { status: "queued" | "sent" | "failed"; at?: string; note?: string } | null;
+  creditOfId?: string | null;
 
   // Dates
   issuedDate: string;
@@ -334,6 +389,8 @@ export interface BillingSettings {
   companyPostalAddress?: string;
   companyDeliveryAddress?: string;
   bankName?: string;
+  accountHolder?: string;
+  bankAccountType?: string;
   bankAccountNumber?: string;
   bankBranchCode?: string;
   bankBranchName?: string;
@@ -396,6 +453,8 @@ export interface Lead {
   currency: string;
   assignedAgentId?: string;
   assignedAgent?: User;
+  nextStep?: string | null;
+  quoteId?: string | null;
   createdAt: string;
   updatedAt: string;
   lastActivityAt?: string;
@@ -652,10 +711,256 @@ export interface LeadFinderSearchResponse {
 // ── Activity / Timeline ──────────────────────────────────────
 export interface TimelineEvent {
   id: string;
-  entityType: "lead" | "invoice" | "case" | "order" | "booking";
+  entityType:
+    | "lead"
+    | "invoice"
+    | "case"
+    | "order"
+    | "booking"
+    | "ticket"
+    | "service_order"
+    | "subscriber";
   entityId: string;
   action: string;
   description: string;
   userId?: string;
+  createdAt: string;
+}
+
+// ── Tenancy primitives ───────────────────────────────────────
+export interface CompanyLocation {
+  id: string;
+  companyId: string;
+  name: string;
+  address?: string;
+  city?: string;
+  postalCode?: string;
+  isPrimary: boolean;
+}
+
+export interface CompanyMembership {
+  id: string;
+  companyId: string;
+  userId: string;
+  role: string;
+  permissions: string[];
+  createdAt: string;
+}
+
+export interface InstalledPack {
+  companyId: string;
+  vertical: Vertical;
+  version: string;
+  installedAt: string;
+  modules: string[];
+}
+
+// ── MSP Vertical ─────────────────────────────────────────────
+export type TicketStatus =
+  | "new"
+  | "triaged"
+  | "in_progress"
+  | "waiting_customer"
+  | "waiting"
+  | "resolved"
+  | "closed"
+  | "cancelled";
+
+export type TicketPriority = "low" | "medium" | "high" | "critical";
+
+export type TicketType = "incident" | "request" | "problem" | "change";
+
+export interface MspAgreement {
+  id: string;
+  companyId: string;
+  accountId: string;
+  name: string;
+  status: string;
+  monthlyFee: number;
+  slaResponseMinutes: number;
+  slaResolveMinutes: number;
+  includedHours?: number;
+  overageRate?: number;
+  billingCadence?: string;
+  amendmentNotes?: string;
+  currency?: string;
+  startsAt?: string;
+  endsAt?: string;
+}
+
+export interface MspAsset {
+  id: string;
+  companyId: string;
+  accountId: string;
+  siteId?: string;
+  name: string;
+  assetType: string;
+  serialNumber?: string;
+  status: "active" | "retired" | "in_repair";
+  warrantyEnds?: string | null;
+  notes?: string;
+}
+
+export interface MspTicket {
+  id: string;
+  companyId: string;
+  number: string;
+  accountId: string;
+  contactId?: string;
+  agreementId?: string;
+  assetId?: string;
+  parentTicketId?: string | null;
+  type: TicketType;
+  priority: TicketPriority;
+  status: TicketStatus;
+  subject: string;
+  description?: string;
+  assigneeId?: string;
+  slaRespondBy?: string;
+  slaResolveBy?: string;
+  slaBreached?: boolean;
+  source: "email" | "portal" | "phone" | "rmm" | "manual" | "psa" | "security" | "sentinel" | "soc" | "defender";
+  externalRef?: string | null;
+  runbookUrl?: string;
+  resolvedAt?: string;
+  closedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MspTimeEntry {
+  id: string;
+  companyId: string;
+  ticketId: string;
+  userId: string;
+  minutes: number;
+  billable: boolean;
+  note?: string;
+  workDate: string;
+  createdAt: string;
+}
+
+// ── Telecom Vertical ─────────────────────────────────────────
+export type RicaStatus = "not_started" | "pending" | "approved" | "rejected" | "expired";
+
+export type ServiceOrderStatus =
+  | "lead"
+  | "qualified"
+  | "quoted"
+  | "rica_pending"
+  | "provisioning"
+  | "installing"
+  | "active"
+  | "suspended"
+  | "cancelled";
+
+export interface TelecomSubscriber {
+  id: string;
+  companyId: string;
+  accountId: string;
+  contactId?: string;
+  status: "prospect" | "active" | "suspended" | "cancelled";
+  serviceAddress?: string;
+  coverageStatus?: "unknown" | "serviceable" | "not_serviceable" | "waitlist";
+  ricaStatus: RicaStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TelecomRicaRecord {
+  id: string;
+  companyId: string;
+  subscriberId: string;
+  idDocumentType: "sa_id" | "passport" | "asylum";
+  idNumberMasked: string;
+  proofOfAddressUploaded: boolean;
+  status: RicaStatus;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  retentionUntil?: string;
+  createdAt: string;
+}
+
+export interface TelecomServiceOrder {
+  id: string;
+  companyId: string;
+  number: string;
+  subscriberId: string;
+  productName: string;
+  status: ServiceOrderStatus;
+  upstreamOrderRef?: string;
+  installDate?: string;
+  activatedAt?: string;
+  monthlyFee: number;
+  onceOffFee: number;
+  currency: string;
+  blockers?: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TelecomService {
+  id: string;
+  companyId: string;
+  subscriberId: string;
+  orderId?: string;
+  serviceType: "fibre" | "lte" | "voip" | "other";
+  status: "pending" | "active" | "suspended" | "cancelled";
+  circuitId?: string;
+  phoneNumber?: string;
+  simIccid?: string;
+  cpeSerial?: string;
+  activatedAt?: string;
+  suspendedAt?: string;
+}
+
+export interface TelecomOutage {
+  id: string;
+  companyId: string;
+  title: string;
+  status: "investigating" | "identified" | "monitoring" | "resolved";
+  startedAt: string;
+  resolvedAt?: string;
+  impactedServiceIds: string[];
+  summary?: string;
+  noticeStatus?: string | null;
+  noticeCount?: number;
+}
+
+// ── Workflow & Automation ────────────────────────────────────
+export interface WorkflowTransition {
+  from: string;
+  to: string;
+  action: string;
+  requiredFields?: string[];
+  requiredPermission?: string;
+}
+
+export interface AutomationRule {
+  id: string;
+  companyId: string | null;
+  name: string;
+  enabled: boolean;
+  trigger: string;
+  conditions?: { field: string; operator: string; value: unknown }[];
+  action: string;
+  actionPayload?: Record<string, unknown>;
+}
+
+// ── Assistant ────────────────────────────────────────────────
+export interface AssistantProposal {
+  id: string;
+  companyId: string;
+  skillId: string;
+  recordType: string;
+  recordId: string;
+  summary: string;
+  citedRecordIds: string[];
+  proposedAction?: {
+    type: string;
+    payload: Record<string, unknown>;
+    requiresApproval: boolean;
+  };
+  status: "draft" | "approved" | "rejected" | "executed";
   createdAt: string;
 }
