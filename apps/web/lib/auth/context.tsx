@@ -42,6 +42,8 @@ export interface AuthUser {
   id: string;
   email: string;
   fullName: string;
+  /** False until the person clicks the link in their verification email. Missing = older session. */
+  emailVerified?: boolean;
 }
 
 /**
@@ -85,6 +87,8 @@ interface AuthContextValue {
   attachCompany: (company: AuthCompany) => void;
   setCompany: (company: AuthCompany) => void;
   signOut: () => void;
+  /** Merge changes into the signed-in user (e.g. after verifying their email) and persist them. */
+  updateUser: (patch: Partial<AuthUser>) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -445,6 +449,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    *
    * Note: Should be called when user clicks logout or token expires
    */
+  const updateUser = useCallback((patch: Partial<AuthUser>) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, ...patch };
+      localStorage.setItem(USER_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
   const signOut = useCallback(() => {
     // Clear token from secure storage
     clearToken();
@@ -478,6 +491,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         attachCompany,
         setCompany,
         signOut,
+        updateUser,
       }}
     >
       {children}

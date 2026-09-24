@@ -36,6 +36,13 @@ import type { HealthResponse } from "@/lib/api/companies";
 
 const SETTINGS_SECTIONS = [
   {
+    icon: UserCog,
+    title: "Your account",
+    href: "/settings/account",
+    description: "Your sign-in email and password. Just for you, not the whole business.",
+    items: ["Confirm your email", "Change password"],
+  },
+  {
     icon: Rocket,
     title: "Guided setup",
     href: "/settings/setup",
