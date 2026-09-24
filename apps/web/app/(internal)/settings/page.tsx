@@ -40,7 +40,7 @@ const SETTINGS_SECTIONS = [
     title: "Your account",
     href: "/settings/account",
     description: "Your sign-in email and password. Just for you, not the whole business.",
-    items: ["Confirm your email", "Change password"],
+    items: ["Confirm your email", "Change password", "Two-step sign-in"],
   },
   {
     icon: Rocket,

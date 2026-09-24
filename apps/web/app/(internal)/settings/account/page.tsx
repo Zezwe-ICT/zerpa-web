@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth/context";
+import { TwoStepSettings } from "@/components/modules/settings/two-step-settings";
 import { changePassword, PASSWORD_RULES, resendVerification } from "@/lib/api/account";
 import { ApiError, setRefreshToken, setToken } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
@@ -84,6 +85,8 @@ export default function AccountSettingsPage() {
             </p>
           )}
         </section>
+
+        <TwoStepSettings />
 
         <form onSubmit={submit} className="rounded-[12px] border border-border bg-background p-5 space-y-4" noValidate>
           <div>

@@ -74,11 +74,14 @@ import { ZerpaLogo } from "@/components/brand/zerpa-logo";
  * @returns {React.ReactElement} - Full-page login form
  */
 export default function LoginPage() {
-  const { signIn } = useAuth();
+  const { signIn, completeMfa } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  // Set when the account has two-step sign-in: the next step asks for the authenticator code.
+  const [mfaToken, setMfaToken] = useState<string | null>(null);
+  const [code, setCode] = useState("");
 
   /**
    * Function: handleSubmit
@@ -105,7 +108,8 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       // Call context function which handles auth + routing
-      await signIn({ email, password });
+      const result = await signIn({ email, password });
+      if (result.mfaRequired) setMfaToken(result.mfaToken);
     } catch (err) {
       // Display error to user
       const message =
@@ -115,6 +119,76 @@ export default function LoginPage() {
       // Clear loading state
       setIsLoading(false);
     }
+  }
+
+  async function handleCode(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!mfaToken) return;
+    setIsLoading(true);
+    try {
+      await completeMfa(mfaToken, code.trim());
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "Something went wrong";
+      toast.error(message);
+      // The code step expires after 5 minutes; start again from the password.
+      if (err instanceof ApiError && err.status === 401) {
+        setMfaToken(null);
+        setCode("");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  if (mfaToken) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-surface">
+        <div className="w-full max-w-md space-y-8">
+          <div className="flex justify-center">
+            <ZerpaLogo className="h-12" />
+          </div>
+          <div className="bg-background rounded-[12px] border border-border p-8 space-y-6">
+            <div className="text-center space-y-2">
+              <h1 className="text-2xl font-bold">Enter your code</h1>
+              <p className="text-sm text-muted-fg">
+                Open your authenticator app and type the 6-digit code for Zerpa ({email}).
+              </p>
+            </div>
+            <form onSubmit={handleCode} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="code">Code</Label>
+                <Input
+                  id="code"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  autoFocus
+                  placeholder="123456"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  className="text-center text-lg tracking-[0.3em]"
+                />
+                <p className="text-xs text-muted-fg">
+                  Lost your phone? Type one of your backup codes instead (they look like 1a2b-3c4d).
+                </p>
+              </div>
+              <Button type="submit" className="w-full" size="lg" disabled={isLoading || code.trim().length < 6}>
+                {isLoading ? "Checking…" : "Sign in"}
+              </Button>
+            </form>
+            <button
+              type="button"
+              onClick={() => {
+                setMfaToken(null);
+                setCode("");
+              }}
+              className="block w-full text-center text-sm text-muted-fg hover:text-foreground"
+            >
+              Use a different account
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

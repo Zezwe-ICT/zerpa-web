@@ -17,6 +17,7 @@ import {
 import { useRouter } from "next/navigation";
 import {
   signIn as apiSignIn,
+  verifyMfa as apiVerifyMfa,
   register as apiRegister,
   getCompanies as apiGetCompanies,
   createCompany as apiCreateCompany,
@@ -80,7 +81,10 @@ interface AuthContextValue {
   companies: AuthCompany[];
   isLoading: boolean;
   isAuthenticated: boolean;
-  signIn: (payload: SignInPayload) => Promise<void>;
+  /** Password step. Resolves with mfaRequired when an authenticator code is needed next. */
+  signIn: (payload: SignInPayload) => Promise<SignInResult>;
+  /** Second step for accounts with two-step sign-in. */
+  completeMfa: (mfaToken: string, code: string) => Promise<void>;
   register: (payload: RegisterPayload) => Promise<AuthResponse>;
   selectCompany: (companyId: string) => void;
   addCompany: (payload: CreateCompanyPayload) => Promise<AuthCompany>;
@@ -90,6 +94,8 @@ interface AuthContextValue {
   /** Merge changes into the signed-in user (e.g. after verifying their email) and persist them. */
   updateUser: (patch: Partial<AuthUser>) => void;
 }
+
+export type SignInResult = { mfaRequired: false } | { mfaRequired: true; mfaToken: string };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
@@ -231,12 +237,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * @param {SignInPayload} payload - {email, password}
    * @throws {Error} - If API call fails (displayed to user in UI)
    */
-  const signIn = useCallback(
-    async (payload: SignInPayload) => {
-      resetAuthInvalidLatch();
-      // Authenticate with backend
-      const res = await apiSignIn(payload);
-      
+  /** Stores the session, loads the user's companies and routes (shared by both sign-in steps). */
+  const finishSignIn = useCallback(
+    async (res: AuthResponse) => {
       // Store JWT token (for subsequent API calls)
       setToken(res.token);
       setRefreshToken(res.refreshToken);
@@ -289,6 +292,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     },
     [router]
+  );
+
+  const signIn = useCallback(
+    async (payload: SignInPayload): Promise<SignInResult> => {
+      resetAuthInvalidLatch();
+      const res = await apiSignIn(payload);
+      if ("mfaRequired" in res && res.mfaRequired) {
+        return { mfaRequired: true, mfaToken: res.mfaToken };
+      }
+      await finishSignIn(res as AuthResponse);
+      return { mfaRequired: false };
+    },
+    [finishSignIn]
+  );
+
+  const completeMfa = useCallback(
+    async (mfaToken: string, code: string) => {
+      resetAuthInvalidLatch();
+      await finishSignIn(await apiVerifyMfa(mfaToken, code));
+    },
+    [finishSignIn]
   );
 
   /**
@@ -485,6 +509,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         isAuthenticated: !!user,
         signIn,
+        completeMfa,
         register,
         selectCompany,
         addCompany,

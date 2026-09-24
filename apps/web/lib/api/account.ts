@@ -37,3 +37,19 @@ export const PASSWORD_RULES = [
   { label: "One capital letter", test: (pw: string) => /[A-Z]/.test(pw) },
   { label: "One number", test: (pw: string) => /[0-9]/.test(pw) },
 ];
+
+// ── Two-step sign-in ──────────────────────────────────────────────────────
+
+export const getMfaStatus = () => apiRequest<{ enabled: boolean; backupCodesLeft: number }>("/auth/2fa");
+
+export const startMfaSetup = () =>
+  apiRequest<{ secret: string; otpauthUri: string }>("/auth/2fa/setup", { method: "POST", body: {} });
+
+export const enableMfa = (code: string) =>
+  apiRequest<{ enabled: true; backupCodes: string[] }>("/auth/2fa/enable", { method: "POST", body: { code } });
+
+export const disableMfa = (password: string, code: string) =>
+  apiRequest<{ enabled: false }>("/auth/2fa/disable", { method: "POST", body: { password, code } });
+
+export const newBackupCodes = (code: string) =>
+  apiRequest<{ backupCodes: string[] }>("/auth/2fa/backup-codes", { method: "POST", body: { code } });
