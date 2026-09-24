@@ -53,3 +53,35 @@ export const disableMfa = (password: string, code: string) =>
 
 export const newBackupCodes = (code: string) =>
   apiRequest<{ backupCodes: string[] }>("/auth/2fa/backup-codes", { method: "POST", body: { code } });
+
+// ── Your data (POPIA) ────────────────────────────────────────────────────
+
+export const deleteMyAccount = (password: string, code?: string) =>
+  apiRequest<{ deleted: boolean }>("/auth/delete-account", { method: "POST", body: { password, code } });
+
+/** Downloads a file from an authenticated API endpoint (JSON or CSV) and saves it in the browser. */
+export async function downloadFromApi(path: string, filename: string) {
+  const { CONFIG } = await import("@/lib/config");
+  const { getToken } = await import("./client");
+  const companyRaw = typeof window !== "undefined" ? localStorage.getItem("zerpa_company") : null;
+  const companyId = companyRaw ? (JSON.parse(companyRaw) as { id?: string }).id : undefined;
+  const res = await fetch(`${CONFIG.apiUrl}${path}`, {
+    headers: {
+      Authorization: `Bearer ${getToken() ?? ""}`,
+      ...(companyId ? { "X-Company-Id": companyId } : {}),
+    },
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error((data as { error?: string }).error || "Download failed");
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}

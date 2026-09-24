@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { AppChecklist } from "@/components/modules/setup/app-checklist";
 import { useAuth } from "@/lib/auth/context";
 import { createBillingCustomer, getBillingCustomers } from "@/lib/data/billing-customers";
+import { CustomerPrivacy } from "@/components/modules/crm/customer-privacy";
 import type { BillingCustomer } from "@zerpa/shared-types";
 
 const EMPTY_FORM = {
@@ -264,7 +265,12 @@ export default function CustomersPage() {
                   <Building2 size={18} className="text-muted-fg" />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="font-semibold text-foreground">{customer.name}</h3>
+                  <h3 className="font-semibold text-foreground">
+                    {customer.name}
+                    {customer.erasedAt && (
+                      <span className="ml-2 text-xs font-normal text-muted-fg">Personal details erased on request</span>
+                    )}
+                  </h3>
                   <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1.5 text-xs text-muted-fg">
                     {customer.contactPerson && <span>{customer.contactPerson}</span>}
                     {customer.contactEmail && (
@@ -284,7 +290,7 @@ export default function CustomersPage() {
                   </div>
                 </div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Button asChild size="sm" variant="outline">
                   <Link href={`/billing/quotes/new?customer=${customer.id}`}>
                     <FileText size={14} className="mr-1.5" /> Quote
@@ -295,6 +301,21 @@ export default function CustomersPage() {
                     <Receipt size={14} className="mr-1.5" /> Invoice
                   </Link>
                 </Button>
+                {!customer.erasedAt && (
+                  <CustomerPrivacy
+                    id={customer.id}
+                    name={customer.name}
+                    onErased={() =>
+                      setCustomers((prev) =>
+                        prev.map((c) =>
+                          c.id === customer.id
+                            ? { ...c, contactEmail: undefined, contactPhone: undefined, contactPerson: undefined, postalAddress: undefined, erasedAt: new Date().toISOString() }
+                            : c,
+                        ),
+                      )
+                    }
+                  />
+                )}
               </div>
             </div>
           ))}

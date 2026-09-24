@@ -20,6 +20,7 @@ interface ApiAccount {
   paymentTermsDays: number;
   notes: string;
   createdAt: string;
+  erasedAt?: string | null;
 }
 
 function accountToCustomer(a: ApiAccount): BillingCustomer {
@@ -32,6 +33,7 @@ function accountToCustomer(a: ApiAccount): BillingCustomer {
     vatNumber: a.vatNumber || undefined,
     postalAddress: a.billingAddress || undefined,
     paymentTermsDays: a.paymentTermsDays,
+    erasedAt: a.erasedAt ?? null,
   };
 }
 

@@ -248,7 +248,15 @@ export default function RegisterPage() {
                   }}
                 />
                 <span>
-                  I agree to Zerpa&apos;s terms of use and privacy notice.{" "}
+                  I agree to Zerpa&apos;s{" "}
+                  <a href="/terms" target="_blank" rel="noreferrer" className="text-primary underline">
+                    terms of use
+                  </a>{" "}
+                  and{" "}
+                  <a href="/privacy" target="_blank" rel="noreferrer" className="text-primary underline">
+                    privacy notice
+                  </a>
+                  .{" "}
                   <span className="text-muted-fg">
                     We process your data in line with POPIA and never sell it.
                   </span>

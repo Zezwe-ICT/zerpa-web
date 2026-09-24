@@ -75,6 +75,8 @@ export interface BillingCustomer {
   deliveryAddress?: string;
   /** Default payment terms in days for invoices raised against this customer. */
   paymentTermsDays?: number;
+  /** Set when the customer's personal details were erased on request (POPIA). */
+  erasedAt?: string | null;
 }
 
 // ── Products & Services ──────────────────────────────────────

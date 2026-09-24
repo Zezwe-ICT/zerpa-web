@@ -40,7 +40,7 @@ const SETTINGS_SECTIONS = [
     title: "Your account",
     href: "/settings/account",
     description: "Your sign-in email and password. Just for you, not the whole business.",
-    items: ["Confirm your email", "Change password", "Two-step sign-in"],
+    items: ["Change password", "Two-step sign-in", "Download or delete your data"],
   },
   {
     icon: Rocket,
@@ -145,8 +145,8 @@ const SETTINGS_SECTIONS = [
     icon: Database,
     title: "Data & Exports",
     href: "/settings/data-exports",
-    description: "Export your data or manage backups.",
-    items: ["Export invoices (CSV)", "Export leads (CSV)", "Database backup"],
+    description: "Download your business's records as CSV files.",
+    items: ["Customers", "Invoices & payments", "Quotes & leads"],
   },
   {
     icon: Rocket,

@@ -139,7 +139,17 @@ export default function AcceptInvitePage() {
                         checked={acceptTerms}
                         onChange={(e) => setAcceptTerms(e.target.checked)}
                       />
-                      <span>I agree to Zerpa&apos;s terms of use and privacy notice (POPIA).</span>
+                      <span>
+                        I agree to Zerpa&apos;s{" "}
+                        <a href="/terms" target="_blank" rel="noreferrer" className="text-primary underline">
+                          terms of use
+                        </a>{" "}
+                        and{" "}
+                        <a href="/privacy" target="_blank" rel="noreferrer" className="text-primary underline">
+                          privacy notice
+                        </a>{" "}
+                        (POPIA).
+                      </span>
                     </label>
                   </>
                 )}
