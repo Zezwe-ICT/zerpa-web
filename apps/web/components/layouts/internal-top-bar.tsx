@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback } from "react";
-import { useRouter } from "next/navigation";
-import { Building2, FileText, Plus, Receipt, Ticket, UserPlus, Users } from "lucide-react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { Building2, FileText, LifeBuoy, Plus, Receipt, Ticket, UserPlus, Users } from "lucide-react";
 import { NotificationBell } from "./notification-bell";
 import { useAuth } from "@/lib/auth/context";
 import { useAppearance } from "@/lib/theme/context";
@@ -45,6 +46,7 @@ const rand = (n: number) =>
 
 export function InternalTopBar({ title }: TopBarProps) {
   const router = useRouter();
+  const pathname = usePathname() ?? "/";
   const { user, company, signOut } = useAuth();
   const { settings, update } = useAppearance();
 
@@ -75,6 +77,15 @@ export function InternalTopBar({ title }: TopBarProps) {
           onSelect={(a) => router.push(a.href)}
           placeholder="Search or jump to…"
         />
+
+        <Link
+          href={pathname.startsWith("/help") ? "/help" : `/help?new=1&from=${encodeURIComponent(pathname)}`}
+          className="p-2 rounded-[6px] text-muted-fg hover:text-foreground hover:bg-surface"
+          aria-label="Help & support"
+          title="Help & support"
+        >
+          <LifeBuoy size={18} />
+        </Link>
 
         <NotificationBell />
 
