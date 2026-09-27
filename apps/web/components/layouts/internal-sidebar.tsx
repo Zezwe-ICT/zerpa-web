@@ -6,6 +6,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { motion } from "motion/react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { ZerpaLogo } from "@/components/brand/zerpa-logo";
@@ -294,6 +295,7 @@ function NavItem({
   isActive: boolean;
   level?: number;
 }) {
+  const pathname = usePathname() ?? "";
   const hasChildren = Boolean(item.children?.length);
   const [expanded, setExpanded] = useState(isActive);
 
@@ -337,10 +339,34 @@ function NavItem({
     return <div className={cn(sharedClass, "justify-center")}>{item.icon}</div>;
   }
 
+  // Leaves work out their own active state (a group passes its own flag down to every child).
+  const leafActive = level > 0 ? matchesPath(pathname, item.href) : isActive;
   return (
-    <Link href={item.href || "#"} className={sharedClass}>
-      {item.icon}
-      {!collapsed && <span className="flex-1">{item.label}</span>}
+    <Link
+      href={item.href || "#"}
+      className={cn(
+        "relative flex items-center gap-3 px-3 py-2 rounded-[6px] text-sm font-medium transition-colors group w-full",
+        leafActive ? "text-primary" : "text-foreground-2 hover:bg-surface hover:text-foreground",
+        level > 0 && "pl-8 text-xs",
+      )}
+      aria-current={leafActive ? "page" : undefined}
+    >
+      {leafActive && (
+        <motion.span
+          layoutId="sidebar-active"
+          className="absolute inset-0 -z-0 rounded-[6px] bg-primary-tint border-l-2 border-primary"
+          transition={{ type: "spring", stiffness: 500, damping: 40 }}
+        />
+      )}
+      <span className="relative flex items-center gap-3 w-full">
+        {item.icon}
+        {!collapsed && <span className="flex-1">{item.label}</span>}
+      </span>
     </Link>
   );
+}
+
+function matchesPath(pathname: string, href?: string) {
+  if (!href) return false;
+  return pathname === href || pathname.startsWith(href + "/");
 }
