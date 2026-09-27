@@ -289,11 +289,14 @@ function NavItem({
   collapsed,
   isActive,
   level = 0,
+  siblingHrefs = [],
 }: {
   item: SidebarItem;
   collapsed: boolean;
   isActive: boolean;
   level?: number;
+  /** Other links in the same group, so /projects/my-tasks doesn't also light up /projects. */
+  siblingHrefs?: string[];
 }) {
   const pathname = usePathname() ?? "";
   const hasChildren = Boolean(item.children?.length);
@@ -327,6 +330,7 @@ function NavItem({
                 collapsed={false}
                 isActive={isActive}
                 level={level + 1}
+                siblingHrefs={item.children!.map((c) => c.href ?? "").filter((h) => h && h !== child.href)}
               />
             ))}
           </div>
@@ -340,7 +344,11 @@ function NavItem({
   }
 
   // Leaves work out their own active state (a group passes its own flag down to every child).
-  const leafActive = level > 0 ? matchesPath(pathname, item.href) : isActive;
+  const leafActive =
+    level > 0
+      ? matchesPath(pathname, item.href) &&
+        !siblingHrefs.some((h) => h.length > (item.href ?? "").length && matchesPath(pathname, h))
+      : isActive;
   return (
     <Link
       href={item.href || "#"}
