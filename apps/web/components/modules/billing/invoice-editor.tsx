@@ -10,6 +10,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { Chatter } from "@/components/chatter/chatter";
 import { ArrowLeft, Save, Send, CheckCircle2, Ban, Plus, FileText, Link2, Copy, ExternalLink, MessageCircle, Undo2 } from "lucide-react";
 import { PageContainer } from "@/components/layouts/page-container";
 import { Button } from "@/components/ui/button";
@@ -457,6 +458,7 @@ export function InvoiceEditor({ invoiceId }: InvoiceEditorProps) {
               />
             </div>
           </div>
+          {invoice && <Chatter recordType="invoice" recordId={invoice.id} />}
         </div>
 
         {/* Right */}

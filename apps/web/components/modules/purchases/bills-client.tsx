@@ -10,6 +10,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Ban, CheckCircle2, Plus, Save, Wallet } from "lucide-react";
 import { toast } from "sonner";
+import { Chatter } from "@/components/chatter/chatter";
 import type { BillingLineItem, PaymentMethod } from "@zerpa/shared-types";
 import { PageContainer } from "@/components/layouts/page-container";
 import { PageHeader } from "@/components/ui/page-header";
@@ -396,6 +397,7 @@ export function BillEditor({ billId }: { billId?: string }) {
             <Label htmlFor="notes">Notes</Label>
             <Textarea id="notes" rows={2} value={form.notes} disabled={!editable || !canManage} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
           </div>
+          {bill && <Chatter recordType="supplier_bill" recordId={bill.id} />}
         </div>
 
         <div className="space-y-4">

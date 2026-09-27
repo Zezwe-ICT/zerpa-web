@@ -11,8 +11,12 @@ import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import NumberFlow from "@number-flow/react";
 import {
+  AlarmClock,
   ArrowRight,
   CheckCircle2,
+  Mail,
+  Phone,
+  Users,
   FileText,
   Receipt,
   Send,
@@ -35,6 +39,7 @@ import { ChartTooltip, TooltipContent } from "@/components/charts/tooltip";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/context";
 import { getDashboardOverview, type ActivityItem, type DashboardOverview } from "@/lib/api/dashboard";
+import { getMyActivities, type Activity } from "@/lib/api/chatter";
 import { cn } from "@/lib/utils";
 
 const rand = (n: number, decimals = 0) =>
@@ -295,8 +300,20 @@ function PipelineCard({ data, className }: { data: DashboardOverview | null; cla
 
 type Todo = { key: string; icon: LucideIcon; tone: string; title: string; detail: string; href: string };
 
-function TodoCard({ data }: { data: DashboardOverview | null }) {
+function TodoCard({ data, activities }: { data: DashboardOverview | null; activities: Activity[] }) {
+  const soon = new Date();
+  soon.setDate(soon.getDate() + 2);
   const items: Todo[] = [
+    ...activities
+      .filter((a) => new Date(`${a.dueDate}T00:00:00`) <= soon)
+      .map((a) => ({
+        key: `act-${a.id}`,
+        icon: ACTIVITY_KIND_ICON[a.kind] ?? CheckCircle2,
+        tone: a.overdue ? "text-danger bg-danger-bg" : a.dueToday ? "text-warning bg-warning-bg" : "text-info bg-info-bg",
+        title: a.summary,
+        detail: `${a.record?.title ?? ""} · ${a.overdue ? "overdue since " : a.dueToday ? "today" : "due "}${a.dueToday ? "" : new Date(a.dueDate).toLocaleDateString("en-ZA", { day: "numeric", month: "short" })}`,
+        href: a.record?.link ?? "/dashboard",
+      })),
     ...(data?.receivables?.overdue ?? []).map((inv) => ({
       key: `inv-${inv.id}`,
       icon: Receipt,
@@ -315,7 +332,7 @@ function TodoCard({ data }: { data: DashboardOverview | null }) {
     })),
   ];
   return (
-    <Card title="To do" subtitle="Overdue invoices and quotes about to expire">
+    <Card title="To do" subtitle="Your activities, overdue invoices and quotes about to expire">
       {!data ? (
         <div className="space-y-2">{[0, 1, 2].map((i) => <div key={i} className="h-12 animate-pulse rounded-[8px] bg-surface" />)}</div>
       ) : items.length === 0 ? (
@@ -349,6 +366,14 @@ function TodoCard({ data }: { data: DashboardOverview | null }) {
     </Card>
   );
 }
+
+const ACTIVITY_KIND_ICON: Record<Activity["kind"], LucideIcon> = {
+  call: Phone,
+  email: Mail,
+  meeting: Users,
+  todo: CheckCircle2,
+  follow_up: AlarmClock,
+};
 
 const ACTIVITY_ICONS: Record<ActivityItem["kind"], { icon: LucideIcon; tone: string }> = {
   payment: { icon: Wallet, tone: "text-success bg-success-bg" },
@@ -408,9 +433,11 @@ export function DashboardOverviewCards() {
   const { company, isLoading, isAuthenticated } = useAuth();
   const [data, setData] = useState<DashboardOverview | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [activities, setActivities] = useState<Activity[]>([]);
 
   useEffect(() => {
     if (isLoading || !isAuthenticated || !company?.id) return;
+    getMyActivities().then(setActivities).catch(() => setActivities([]));
     setData(null);
     getDashboardOverview()
       .then((d) => {
@@ -436,7 +463,7 @@ export function DashboardOverviewCards() {
         </div>
       </div>
       <div className="space-y-6 min-w-0">
-        {canBill && <TodoCard data={data} />}
+        <TodoCard data={canBill ? data : data && { ...data, receivables: null, quotes: null }} activities={activities} />
         <ActivityCard data={data} />
       </div>
     </div>

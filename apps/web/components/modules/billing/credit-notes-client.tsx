@@ -10,6 +10,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, FileText, Undo2 } from "lucide-react";
 import { toast } from "sonner";
+import { Chatter } from "@/components/chatter/chatter";
 import type { Invoice, PaymentMethod } from "@zerpa/shared-types";
 import { PageContainer } from "@/components/layouts/page-container";
 import { PageHeader } from "@/components/ui/page-header";
@@ -237,6 +238,7 @@ export function CreditNoteDetail({ id }: { id: string }) {
               <p className="font-semibold">Credit total <span className="font-mono ml-4">{formatCurrency(total)}</span></p>
             </div>
           </div>
+          <Chatter recordType="invoice" recordId={credit.id} />
         </div>
 
         <div className="space-y-4">

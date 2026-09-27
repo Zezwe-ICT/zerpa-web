@@ -10,6 +10,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { Chatter } from "@/components/chatter/chatter";
 import { ArrowLeft, Save, Send, FileOutput, FileText, Copy, MessageCircle, ExternalLink, CheckCircle2, XCircle, Link2 } from "lucide-react";
 import { PageContainer } from "@/components/layouts/page-container";
 import { Button } from "@/components/ui/button";
@@ -458,6 +459,7 @@ export function QuoteEditor({ quoteId }: QuoteEditorProps) {
               />
             </div>
           </div>
+          {quote && <Chatter recordType="quote" recordId={quote.id} />}
         </div>
 
         {/* Right: totals + actions */}
