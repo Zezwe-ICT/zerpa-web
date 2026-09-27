@@ -482,6 +482,31 @@ export function QuoteEditor({ quoteId }: QuoteEditorProps) {
                 {quote.respondedAt ? ` on ${formatDatetime(quote.respondedAt)}` : ""}
                 {quote.responderEmail ? ` (${quote.responderEmail})` : ""}.
               </p>
+              {quote.signature && (
+                <details className="rounded-[8px] border border-border bg-background p-3 text-sm">
+                  <summary className="cursor-pointer font-medium">Signature and signing record</summary>
+                  <div className="mt-3 space-y-2">
+                    {quote.signature.image ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={quote.signature.image} alt={`Signature of ${quote.signature.name}`} className="h-20 w-auto rounded border border-border bg-white p-1" />
+                    ) : (
+                      <p className="text-2xl italic" style={{ fontFamily: "'Instrument Serif', Georgia, serif" }}>{quote.signature.name}</p>
+                    )}
+                    <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
+                      <dt className="text-muted-fg">Method</dt><dd>{quote.signature.method === "drawn" ? "Drawn signature" : "Typed name"}</dd>
+                      <dt className="text-muted-fg">Signed</dt><dd>{quote.signature.at ? formatDatetime(quote.signature.at) : "—"}</dd>
+                      <dt className="text-muted-fg">IP address</dt><dd className="font-mono">{quote.signature.ip ?? "—"}</dd>
+                      <dt className="text-muted-fg">Browser</dt><dd className="truncate" title={quote.signature.userAgent ?? ""}>{quote.signature.userAgent ?? "—"}</dd>
+                      <dt className="text-muted-fg">Fingerprint</dt><dd className="font-mono break-all">{quote.signature.contentHash}</dd>
+                    </dl>
+                    <p className={quote.signature.unchanged ? "text-xs text-success" : "text-xs text-danger font-medium"}>
+                      {quote.signature.unchanged
+                        ? "The quote is exactly as it was when it was signed."
+                        : "This quote was changed after it was signed. The customer signed an earlier version."}
+                    </p>
+                  </div>
+                </details>
+              )}
               {quote.deposit?.invoiceId && (
                 <div className="rounded-[8px] border border-border bg-background p-3 text-sm space-y-1">
                   <p className="flex items-center justify-between gap-2">

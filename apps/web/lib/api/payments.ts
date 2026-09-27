@@ -178,14 +178,16 @@ export interface PublicQuote {
   };
   canRespond: boolean;
   deposit: QuoteDeposit | null;
-  response: { at: string | null; name: string | null; declineReason: string | null };
+  response: { at: string | null; name: string | null; declineReason: string | null; signed?: boolean };
 }
 
 export const getPublicQuote = (token: string) => publicRequest<PublicQuote>(`/quote/${encodeURIComponent(token)}`);
 
 export const respondToQuote = (
   token: string,
-  body: { action: "accept"; name: string; email?: string; agree: true } | { action: "decline"; reason?: string },
+  body:
+    | { action: "accept"; name: string; email?: string; agree: true; signature: { method: "drawn"; image: string } | { method: "typed" } }
+    | { action: "decline"; reason?: string },
 ) =>
   publicRequest<PublicQuote>(`/quote/${encodeURIComponent(token)}/respond`, {
     method: "POST",

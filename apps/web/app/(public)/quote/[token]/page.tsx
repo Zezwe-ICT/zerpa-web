@@ -1,7 +1,7 @@
 /**
  * @file app/(public)/quote/[token]/page.tsx
- * @description Public quote page. The customer reads the quote and accepts it by typing their
- * name and ticking the terms box, or declines with an optional reason. No login needed.
+ * @description Public quote page. The customer reads the quote and accepts it by signing (drawn or
+ * typed) and ticking the terms box, or declines with an optional reason. No login needed.
  */
 "use client";
 
@@ -16,6 +16,7 @@ import { formatCurrency } from "@/lib/utils/currency";
 import { formatDate, formatDatetime } from "@/lib/utils/dates";
 import { ApiError } from "@/lib/api/client";
 import { getPublicQuote, respondToQuote, type PublicQuote } from "@/lib/api/payments";
+import { SignaturePad, type SignatureValue } from "@/components/signature/signature-pad";
 
 type Mode = "idle" | "accept" | "decline";
 
@@ -27,6 +28,7 @@ export default function PublicQuotePage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [agree, setAgree] = useState(false);
+  const [signature, setSignature] = useState<SignatureValue>(null);
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -45,7 +47,7 @@ export default function PublicQuotePage() {
     try {
       const next =
         mode === "accept"
-          ? await respondToQuote(token, { action: "accept", name: name.trim(), email: email.trim() || undefined, agree: true })
+          ? await respondToQuote(token, { action: "accept", name: name.trim(), email: email.trim() || undefined, agree: true, signature: signature! })
           : await respondToQuote(token, { action: "decline", reason: reason.trim() || undefined });
       setData(next);
       setMode("idle");
@@ -81,7 +83,7 @@ export default function PublicQuotePage() {
 
   const { company, quote, response, deposit } = data;
   const accepted = quote.status === "accepted" || quote.status === "converted";
-  const canAccept = name.trim().length >= 2 && agree;
+  const canAccept = name.trim().length >= 2 && agree && signature !== null;
 
   return (
     <Shell companyName={company.name}>
@@ -245,6 +247,7 @@ export default function PublicQuotePage() {
               />
             </div>
           </div>
+          <SignaturePad name={name} onChange={setSignature} />
           <label className="flex items-start gap-2 text-sm">
             <input type="checkbox" className="mt-1" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
             <span>
@@ -253,8 +256,8 @@ export default function PublicQuotePage() {
             </span>
           </label>
           <p className="text-xs text-muted-fg">
-            Typing your name and ticking the box counts as your signature. We record the date, time and your
-            connection details with your acceptance.
+            Your signature is a legally valid electronic signature. With it we record the date and time, your
+            connection and browser, and a fingerprint of this quote so it can&apos;t be changed afterwards.
           </p>
           <div className="flex gap-2">
             <Button onClick={submit} disabled={!canAccept || busy}>

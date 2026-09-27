@@ -180,6 +180,19 @@ export interface Quote {
   respondedAt?: string | null;
   responderName?: string | null;
   responderEmail?: string | null;
+  /** Evidence captured when the customer signed online. */
+  signature?: {
+    method: "drawn" | "typed";
+    image: string | null;
+    name: string;
+    email: string | null;
+    at: string | null;
+    ip: string | null;
+    userAgent: string | null;
+    contentHash: string;
+    /** False if the quote was changed after it was signed. */
+    unchanged: boolean;
+  } | null;
   declineReason?: string | null;
   /** Deposit asked for on acceptance, as a % of the total (0 = none). */
   depositPercent?: number;
