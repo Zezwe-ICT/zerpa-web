@@ -8,7 +8,7 @@ import type { LucideIcon } from "lucide-react";
 
 interface StatsCardProps {
   label: string;
-  value: string | number;
+  value: React.ReactNode;
   sub?: string;
   icon: LucideIcon;
   iconColor?: "blue" | "green" | "red" | "violet" | "amber";

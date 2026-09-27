@@ -10,6 +10,7 @@ import { AuthProvider } from "@/lib/auth/context";
 import { AppearanceProvider } from "@/lib/theme/context";
 import { LocaleProvider } from "@/lib/locale/context";
 import { RegisterServiceWorker } from "@/components/pwa/register-sw";
+import { MotionProvider } from "@/components/motion-provider";
 import "./globals.css";
 
 /**
@@ -71,7 +72,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AuthProvider>
           <AppearanceProvider>
             <LocaleProvider>
-              {children}
+              <MotionProvider>{children}</MotionProvider>
             </LocaleProvider>
           </AppearanceProvider>
         </AuthProvider>
