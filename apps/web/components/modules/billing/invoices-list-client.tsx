@@ -57,7 +57,8 @@ export function InvoicesListClient() {
   function reload() {
     setLoading(true);
     getBillingInvoices()
-      .then(setInvoices)
+      // Credit notes have their own list (Quotes & Invoicing → Credit notes).
+      .then((rows) => setInvoices(rows.filter((r) => r.type !== "CREDIT")))
       .catch(() => setInvoices([]))
       .finally(() => setLoading(false));
   }

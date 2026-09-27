@@ -319,7 +319,7 @@ export async function getBillingInvoiceById(
   }
 }
 
-function mapApiInvoice(row: any): Invoice {
+export function mapApiInvoice(row: any): Invoice {
   const total = Number(row.total || 0);
   const amountPaid = Number(row.amountPaid || 0);
   return {
@@ -376,6 +376,12 @@ function mapApiInvoice(row: any): Invoice {
     payUrl: row.payUrl ?? null,
     emailDelivery: row.emailDelivery ?? null,
     creditOfId: row.creditOfId ?? null,
+    creditNotes: row.creditNotes ?? undefined,
+    creditOfNumber: row.creditOfNumber ?? null,
+    appliedAmount: row.appliedAmount != null ? Number(row.appliedAmount) : undefined,
+    refundedAmount: row.refundedAmount != null ? Number(row.refundedAmount) : undefined,
+    refundDue: row.refundDue != null ? Number(row.refundDue) : undefined,
+    reason: row.reason ?? null,
     currency: row.currency || "ZAR",
     issuedDate: row.issuedDate || new Date().toISOString().split("T")[0],
     dueDate: row.dueDate || "",

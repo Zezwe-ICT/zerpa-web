@@ -197,13 +197,19 @@ export type InvoiceStatus =
   | "OVERDUE"
   | "PARTIALLY_PAID"
   | "CANCELLED"
-  | "VOID";
+  | "VOID"
+  | "ISSUED"
+  // Cleared by credit notes rather than payment
+  | "CREDITED"
+  // Credit notes: fully used against the invoice, or refund paid out
+  | "APPLIED"
+  | "REFUNDED";
 
-export type InvoiceType = "SETUP" | "SUBSCRIPTION" | "AD_HOC";
+export type InvoiceType = "SETUP" | "SUBSCRIPTION" | "AD_HOC" | "CREDIT";
 
 export type InvoiceSource = "manual" | "converted_quote" | "automated";
 
-export type PaymentMethod = "eft" | "cash" | "card" | "other" | "instant_eft";
+export type PaymentMethod = "eft" | "cash" | "card" | "other" | "instant_eft" | "credit_note";
 
 export interface Payment {
   id: string;
@@ -294,6 +300,14 @@ export interface Invoice {
   /** Latest customer email for this document. */
   emailDelivery?: { status: "queued" | "sent" | "failed"; at?: string; note?: string } | null;
   creditOfId?: string | null;
+  /** Credit notes issued against this invoice (invoice detail only). */
+  creditNotes?: Array<{ id: string; number: string; total: number; status: string; issuedDate: string | null }>;
+  /** On a credit note: the invoice it corrects and how the credit was used. */
+  creditOfNumber?: string | null;
+  appliedAmount?: number;
+  refundedAmount?: number;
+  refundDue?: number;
+  reason?: string | null;
 
   // Dates
   issuedDate: string;

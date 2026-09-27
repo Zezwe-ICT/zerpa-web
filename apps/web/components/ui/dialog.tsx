@@ -16,13 +16,19 @@ interface DialogProps {
 }
 
 function Dialog({ open, onOpenChange, children }: DialogProps) {
+  React.useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onOpenChange(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onOpenChange]);
   if (!open) return null;
   return (
     <div
       className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center"
       onClick={(e) => e.target === e.currentTarget && onOpenChange(false)}
     >
-      <div className="bg-background rounded-[12px] max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <div role="dialog" aria-modal="true" className="bg-background rounded-[12px] max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
         {children}
       </div>
     </div>

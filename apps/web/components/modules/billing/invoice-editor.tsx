@@ -10,7 +10,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowLeft, Save, Send, CheckCircle2, Ban, Plus, FileText, Link2, Copy, ExternalLink, MessageCircle } from "lucide-react";
+import { ArrowLeft, Save, Send, CheckCircle2, Ban, Plus, FileText, Link2, Copy, ExternalLink, MessageCircle, Undo2 } from "lucide-react";
 import { PageContainer } from "@/components/layouts/page-container";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,7 @@ import { LineItemEditor } from "./line-item-editor";
 import { TotalsPanel } from "./totals-panel";
 import { DocumentPreviewModal } from "./document-preview-modal";
 import { SendInvoiceModal } from "./send-invoice-modal";
+import { CreditNoteDialog } from "./credit-note-dialog";
 import {
   getBillingInvoiceById,
   createManualInvoice,
@@ -32,7 +33,7 @@ import {
   updateBillingInvoiceStatus,
   recordInvoicePayment,
 } from "@/lib/data/invoices";
-import { ApiError, apiRequest } from "@/lib/api/client";
+import { ApiError } from "@/lib/api/client";
 import { downloadFile } from "@/lib/api/books";
 import { createPayLink, whatsappShareUrl } from "@/lib/api/payments";
 import type {
@@ -99,6 +100,7 @@ export function InvoiceEditor({ invoiceId }: InvoiceEditorProps) {
   const [items, setItems] = useState<BillingLineItem[]>([]);
   const [previewDoc, setPreviewDoc] = useState<Invoice | null>(null);
   const [sendOpen, setSendOpen] = useState(false);
+  const [creditOpen, setCreditOpen] = useState(false);
 
   // record-payment form
   const [payAmount, setPayAmount] = useState<number>(0);
@@ -154,6 +156,10 @@ export function InvoiceEditor({ invoiceId }: InvoiceEditorProps) {
         if (!inv) {
           toast.error("Invoice not found");
           router.push("/billing/invoices");
+          return;
+        }
+        if (inv.type === "CREDIT") {
+          router.replace(`/billing/credit-notes/${inv.id}`);
           return;
         }
         hydrate(inv);
@@ -520,26 +526,13 @@ export function InvoiceEditor({ invoiceId }: InvoiceEditorProps) {
                     Send Invoice
                   </Button>
                 )}
-                {Number(invoice.amountPaid) > 0 && (
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={async () => {
-                      try {
-                        const credit = await apiRequest<{ invoiceNumber: string }>("/billing/credits", {
-                          method: "POST",
-                          body: { invoiceId: invoice.id, amount: invoice.amountPaid },
-                        });
-                        toast.success(`Credit note ${credit.invoiceNumber} issued`);
-                      } catch (e) {
-                        toast.error(e instanceof Error ? e.message : "Could not issue the credit note");
-                      }
-                    }}
-                  >
-                    Issue credit note
+                {["APPROVED", "SENT", "ISSUED", "OVERDUE", "PARTIALLY_PAID", "PAID"].includes(invoice.status) && (
+                  <Button variant="outline" className="w-full" onClick={() => setCreditOpen(true)}>
+                    <Undo2 size={14} className="mr-1.5" />
+                    Credit note
                   </Button>
                 )}
-                {invoice.status !== "VOID" && invoice.status !== "PAID" && (
+                {!["VOID", "PAID", "CREDITED"].includes(invoice.status) && (
                   <Button
                     variant="ghost"
                     className="w-full text-danger hover:text-danger hover:bg-danger-bg"
@@ -554,7 +547,7 @@ export function InvoiceEditor({ invoiceId }: InvoiceEditorProps) {
           </div>
 
           {/* Get paid */}
-          {invoice && !["DRAFT", "VOID", "CANCELLED", "PAID"].includes(invoice.status) && (
+          {invoice && !["DRAFT", "VOID", "CANCELLED", "PAID", "CREDITED"].includes(invoice.status) && (
             <div className="rounded-[12px] border border-primary/30 bg-primary/5 p-5 space-y-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-primary flex items-center gap-1.5">
@@ -591,6 +584,26 @@ export function InvoiceEditor({ invoiceId }: InvoiceEditorProps) {
             </p>
           )}
 
+          {invoice && (invoice.creditNotes?.length ?? 0) > 0 && (
+            <div className="rounded-[12px] border border-border bg-background p-5 space-y-2">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted-fg">Credit notes</span>
+              <ul className="space-y-1.5">
+                {invoice.creditNotes!.map((c) => (
+                  <li key={c.id} className="flex items-center justify-between text-sm">
+                    <button
+                      type="button"
+                      onClick={() => router.push(`/billing/credit-notes/${c.id}`)}
+                      className="text-primary hover:underline font-medium"
+                    >
+                      {c.number}
+                    </button>
+                    <span className="font-mono">−{formatCurrency(c.total)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {/* Payments */}
           {invoice && (
             <div className="rounded-[12px] border border-border bg-background p-5 space-y-3">
@@ -613,7 +626,9 @@ export function InvoiceEditor({ invoiceId }: InvoiceEditorProps) {
                     >
                       <span className="text-muted-fg">
                         {formatDate(p.paymentDate)} ·{" "}
-                        {p.provider === "payfast"
+                        {p.provider === "credit_note"
+                          ? `Credit note ${p.reference ?? ""}`
+                          : p.provider === "payfast"
                           ? "PayFast"
                           : p.provider === "ozow"
                             ? "Ozow"
@@ -630,6 +645,7 @@ export function InvoiceEditor({ invoiceId }: InvoiceEditorProps) {
               )}
 
               {invoice.status !== "PAID" &&
+                invoice.status !== "CREDITED" &&
                 invoice.status !== "VOID" &&
                 invoice.status !== "DRAFT" && (
                   <div className="space-y-2 pt-1">
@@ -688,6 +704,18 @@ export function InvoiceEditor({ invoiceId }: InvoiceEditorProps) {
           )}
         </div>
       </div>
+
+      {invoice && (
+        <CreditNoteDialog
+          invoice={invoice}
+          open={creditOpen}
+          onOpenChange={setCreditOpen}
+          onIssued={async () => {
+            const fresh = await getBillingInvoiceById(invoice.id);
+            if (fresh) hydrate(fresh);
+          }}
+        />
+      )}
 
       <DocumentPreviewModal
         open={Boolean(previewDoc)}

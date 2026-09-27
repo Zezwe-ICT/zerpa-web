@@ -42,6 +42,22 @@ export const STATUS_CONFIG: Record<string, BadgeVariant> = {
     label: "Part-Paid",
     className: "bg-warning-bg text-warning border border-warning-ring font-mono text-xs",
   },
+  ISSUED: {
+    label: "Issued",
+    className: "bg-info-bg text-info border border-info-ring font-mono text-xs",
+  },
+  CREDITED: {
+    label: "Credited",
+    className: "bg-surface-2 text-foreground-2 border border-border font-mono text-xs",
+  },
+  APPLIED: {
+    label: "Applied",
+    className: "bg-success-bg text-success border border-success-ring font-mono text-xs",
+  },
+  REFUNDED: {
+    label: "Refunded",
+    className: "bg-success-bg text-success border border-success-ring font-mono text-xs",
+  },
 
   // ── Quote statuses (lowercase keys per Quote type) ────────
   draft: {
