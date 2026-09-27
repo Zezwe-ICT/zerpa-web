@@ -54,6 +54,10 @@ export interface VatReport {
   standardRatedSupplies: number;
   zeroRatedSupplies: number;
   outputVat: number;
+  /** VAT on approved supplier bills and claimable expenses. */
+  inputVat: number;
+  /** Output less input: payable to SARS, or refundable if negative. */
+  netVat: number;
   note: string;
 }
 

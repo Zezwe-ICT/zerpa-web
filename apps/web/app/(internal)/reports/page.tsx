@@ -73,7 +73,7 @@ export default function ReportsPage() {
 
       <div className="mb-8 max-w-xl space-y-3">
         <h2 className="section-title">VAT</h2>
-        <p className="text-sm text-muted-fg">Output VAT on tax invoices for a SARS VAT201. Input VAT is not included.</p>
+        <p className="text-sm text-muted-fg">Output VAT on invoices and credit notes, less input VAT on approved supplier bills and expenses, for your SARS VAT201.</p>
         <div className="flex flex-wrap gap-2">
           <input type="date" className="rounded-[8px] border border-border px-3 py-2" value={from} onChange={(e) => setFrom(e.target.value)} />
           <input type="date" className="rounded-[8px] border border-border px-3 py-2" value={to} onChange={(e) => setTo(e.target.value)} />
@@ -105,9 +105,24 @@ export default function ReportsPage() {
           </Button>
         </div>
         {vat && (
-          <p className="text-sm">
-            Standard-rated R {vat.standardRatedSupplies.toLocaleString("en-ZA")} · Zero-rated R {vat.zeroRatedSupplies.toLocaleString("en-ZA")} · Output VAT R {vat.outputVat.toLocaleString("en-ZA")}
-          </p>
+          <div className="space-y-2">
+            <div className="grid gap-3 sm:grid-cols-3">
+              {[
+                ["Output VAT", vat.outputVat, "On invoices less credit notes"],
+                ["Input VAT", vat.inputVat ?? 0, "On approved bills and expenses"],
+                [(vat.netVat ?? vat.outputVat) >= 0 ? "VAT payable" : "VAT refundable", Math.abs(vat.netVat ?? vat.outputVat), "Output less input"],
+              ].map(([label, amount, hint]) => (
+                <div key={label as string} className="rounded-[10px] border border-border p-4">
+                  <p className="text-xs uppercase tracking-wide text-muted-fg">{label as string}</p>
+                  <p className="text-xl font-semibold mt-1 font-mono">R {(amount as number).toLocaleString("en-ZA", { minimumFractionDigits: 2 })}</p>
+                  <p className="text-xs text-muted-fg mt-0.5">{hint as string}</p>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-muted-fg">
+              Standard-rated supplies R {vat.standardRatedSupplies.toLocaleString("en-ZA")} · Zero-rated R {vat.zeroRatedSupplies.toLocaleString("en-ZA")}. {vat.note}
+            </p>
+          </div>
         )}
       </div>
 
