@@ -9,6 +9,7 @@ import { useState } from "react";
 import { Download, ShieldAlert, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import HoldButton from "@/components/kokonutui/hold-button";
 import { Input } from "@/components/ui/input";
 import { apiRequest, ApiError } from "@/lib/api/client";
 import { downloadFromApi } from "@/lib/api/account";
@@ -84,15 +85,11 @@ export function CustomerPrivacy({ id, name, onErased }: { id: string; name: stri
           </p>
           <Input value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder={name} aria-label="Type the customer name" />
           <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              className="border-danger text-danger hover:bg-danger-bg"
+            <HoldButton
               disabled={busy || confirm.trim().toLowerCase() !== name.trim().toLowerCase()}
-              onClick={erase}
-            >
-              {busy ? "Erasing…" : "Erase personal details"}
-            </Button>
+              onComplete={erase}
+              label={busy ? "Erasing…" : "Hold to erase details"}
+            />
             <Button size="sm" variant="ghost" onClick={() => setErasing(false)} disabled={busy}>
               Cancel
             </Button>

@@ -8,6 +8,7 @@ import { useState } from "react";
 import { Download, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import HoldButton from "@/components/kokonutui/hold-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth/context";
@@ -97,14 +98,11 @@ export function YourDataSettings() {
           )}
           {error && <p className="text-sm text-danger" role="alert">{error}</p>}
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              className="border-danger text-danger hover:bg-danger-bg"
-              onClick={confirmDelete}
+            <HoldButton
+              onComplete={confirmDelete}
               disabled={busy || !password || (needsCode && code.length < 6)}
-            >
-              {busy ? "Deleting…" : "Delete my account"}
-            </Button>
+              label={busy ? "Deleting…" : "Hold to delete my account"}
+            />
             <Button variant="ghost" onClick={() => setDeleting(false)} disabled={busy}>
               Cancel
             </Button>

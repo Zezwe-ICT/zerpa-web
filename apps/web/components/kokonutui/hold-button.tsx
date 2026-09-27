@@ -8,127 +8,111 @@
  * @license: MIT
  * @website: https://kokonutui.com
  * @github: https://github.com/kokonut-labs/kokonutui
+ *
+ * Zerpa: hold-to-confirm for actions that can't be undone. Calls `onComplete` only after a full
+ * hold; works with mouse, touch and keyboard (hold Space or Enter). Uses Zerpa's danger tokens.
  */
 
-import { cva, type VariantProps } from "class-variance-authority";
-import {
-  AlertCircleIcon,
-  ArchiveXIcon,
-  BanIcon,
-  Trash2Icon,
-  XCircleIcon,
-} from "lucide-react";
+import { Trash2Icon } from "lucide-react";
 import { motion, useAnimation } from "motion/react";
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
-const holdButtonVariants = cva("relative min-w-40 touch-none overflow-hidden", {
-  variants: {
-    variant: {
-      red: [
-        "bg-red-100 dark:bg-red-200",
-        "hover:bg-red-100 dark:hover:bg-red-200",
-        "text-red-500 dark:text-red-600",
-        "border border-red-200 dark:border-red-300",
-      ],
-      green: [
-        "bg-green-100 dark:bg-green-200",
-        "hover:bg-green-100 dark:hover:bg-green-200",
-        "text-green-500 dark:text-green-600",
-        "border border-green-200 dark:border-green-300",
-      ],
-      blue: [
-        "bg-blue-100 dark:bg-blue-200",
-        "hover:bg-blue-100 dark:hover:bg-blue-200",
-        "text-blue-500 dark:text-blue-600",
-        "border border-blue-200 dark:border-blue-300",
-      ],
-      orange: [
-        "bg-orange-100 dark:bg-orange-200",
-        "hover:bg-orange-100 dark:hover:bg-orange-200",
-        "text-orange-500 dark:text-orange-600",
-        "border border-orange-200 dark:border-orange-300",
-      ],
-      grey: [
-        "bg-gray-100 dark:bg-gray-200",
-        "hover:bg-gray-100 dark:hover:bg-gray-200",
-        "text-gray-500 dark:text-gray-600",
-        "border border-gray-200 dark:border-gray-300",
-      ],
-    },
-  },
-  defaultVariants: {
-    variant: "red",
-  },
-});
-
-interface HoldButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof holdButtonVariants> {
+interface HoldButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "onClick"> {
+  /** Called once the button has been held for the full duration. */
+  onComplete: () => void;
   holdDuration?: number;
+  label?: string;
+  holdingLabel?: string;
+  icon?: React.ReactNode;
 }
 
 export default function HoldButton({
   className,
-  variant = "red",
-  holdDuration = 3000,
+  onComplete,
+  holdDuration = 1500,
+  label = "Hold to delete",
+  holdingLabel = "Keep holding…",
+  icon = <Trash2Icon className="h-4 w-4" />,
+  disabled,
   ...props
 }: HoldButtonProps) {
   const [isHolding, setIsHolding] = useState(false);
   const controls = useAnimation();
+  const holding = useRef(false);
 
-  async function handleHoldStart() {
+  // A timer decides completion; the fill is only visual, so a throttled or reduced-motion
+  // animation can never confirm early or get stuck.
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (timer.current) clearTimeout(timer.current);
+  }, []);
+
+  function handleHoldStart() {
+    if (disabled || holding.current) return;
+    holding.current = true;
     setIsHolding(true);
     controls.set({ width: "0%" });
-    await controls.start({
+    controls.start({
       width: "100%",
-      transition: {
-        duration: holdDuration / 1000,
-        ease: "linear",
-      },
+      transition: { duration: holdDuration / 1000, ease: "linear" },
     });
+    timer.current = setTimeout(() => {
+      if (!holding.current) return;
+      holding.current = false;
+      setIsHolding(false);
+      controls.stop();
+      controls.set({ width: "0%" });
+      onComplete();
+    }, holdDuration);
   }
 
   function handleHoldEnd() {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = null;
+    if (!holding.current) return;
+    holding.current = false;
     setIsHolding(false);
     controls.stop();
-    controls.start({
-      width: "0%",
-      transition: { duration: 0.1 },
-    });
+    controls.start({ width: "0%", transition: { duration: 0.15 } });
   }
 
   return (
-    <Button
-      className={cn(holdButtonVariants({ variant, className }))}
-      onMouseDown={handleHoldStart}
-      onMouseLeave={handleHoldEnd}
-      onMouseUp={handleHoldEnd}
-      onTouchCancel={handleHoldEnd}
-      onTouchEnd={handleHoldEnd}
-      onTouchStart={handleHoldStart}
+    <button
+      type="button"
+      className={cn(
+        "relative inline-flex min-w-44 touch-none select-none items-center justify-center overflow-hidden rounded-[8px] border border-danger-ring bg-danger-bg px-4 py-2 text-sm font-medium text-danger transition-colors",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger-ring disabled:cursor-not-allowed disabled:opacity-50",
+        className,
+      )}
+      disabled={disabled}
+      aria-label={`${label}. Press and hold to confirm.`}
+      onPointerDown={handleHoldStart}
+      onPointerLeave={handleHoldEnd}
+      onPointerUp={handleHoldEnd}
+      onPointerCancel={handleHoldEnd}
+      onKeyDown={(e) => {
+        if ((e.key === " " || e.key === "Enter") && !e.repeat) {
+          e.preventDefault();
+          handleHoldStart();
+        }
+      }}
+      onKeyUp={(e) => {
+        if (e.key === " " || e.key === "Enter") handleHoldEnd();
+      }}
+      onBlur={handleHoldEnd}
       {...props}
     >
-      <motion.div
+      <motion.span
+        aria-hidden="true"
         animate={controls}
-        className={cn("absolute top-0 left-0 h-full", {
-          "bg-red-200/30 dark:bg-red-300/30": variant === "red",
-          "bg-green-200/30 dark:bg-green-300/30": variant === "green",
-          "bg-blue-200/30 dark:bg-blue-300/30": variant === "blue",
-          "bg-orange-200/30 dark:bg-orange-300/30": variant === "orange",
-          "bg-gray-200/30 dark:bg-gray-300/30": variant === "grey",
-        })}
+        className="absolute left-0 top-0 h-full bg-danger/20"
         initial={{ width: "0%" }}
       />
       <span className="relative z-10 flex w-full items-center justify-center gap-2">
-        {(variant === "red" || !variant) && <Trash2Icon className="h-4 w-4" />}
-        {variant === "green" && <ArchiveXIcon className="h-4 w-4" />}
-        {variant === "blue" && <XCircleIcon className="h-4 w-4" />}
-        {variant === "orange" && <AlertCircleIcon className="h-4 w-4" />}
-        {variant === "grey" && <BanIcon className="h-4 w-4" />}
-        {isHolding ? "Release" : "Hold me"}
+        {icon}
+        {isHolding ? holdingLabel : label}
       </span>
-    </Button>
+    </button>
   );
 }
