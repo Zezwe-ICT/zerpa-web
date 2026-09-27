@@ -20,6 +20,8 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { CustomerSelect } from "./customer-select";
 import { getBillingCustomerById } from "@/lib/data/billing-customers";
 import { shareQuote, whatsappShareUrl } from "@/lib/api/payments";
+import { requestApproval } from "@/lib/api/approvals";
+import { ApiError } from "@/lib/api/client";
 import { formatCurrency } from "@/lib/utils/currency";
 import { formatDatetime } from "@/lib/utils/dates";
 import { computeBillingTotals } from "@/lib/utils/billing-calc";
@@ -593,6 +595,33 @@ export function QuoteEditor({ quoteId }: QuoteEditorProps) {
                   </p>
                 )}
               </div>
+              {quote?.approval?.required && quote.approval.status !== "approved" && (
+                <div className="rounded-[8px] border border-warning-ring bg-warning-bg p-3 text-sm space-y-2">
+                  <p>
+                    Quotes over {formatCurrency(quote.approval.limit ?? 0)} need approval before you send them.
+                    {quote.approval.status === "pending" && " Waiting for a manager."}
+                    {quote.approval.status === "rejected" && ` Not approved${quote.approval.note ? `: ${quote.approval.note}` : "."}`}
+                    {quote.approval.status === "stale" && " The total went up after it was approved."}
+                  </p>
+                  {quote.approval.status !== "pending" && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={async () => {
+                        try {
+                          await requestApproval({ relatedType: "quote", relatedId: quote.id });
+                          setQuote({ ...quote, approval: { ...quote.approval!, status: "pending" } });
+                          toast.success("Sent for approval");
+                        } catch (e) {
+                          toast.error(e instanceof ApiError ? e.message : "Could not request approval");
+                        }
+                      }}
+                    >
+                      Request approval
+                    </Button>
+                  )}
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-2">
                 <Button variant="outline" size="sm" onClick={copyShareLink} disabled={saving || sharing}>
                   <Copy size={14} className="mr-1.5" /> Copy link

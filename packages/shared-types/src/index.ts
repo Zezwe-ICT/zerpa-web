@@ -180,6 +180,14 @@ export interface Quote {
   respondedAt?: string | null;
   responderName?: string | null;
   responderEmail?: string | null;
+  /** Set when the company requires approval for quotes over a limit. */
+  approval?: {
+    required: boolean;
+    limit: number | null;
+    status: "approved" | "pending" | "rejected" | "cancelled" | "stale" | null;
+    requestId?: string | null;
+    note?: string | null;
+  };
   /** Evidence captured when the customer signed online. */
   signature?: {
     method: "drawn" | "typed";
