@@ -3,6 +3,7 @@
 import {
   AlertCircle,
   AlertTriangle,
+  Boxes,
   Calendar,
   CalendarClock,
   Clock,
@@ -30,6 +31,7 @@ import { cn } from "@/lib/utils";
 export const APP_ICONS: Record<string, LucideIcon> = {
   AlertCircle,
   AlertTriangle,
+  Boxes,
   Calendar,
   CalendarClock,
   Clock,

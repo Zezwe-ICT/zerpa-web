@@ -60,6 +60,11 @@ export async function createProduct(data: Partial<ProductService>): Promise<Prod
         taxRate: data.taxRate ?? 15,
         billingCycle: data.billingCycle ?? "once_off",
         isActive: data.isActive ?? true,
+        sku: data.sku ?? "",
+        trackStock: data.trackStock ?? false,
+        reorderLevel: data.reorderLevel ?? 0,
+        costPrice: data.costPrice ?? 0,
+        openingStock: data.openingStock ?? 0,
       },
     });
   }

@@ -100,6 +100,15 @@ export interface ProductService {
   taxRate: number; // default 15
   billingCycle: ProductBillingCycle;
   isActive: boolean;
+  /** Stock-lite (once-off products only). */
+  sku?: string | null;
+  trackStock?: boolean;
+  stockOnHand?: number;
+  reorderLevel?: number;
+  costPrice?: number;
+  lowStock?: boolean;
+  /** Create only: starting quantity when tracking stock. */
+  openingStock?: number;
   createdAt: string;
   updatedAt: string;
 }
