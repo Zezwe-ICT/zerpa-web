@@ -39,6 +39,12 @@ export default function CustomersPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [query, setQuery] = useState("");
 
+  // Opened from the top-bar search: /clients?q=Name
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get("q");
+    if (q) setQuery(q);
+  }, []);
+
   useEffect(() => {
     if (!company?.id) return;
     setLoading(true);
@@ -220,7 +226,7 @@ export default function CustomersPage() {
         </div>
       )}
 
-      {customers.length > 5 && (
+      {(customers.length > 5 || query) && (
         <div className="relative mb-4">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-fg" />
           <Input
