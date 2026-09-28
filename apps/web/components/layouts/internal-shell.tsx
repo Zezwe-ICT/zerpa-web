@@ -9,6 +9,7 @@ import { InternalSidebar } from "./internal-sidebar";
 import { InternalTopBar } from "./internal-top-bar";
 import { VerifyEmailBanner } from "./verify-email-banner";
 import { AnnouncementBanner } from "@/components/announcements/announcement-banner";
+import { BillingLockBanner } from "./billing-lock-banner";
 
 interface InternalShellProps {
   children: React.ReactNode;
@@ -26,6 +27,7 @@ export function InternalShell({ children, topBarTitle }: InternalShellProps) {
         {/* Top Bar */}
         <InternalTopBar title={topBarTitle} />
         <VerifyEmailBanner />
+        <BillingLockBanner />
         <AnnouncementBanner />
 
         {/* Content */}

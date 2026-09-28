@@ -117,8 +117,8 @@ const SETTINGS_SECTIONS = [
     icon: BadgeDollarSign,
     title: "Plan",
     href: "/settings/plan",
-    description: "Free, Standard, or Industry Pack. A trial does not charge a card.",
-    items: ["1 app and 3 users on Free", "R 249 or R 399 per user", "Portal customers are free"],
+    description: "Free, Business, Industry or Scale, monthly or annual. Pay by card or EFT invoice.",
+    items: ["Users included in every plan", "Add-ons and extra users", "Portal customers are free"],
   },
   {
     icon: MessageCircle,

@@ -38,6 +38,8 @@ import { dependentsOf, getAppCatalog, withDependencies, type AppCatalog } from "
 import { useAuth } from "@/lib/auth/context";
 import { createCompany } from "@/lib/api/companies";
 import { choosePlan } from "@/lib/api/books";
+import { getPublicPlans, type PublicPlans } from "@/lib/api/offers";
+import { takeOffer } from "@/components/referral-capture";
 import { ApiError } from "@/lib/api/client";
 import { COMPANY_SIZES, PROVINCES, updateCompanyProfile } from "@/lib/api/onboarding";
 import { cn } from "@/lib/utils";
@@ -87,7 +89,7 @@ type Draft = {
   existingRmm: string;
   accountingSystem: string;
   /** Empty until the owner picks one. "later" leaves the company unlimited. */
-  plan: "" | "free" | "standard" | "industry" | "later";
+  plan: "" | "free" | "standard" | "industry" | "scale" | "later";
 };
 
 const DEFAULT_DRAFT: Draft = {
@@ -173,6 +175,18 @@ export default function OnboardingPage() {
   const [quoteUrl, setQuoteUrl] = useState("");
   const [catalog, setCatalog] = useState<{ vertical: string; data: AppCatalog } | null>(null);
   const [showMoreApps, setShowMoreApps] = useState(false);
+  const [plans, setPlans] = useState<PublicPlans | null>(null);
+  const [offerCode, setOfferCode] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    getPublicPlans().then(setPlans).catch(() => undefined);
+    setOfferCode(takeOffer());
+  }, []);
+
+  // A founding offer applies to the Industry plan: pick it unless they already chose something.
+  useEffect(() => {
+    if (loaded && offerCode) setDraft((d) => (d.plan ? d : { ...d, plan: "industry" }));
+  }, [loaded, offerCode]);
 
   // Restore a saved draft, but never one that belongs to a different login on this browser.
   useEffect(() => {
@@ -329,7 +343,7 @@ export default function OnboardingPage() {
       toast.warning("Your business was created, but some details didn't save. You can finish them in Settings.");
     }
 
-    if (draft.plan === "free" || draft.plan === "standard" || draft.plan === "industry") {
+    if (draft.plan === "free" || draft.plan === "standard" || draft.plan === "industry" || draft.plan === "scale") {
       try {
         await choosePlan(draft.plan);
       } catch {
@@ -902,17 +916,22 @@ export default function OnboardingPage() {
               <div className="space-y-2">
                 <h3 className="text-sm font-semibold">Plan</h3>
                 <p className="text-sm text-muted-fg">
-                  Free is 1 app and 3 users. Standard is R 249 per user a month. Industry Pack is R 399 per user a month.
-                  A paid plan starts a 14-day trial. No card is charged. Portal customers are free.
+                  Each plan includes a number of users; extra users cost a little more each. Prices exclude VAT. A paid plan
+                  starts a 14-day trial and no card is charged. Portal customers are free.
                 </p>
-                <div className="grid gap-2 sm:grid-cols-3">
-                  {(
-                    [
-                      ["free", "Free", "R 0"],
-                      ["standard", "Standard", "R 249 / user"],
-                      ["industry", "Industry Pack", "R 399 / user"],
-                    ] as const
-                  ).map(([code, label, price]) => (
+                {offerCode && (
+                  <p className="rounded-[10px] border border-primary/30 bg-primary/5 p-3 text-xs">
+                    You signed up with a founding offer. It applies to the Industry plan, so we&apos;ve picked that for you.
+                  </p>
+                )}
+                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                  {(plans?.plans ?? []).map((p) => [
+                    p.code as "free" | "standard" | "industry" | "scale",
+                    p.label,
+                    p.base === 0
+                      ? `R 0 · ${p.apps} app, up to ${p.users} users`
+                      : `R ${p.base.toLocaleString("en-ZA")} / month · ${p.includedUsers} users included, then R ${p.extraUser} each`,
+                  ] as const).map(([code, label, price]) => (
                     <button
                       key={code}
                       type="button"
