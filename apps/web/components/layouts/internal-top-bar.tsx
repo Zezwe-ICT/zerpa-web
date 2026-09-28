@@ -79,7 +79,7 @@ export function InternalTopBar({ title }: TopBarProps) {
         />
 
         <Link
-          href={pathname.startsWith("/help") ? "/help" : `/help?new=1&from=${encodeURIComponent(pathname)}`}
+          href={pathname.startsWith("/help") ? "/help" : `/help?from=${encodeURIComponent(pathname)}`}
           className="p-2 rounded-[6px] text-muted-fg hover:text-foreground hover:bg-surface"
           aria-label="Help & support"
           title="Help & support"

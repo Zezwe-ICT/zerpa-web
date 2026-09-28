@@ -1,15 +1,19 @@
 /**
  * @file components/modules/help/help-client.tsx
- * @description Help & support: ask the Zerpa team a question (the page you were on is attached),
- * and follow the replies. Answered in Zerpa HQ.
+ * @description Help & support: search the help centre (articles for the screen you came from first),
+ * read an article, or ask the Zerpa team (the page you were on is attached) and follow the replies.
  */
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
-import { ArrowLeft, LifeBuoy, MessageCircle, Plus, X } from "lucide-react";
+import { ArrowLeft, BookOpen, ChevronRight, LifeBuoy, MessageCircle, Plus, Search, ThumbsDown, ThumbsUp, X } from "lucide-react";
+import { Markdown } from "@/components/markdown";
+import {
+  allHelp, getHelpArticle, HELP_CATEGORIES, helpForPage, searchHelp, sendHelpFeedback, type HelpArticle, type HelpArticleSummary,
+} from "@/lib/api/help";
 import { toast } from "sonner";
 import { PageContainer } from "@/components/layouts/page-container";
 import { PageHeader } from "@/components/ui/page-header";
@@ -30,21 +34,62 @@ const STATUS: Record<SupportTicket["status"], { label: string; className: string
 };
 const CATEGORIES = [["question", "A question"], ["problem", "Something isn't working"], ["onboarding", "Help setting up"], ["billing", "My Zerpa bill"], ["feature", "An idea or request"]] as const;
 
+function ArticleList({ rows }: { rows: HelpArticleSummary[] }) {
+  return (
+    <ul className="rounded-[12px] border border-border bg-background divide-y divide-border">
+      {rows.map((a) => (
+        <li key={a.id}>
+          <Link href={`/help/articles/${a.slug}`} className="flex items-center gap-3 px-4 py-3 hover:bg-surface">
+            <BookOpen size={16} className="text-primary shrink-0" />
+            <span className="min-w-0 flex-1"><span className="block font-medium">{a.title}</span>{a.summary && <span className="block text-xs text-muted-fg truncate">{a.summary}</span>}</span>
+            <ChevronRight size={14} className="text-muted-fg" />
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export function HelpPage() {
   const router = useRouter();
   const [rows, setRows] = useState<SupportTicket[] | null>(null);
   const [asking, setAsking] = useState(false);
   const [form, setForm] = useState({ subject: "", body: "", category: "question", pageUrl: "" });
   const [busy, setBusy] = useState(false);
+  const [from, setFrom] = useState("");
+  const [q, setQ] = useState("");
+  const [results, setResults] = useState<HelpArticleSummary[] | null>(null);
+  const [forPage, setForPage] = useState<HelpArticleSummary[]>([]);
+  const [all, setAll] = useState<HelpArticleSummary[]>([]);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     listSupportTickets().then(setRows).catch(() => setRows([]));
+    allHelp().then(setAll).catch(() => undefined);
     const params = new URLSearchParams(window.location.search);
-    if (params.get("new")) {
-      setAsking(true);
-      setForm((f) => ({ ...f, pageUrl: params.get("from") ?? "" }));
-    }
+    const page = params.get("from") ?? "";
+    setFrom(page);
+    setForm((f) => ({ ...f, pageUrl: page }));
+    if (page) helpForPage(page).then(setForPage).catch(() => undefined);
+    if (params.get("new")) setAsking(true);
   }, []);
+
+  function onSearch(value: string) {
+    setQ(value);
+    if (timer.current) clearTimeout(timer.current);
+    if (value.trim().length < 2) {
+      setResults(null);
+      return;
+    }
+    timer.current = setTimeout(() => {
+      searchHelp(value.trim(), from || undefined).then(setResults).catch(() => setResults([]));
+    }, 400);
+  }
+
+  function ask() {
+    setAsking(true);
+    if (q.trim() && !form.subject) setForm((f) => ({ ...f, subject: q.trim().slice(0, 120) }));
+  }
 
   async function submit() {
     setBusy(true);
@@ -58,15 +103,63 @@ export function HelpPage() {
     }
   }
 
+  const byCategory = all.reduce<Record<string, HelpArticleSummary[]>>((acc, a) => ((acc[a.category] ??= []).push(a), acc), {});
+
   return (
     <PageContainer>
       <div className="mb-6">
         <PageHeader
           title="Help & support"
           subtitle="Ask the Zerpa team anything. We reply here, and you'll get a notification and an email."
-          action={!asking ? <Button className="gap-2" onClick={() => setAsking(true)}><Plus size={16} /> Ask for help</Button> : undefined}
+          action={!asking ? <Button className="gap-2" onClick={ask}><Plus size={16} /> Ask the Zerpa team</Button> : undefined}
         />
       </div>
+      {!asking && (
+        <div className="mb-8 space-y-5">
+          <div className="relative">
+            <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-fg" />
+            <Input value={q} onChange={(e) => onSearch(e.target.value)} placeholder="Search help, e.g. “send a quote” or “connect PayFast”" className="h-12 pl-11 text-base" aria-label="Search help" autoFocus />
+          </div>
+          {results !== null ? (
+            results.length ? (
+              <div className="space-y-2">
+                <ArticleList rows={results} />
+                <p className="text-sm text-muted-fg">Not what you need? <button type="button" onClick={ask} className="text-primary hover:underline">Ask the Zerpa team</button></p>
+              </div>
+            ) : (
+              <div className="rounded-[12px] border border-border bg-background p-6 text-center">
+                <p className="font-medium">No articles about &ldquo;{q}&rdquo; yet</p>
+                <p className="text-sm text-muted-fg mt-1">We&apos;ve noted it so we can write one. In the meantime a real person can help.</p>
+                <Button className="mt-3" onClick={ask}>Ask the Zerpa team</Button>
+              </div>
+            )
+          ) : (
+            <>
+              {forPage.length > 0 && (
+                <section className="space-y-2">
+                  <h2 className="section-title">Help for the page you were on</h2>
+                  <ArticleList rows={forPage} />
+                </section>
+              )}
+              {Object.keys(byCategory).length > 0 && (
+                <section className="space-y-2">
+                  <h2 className="section-title">Browse</h2>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {Object.entries(byCategory).map(([cat, list]) => (
+                      <div key={cat} className="rounded-[12px] border border-border bg-background p-4">
+                        <p className="text-xs font-medium text-muted-fg uppercase tracking-wide mb-2">{HELP_CATEGORIES[cat] ?? cat}</p>
+                        <ul className="space-y-1.5">
+                          {list.map((a) => <li key={a.id}><Link href={`/help/articles/${a.slug}`} className="text-sm hover:text-primary">{a.title}</Link></li>)}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+            </>
+          )}
+        </div>
+      )}
       {asking && (
         <div className="rounded-[12px] border border-border bg-background p-6 mb-6 space-y-4">
           <div className="flex items-center justify-between">
@@ -96,6 +189,7 @@ export function HelpPage() {
           </div>
         </div>
       )}
+      <h2 className="section-title mb-2">Your requests</h2>
       {rows === null ? (
         <div className="h-32 animate-pulse rounded-[12px] bg-surface" />
       ) : rows.length === 0 ? (
@@ -168,6 +262,70 @@ export function HelpTicket({ id }: { id: string }) {
         <div className="max-w-3xl mt-4 space-y-2">
           <Textarea rows={3} value={reply} onChange={(e) => setReply(e.target.value)} placeholder="Add a reply" aria-label="Reply" />
           <Button onClick={send} disabled={busy || !reply.trim()}>{busy ? "Sending…" : "Send reply"}</Button>
+        </div>
+      )}
+    </PageContainer>
+  );
+}
+
+export function HelpArticleView({ slug }: { slug: string }) {
+  const [a, setA] = useState<HelpArticle | null>(null);
+  const [vote, setVote] = useState<"yes" | "no" | null>(null);
+  const [comment, setComment] = useState("");
+  const [sent, setSent] = useState(false);
+
+  useEffect(() => {
+    getHelpArticle(slug).then((r) => {
+      setA(r);
+      setVote(r.yourVote);
+    }).catch(() => toast.error("Article not found"));
+  }, [slug]);
+
+  async function rate(helpful: boolean) {
+    setVote(helpful ? "yes" : "no");
+    setSent(false);
+    await sendHelpFeedback(slug, helpful).catch(() => undefined);
+  }
+
+  async function sendComment() {
+    await sendHelpFeedback(slug, vote === "yes", comment.trim()).catch(() => undefined);
+    setSent(true);
+    setComment("");
+  }
+
+  if (!a) return <PageContainer><div className="h-64 animate-pulse rounded-[12px] bg-surface" /></PageContainer>;
+  return (
+    <PageContainer>
+      <Link href="/help" className="flex items-center gap-1.5 text-sm text-muted-fg hover:text-foreground mb-4 w-fit"><ArrowLeft size={14} /> Help & support</Link>
+      <article className="max-w-3xl">
+        <p className="text-xs font-medium text-muted-fg uppercase tracking-wide">{HELP_CATEGORIES[a.category] ?? a.category}</p>
+        <h1 className="page-title mt-1">{a.title}</h1>
+        {a.summary && <p className="text-muted-fg mt-2">{a.summary}</p>}
+        <Markdown source={a.body} className="mt-6 text-[15px]" />
+      </article>
+      <div className="max-w-3xl mt-10 rounded-[12px] border border-border bg-background p-5">
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="font-medium text-sm flex-1">Did this help?</p>
+          <Button variant={vote === "yes" ? "default" : "outline"} size="sm" className="gap-1.5" onClick={() => rate(true)}><ThumbsUp size={14} /> Yes</Button>
+          <Button variant={vote === "no" ? "default" : "outline"} size="sm" className="gap-1.5" onClick={() => rate(false)}><ThumbsDown size={14} /> No</Button>
+        </div>
+        {vote && !sent && (
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="overflow-hidden">
+            <div className="pt-4 space-y-2">
+              <Textarea rows={2} value={comment} onChange={(e) => setComment(e.target.value)} placeholder={vote === "no" ? "What was missing or unclear?" : "Anything we could add? (optional)"} aria-label="Feedback" />
+              <div className="flex gap-2">
+                <Button size="sm" onClick={sendComment} disabled={!comment.trim()}>Send</Button>
+                {vote === "no" && <Link href={`/help?new=1&from=${encodeURIComponent(`/help/articles/${a.slug}`)}`}><Button size="sm" variant="outline">Ask the Zerpa team instead</Button></Link>}
+              </div>
+            </div>
+          </motion.div>
+        )}
+        {sent && <p className="text-sm text-muted-fg mt-3">Thanks, the team will read it.</p>}
+      </div>
+      {a.related.length > 0 && (
+        <div className="max-w-3xl mt-8 space-y-2">
+          <h2 className="section-title">Related</h2>
+          <ArticleList rows={a.related} />
         </div>
       )}
     </PageContainer>
