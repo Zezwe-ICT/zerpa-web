@@ -50,14 +50,17 @@ export interface HealthResponse {
 }
 
 export async function createCompany(payload: CreateCompanyPayload): Promise<CompanyResponse> {
-  // credit the partner whose signup link brought them here (see components/referral-capture.tsx)
-  const { takeReferral, clearReferral } = await import("@/components/referral-capture");
+  // credit the partner whose signup link brought them here, and claim the offer from the link if it is still open
+  // (see components/referral-capture.tsx)
+  const { takeReferral, clearReferral, takeOffer, clearOffer } = await import("@/components/referral-capture");
   const ref = takeReferral();
+  const offer = takeOffer();
   const company = await apiRequest<CompanyResponse>("/companies", {
     method: "POST",
-    body: ref ? { ...payload, ref } : payload,
+    body: { ...payload, ...(ref ? { ref } : {}), ...(offer ? { offer } : {}) },
   });
   if (ref) clearReferral();
+  if (offer) clearOffer();
   return company;
 }
 

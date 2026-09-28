@@ -12,6 +12,7 @@ import { useAuth } from "@/lib/auth/context";
 import { ApiError } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
 import { ZerpaLogo } from "@/components/brand/zerpa-logo";
+import { OfferNotice } from "@/components/auth/offer-notice";
 
 const PASSWORD_RULES = [
   { label: "At least 8 characters", test: (pw: string) => pw.length >= 8 },
@@ -102,6 +103,8 @@ export default function RegisterPage() {
               workspace, one short screen at a time.
             </p>
           </div>
+
+          <OfferNotice />
 
           <div className="rounded-[10px] border border-border bg-surface p-4 text-sm space-y-2">
             <p className="flex items-center gap-2 font-medium">
