@@ -27,6 +27,7 @@ import {
   MessageCircle,
   Landmark,
   FileSpreadsheet,
+  Headphones,
 } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { useAuth } from "@/lib/auth/context";
@@ -112,6 +113,13 @@ const SETTINGS_SECTIONS = [
     href: "/settings/integrations",
     description: "Connect your email provider and third-party tools.",
     items: ["SMTP configuration", "AWS SES", "Webhook endpoints"],
+  },
+  {
+    icon: Headphones,
+    title: "Ticketing & Support Desk",
+    href: "/settings/ticketing",
+    description: "Configure your portal URL, SLA targets, categories, and email intake.",
+    items: ["Your unique ticket.zerpa.co.za portal", "SLA tiers per priority", "Email forwarding intake"],
   },
   {
     icon: BadgeDollarSign,

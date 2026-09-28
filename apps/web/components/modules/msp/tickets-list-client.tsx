@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, Clock, Plus, Search, Ticket } from "lucide-react";
+import { AlertTriangle, Clock, ExternalLink, Plus, Search, Settings, Ticket } from "lucide-react";
+import { useAuth } from "@/lib/auth/context";
 import { PageContainer } from "@/components/layouts/page-container";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ const PRIORITY_BORDER: Record<string, string> = {
 };
 
 export function TicketsListClient() {
+  const { company } = useAuth();
   const [tickets, setTickets] = useState<MspTicket[]>([]);
   const [deskMode, setDeskMode] = useState<MspDeskMode>("lite");
   const [loading, setLoading] = useState(true);
@@ -98,6 +100,33 @@ export function TicketsListClient() {
           Desk mode is <strong>Bridge</strong>. Primary flow is linking work from your PSA on Client Onboarding.
           Internal tickets remain available as an escape hatch.
         </p>
+      )}
+
+      {/* Portal banner */}
+      {company && (
+        <div className="mb-5 rounded-[10px] border border-border bg-surface px-4 py-3 flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-3">
+            <Ticket size={15} className="text-primary flex-shrink-0" />
+            <div>
+              <p className="text-xs font-semibold">Customer portal</p>
+              <a
+                href={`https://${company.slug || company.id}.ticket.zerpa.co.za`}
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs text-primary font-mono hover:underline flex items-center gap-1"
+              >
+                {(company.slug || company.id)}.ticket.zerpa.co.za
+                <ExternalLink size={10} />
+              </a>
+            </div>
+          </div>
+          <Link href="/settings/ticketing">
+            <Button size="sm" variant="outline">
+              <Settings size={13} className="mr-1" />
+              Configure desk
+            </Button>
+          </Link>
+        </div>
       )}
 
       {/* Stats */}
