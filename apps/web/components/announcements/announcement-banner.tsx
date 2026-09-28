@@ -22,7 +22,7 @@ export function AnnouncementBanner() {
   useEffect(() => {
     loadAnnouncements().then((f) => {
       setRows(f.banners);
-      f.banners.filter((b) => !b.seen).forEach((b) => markAnnouncement(b.id, "seen"));
+      f.banners.filter((b) => !b.seen && !b.incident).forEach((b) => markAnnouncement(b.id, "seen"));
     });
   }, []);
 
@@ -41,11 +41,11 @@ export function AnnouncementBanner() {
               <t.icon size={16} className={cn("shrink-0", t.iconCls)} />
               <p className="flex-1 min-w-0"><span className="font-medium">{a.title}</span>{a.body && <span className="text-muted-fg"> · {a.body.split("\n")[0].replace(/[#*`>]/g, "").slice(0, 160)}</span>}</p>
               {a.ctaUrl && (
-                <Link href={a.ctaUrl} onClick={() => markAnnouncement(a.id, "click")} className="shrink-0 font-medium text-primary hover:underline" {...(a.ctaUrl.startsWith("http") ? { target: "_blank", rel: "noreferrer" } : {})}>
+                <Link href={a.ctaUrl} onClick={() => !a.incident && markAnnouncement(a.id, "click")} className="shrink-0 font-medium text-primary hover:underline" {...(a.ctaUrl.startsWith("http") ? { target: "_blank", rel: "noreferrer" } : {})}>
                   {a.ctaLabel || "Learn more"}
                 </Link>
               )}
-              <button type="button" onClick={() => dismiss(a.id)} aria-label="Dismiss" className="shrink-0 text-muted-fg hover:text-foreground"><X size={15} /></button>
+              {!a.incident && <button type="button" onClick={() => dismiss(a.id)} aria-label="Dismiss" className="shrink-0 text-muted-fg hover:text-foreground"><X size={15} /></button>}
             </div>
           </motion.div>
         );

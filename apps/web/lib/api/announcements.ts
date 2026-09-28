@@ -14,6 +14,8 @@ export interface Announcement {
   ctaUrl: string | null;
   publishedAt: string;
   seen: boolean;
+  /** A live Zerpa incident or maintenance window: can't be dismissed, and isn't tracked. */
+  incident?: boolean;
 }
 export interface AnnouncementFeed { banners: Announcement[]; whatsNew: Announcement[]; unread: number }
 
