@@ -8,6 +8,7 @@
 import { InternalSidebar } from "./internal-sidebar";
 import { InternalTopBar } from "./internal-top-bar";
 import { VerifyEmailBanner } from "./verify-email-banner";
+import { AnnouncementBanner } from "@/components/announcements/announcement-banner";
 
 interface InternalShellProps {
   children: React.ReactNode;
@@ -25,6 +26,7 @@ export function InternalShell({ children, topBarTitle }: InternalShellProps) {
         {/* Top Bar */}
         <InternalTopBar title={topBarTitle} />
         <VerifyEmailBanner />
+        <AnnouncementBanner />
 
         {/* Content */}
         <main className="flex-1 overflow-y-auto">{children}</main>

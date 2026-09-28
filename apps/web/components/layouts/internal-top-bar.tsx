@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Building2, FileText, LifeBuoy, Plus, Receipt, Ticket, UserPlus, Users } from "lucide-react";
 import { NotificationBell } from "./notification-bell";
+import { WhatsNew } from "@/components/announcements/whats-new";
 import { useAuth } from "@/lib/auth/context";
 import { useAppearance } from "@/lib/theme/context";
 import { CompanySwitcher } from "@/components/company-switcher";
@@ -86,6 +87,8 @@ export function InternalTopBar({ title }: TopBarProps) {
         >
           <LifeBuoy size={18} />
         </Link>
+
+        <WhatsNew />
 
         <NotificationBell />
 
