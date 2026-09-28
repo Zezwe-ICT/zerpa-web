@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import { AppRouteGuard } from "@/components/layouts/app-route-guard";
 import { InternalShell } from "@/components/layouts/internal-shell";
 import { NpsPrompt } from "@/components/feedback/nps-prompt";
+import { PageTracker } from "@/components/analytics/page-tracker";
 import { useAuth } from "@/lib/auth/context";
 
 export default function InternalLayout({ children }: { children: React.ReactNode }) {
@@ -37,6 +38,7 @@ export default function InternalLayout({ children }: { children: React.ReactNode
     <InternalShell>
       <AppRouteGuard>{children}</AppRouteGuard>
       <NpsPrompt />
+      <PageTracker />
     </InternalShell>
   );
 }
