@@ -7,6 +7,7 @@ export interface CompanyPlan {
   pricePerUser: number | null;
   trialEndsOn: string | null;
   trialActive: boolean;
+  pausedUntil?: string | null;
   appLimit: number | null;
   userLimit: number | null;
   appsUsed: number;
@@ -22,6 +23,21 @@ export function getPlan() {
 
 export function choosePlan(plan: string) {
   return apiRequest<CompanyPlan>("/billing/plan", { method: "POST", body: { plan } });
+}
+
+export interface CancelReason { key: string; label: string; offer: "downgrade" | "pause" | "call" | null }
+export type CancelChoice = "cancel" | "downgrade" | "pause" | "call";
+
+export function getCancelReasons() {
+  return apiRequest<{ reasons: CancelReason[] }>("/billing/plan/cancel").then((r) => r.reasons);
+}
+
+export function cancelPlan(body: { reason: string; choice: CancelChoice; detail?: string; competitor?: string; pauseMonths?: number }) {
+  return apiRequest<CompanyPlan & { outcome: string; ticketId?: string }>("/billing/plan/cancel", { method: "POST", body });
+}
+
+export function resumePlan() {
+  return apiRequest<CompanyPlan>("/billing/plan/resume", { method: "POST" });
 }
 
 export async function uploadCompanyLogo(file: File): Promise<{ logoUrl?: string }> {

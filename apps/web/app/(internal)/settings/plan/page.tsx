@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import { PageContainer } from "@/components/layouts/page-container";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
-import { choosePlan, getPlan, type CompanyPlan } from "@/lib/api/books";
+import Link from "next/link";
+import { PauseCircle } from "lucide-react";
+import { choosePlan, getPlan, resumePlan, type CompanyPlan } from "@/lib/api/books";
 import { toast } from "sonner";
 
 export default function PlanPage() {
@@ -34,6 +36,20 @@ export default function PlanPage() {
             {plan.appLimit != null ? ` of ${plan.appLimit}` : ""}
           </p>
           {plan.note && <p className="text-sm text-muted-fg">{plan.note}</p>}
+          {plan.pausedUntil && (
+            <div className="flex flex-wrap items-center gap-3 rounded-[12px] border border-info-ring bg-info-bg p-4 text-sm">
+              <PauseCircle size={18} className="text-info" />
+              <span className="flex-1">Your plan is paused until <strong>{plan.pausedUntil}</strong>. Nothing is charged while paused, and your data stays here.</span>
+              <Button size="sm" variant="outline" onClick={async () => {
+                try {
+                  setPlan(await resumePlan());
+                  toast.success("Welcome back. Your plan is active again.");
+                } catch (e) {
+                  toast.error(e instanceof Error ? e.message : "Could not resume");
+                }
+              }}>Resume now</Button>
+            </div>
+          )}
           <div className="grid gap-3 sm:grid-cols-3">
             {plan.plans.map((row) => (
               <div key={row.code} className="rounded-[12px] border border-border p-4 space-y-2">
@@ -66,6 +82,11 @@ export default function PlanPage() {
               </div>
             ))}
           </div>
+          {plan.plan && plan.plan !== "free" && !plan.pausedUntil && (
+            <p className="text-sm text-muted-fg pt-2">
+              Need a break or thinking of leaving? <Link href="/settings/plan/cancel" className="text-foreground underline underline-offset-2 hover:text-primary">Cancel or pause</Link>
+            </p>
+          )}
         </div>
       )}
     </PageContainer>
