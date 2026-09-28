@@ -1,5 +1,6 @@
 "use client";
 
+import { PageLoader } from "@/components/brand/zerpa-loader";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -40,7 +41,7 @@ export function AppRouteGuard({ children }: { children: React.ReactNode }) {
 
   const blocked = loaded ? blockedApp(pathname, loaded.routes, loaded.installed) : null;
   if (!loaded && !isAlwaysOnPath(pathname)) {
-    return <p className="p-6 text-sm text-muted-fg">Loading…</p>;
+    return <PageLoader />;
   }
   if (!blocked) return <>{children}</>;
 

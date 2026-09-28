@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { getFuneralCase, patchFuneralCase, transitionFuneralCase } from "@/lib/api/verticals";
 import { FUNERAL_CASE_MACHINE, nextAdvanceState } from "@/lib/workflows";
 import { toast } from "sonner";
+import { ZerpaLoader } from "@/components/brand/zerpa-loader";
 
 export default function FuneralCaseDetailPage() {
   const params = useParams();
@@ -24,7 +25,7 @@ export default function FuneralCaseDetailPage() {
   if (!row) {
     return (
       <PageContainer>
-        <p className="text-muted-fg">Loading…</p>
+        <ZerpaLoader />
       </PageContainer>
     );
   }

@@ -18,6 +18,7 @@ import {
   type ClientOnboarding,
 } from "@/lib/api/msp";
 import { uploadDocument } from "@/lib/api/documents";
+import { ZerpaLoader } from "@/components/brand/zerpa-loader";
 
 const ONBOARDING_NEXT: Record<string, string | null> = {
   discovery: "tooling",
@@ -73,7 +74,7 @@ export default function ClientOnboardingDetailPage() {
   if (!row) {
     return (
       <PageContainer>
-        <p className="text-sm text-muted-fg">Loading…</p>
+        <ZerpaLoader />
       </PageContainer>
     );
   }

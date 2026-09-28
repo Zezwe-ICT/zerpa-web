@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { getDispatcherBoard, type DispatcherBoard } from "@/lib/api/msp";
 import { toast } from "sonner";
+import { ZerpaLoader } from "@/components/brand/zerpa-loader";
 
 export default function DispatcherPage() {
   const [board, setBoard] = useState<DispatcherBoard | null>(null);
@@ -59,7 +60,7 @@ export default function DispatcherPage() {
             </ul>
           </div>
         ))}
-        {!board && <p className="text-sm text-muted-fg">Loading…</p>}
+        {!board && <ZerpaLoader title="Loading the board" />}
       </div>
     </PageContainer>
   );

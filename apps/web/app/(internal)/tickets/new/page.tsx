@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { createTicket, getMspSettings } from "@/lib/api/msp";
 import { apiRequest } from "@/lib/api/client";
 import { toast } from "sonner";
+import { ZerpaLoader } from "@/components/brand/zerpa-loader";
 
 export default function NewTicketPage() {
   const router = useRouter();
@@ -42,7 +43,7 @@ export default function NewTicketPage() {
   if (!ready) {
     return (
       <PageContainer>
-        <p className="text-sm text-muted-fg">Loading…</p>
+        <ZerpaLoader />
       </PageContainer>
     );
   }

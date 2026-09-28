@@ -15,6 +15,7 @@ import { apiRequest } from "@/lib/api/client";
 import { commitCustomers, previewCustomers } from "@/lib/api/imports";
 import { isEmail } from "@/components/auth/onboarding-ui";
 import { emailHeaders } from "@/lib/api/email";
+import { ZerpaLoader } from "@/components/brand/zerpa-loader";
 
 const STEPS = [
   { key: "track", label: "What you track", icon: Boxes },
@@ -476,6 +477,13 @@ export function SetupWizard({
 
   return (
     <div className="space-y-6">
+      {launching && (
+        <ZerpaLoader
+          fullScreen
+          title="We are creating your workspace"
+          messages={["Setting up your pipelines and roles", "Adding your customers", "Preparing your first quote", "Sending your team invites", "Putting the finishing touches on your dashboard"]}
+        />
+      )}
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-fg">
         <span>
           Part {step + 1} of {STEPS.length}: <span className="font-medium text-foreground">{STEPS[step].label}</span>

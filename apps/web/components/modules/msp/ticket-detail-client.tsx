@@ -14,6 +14,7 @@ import { CustomFieldsPanel } from "@/components/modules/customization/custom-fie
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ZerpaLoader } from "@/components/brand/zerpa-loader";
 
 export function TicketDetailClient({ id }: { id: string }) {
   const router = useRouter();
@@ -38,7 +39,7 @@ export function TicketDetailClient({ id }: { id: string }) {
   if (loading) {
     return (
       <PageContainer>
-        <p className="text-sm text-muted-fg">Loading…</p>
+        <ZerpaLoader />
       </PageContainer>
     );
   }

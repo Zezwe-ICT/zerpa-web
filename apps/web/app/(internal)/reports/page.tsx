@@ -8,6 +8,7 @@ import { downloadFile, getVatReport, type VatReport } from "@/lib/api/books";
 import { useAuth } from "@/lib/auth/context";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { ZerpaLoader } from "@/components/brand/zerpa-loader";
 
 export default function ReportsPage() {
   const { company } = useAuth();
@@ -133,7 +134,7 @@ export default function ReportsPage() {
             <p className="text-2xl font-semibold mt-2">{typeof value === "number" ? value.toLocaleString() : String(value)}</p>
           </div>
         ))}
-        {!report && <p className="text-sm text-muted-fg">Loading…</p>}
+        {!report && <ZerpaLoader title="Building your report" />}
       </div>
     </PageContainer>
   );

@@ -7,13 +7,14 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
-import { Copy, Loader2 } from "lucide-react";
+import { Copy } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { apiRequest, ApiError } from "@/lib/api/client";
 import { formatCurrency } from "@/lib/utils/currency";
 import { formatDate } from "@/lib/utils/dates";
 import { cn } from "@/lib/utils";
+import { ZerpaLoader } from "@/components/brand/zerpa-loader";
 
 interface Portal {
   name: string; link: string; code: string; commissionPct: number; commissionMonths: number;
@@ -33,7 +34,7 @@ export default function PartnerPage() {
   }, [token]);
 
   if (error) return <main className="max-w-xl mx-auto px-4 py-20 text-center"><p className="font-semibold">{error}</p></main>;
-  if (!d) return <main className="grid place-items-center min-h-[60vh]"><Loader2 className="animate-spin text-muted-fg" /></main>;
+  if (!d) return <main className="grid place-items-center min-h-[60vh]"><ZerpaLoader /></main>;
   return (
     <main className="max-w-3xl mx-auto px-4 py-10 space-y-6">
       <div className="flex items-center gap-3">

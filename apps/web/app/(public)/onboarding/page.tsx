@@ -43,6 +43,7 @@ import { takeOffer } from "@/components/referral-capture";
 import { ApiError } from "@/lib/api/client";
 import { COMPANY_SIZES, PROVINCES, updateCompanyProfile } from "@/lib/api/onboarding";
 import { cn } from "@/lib/utils";
+import { ZerpaLoader, PageLoader } from "@/components/brand/zerpa-loader";
 
 const STORAGE_KEY = "zerpa_onboarding_draft_v6";
 
@@ -393,7 +394,7 @@ export default function OnboardingPage() {
 
   if (isLoading || !loaded) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-surface text-sm text-muted-fg">Loading…</div>
+      <div className="min-h-screen flex items-center justify-center bg-surface"><ZerpaLoader title="Getting things ready" /></div>
     );
   }
 
@@ -402,6 +403,13 @@ export default function OnboardingPage() {
 
   return (
     <div className="min-h-screen bg-surface py-10 px-4">
+      {submitting && (
+        <ZerpaLoader
+          fullScreen
+          title="Creating your business"
+          messages={["Saving your business details", "Setting up VAT and invoice numbering", "Switching on your apps", "Almost there"]}
+        />
+      )}
       <div className="mx-auto max-w-3xl space-y-8">
         <div className="flex justify-center">
           <ZerpaLogo className="h-12" />

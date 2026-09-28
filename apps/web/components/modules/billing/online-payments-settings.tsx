@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ApiError } from "@/lib/api/client";
 import { getGateways, updateGateways, type GatewaySettings, type GatewayUpdate } from "@/lib/api/payments";
+import { ZerpaLoader } from "@/components/brand/zerpa-loader";
 
 export function OnlinePaymentsSettings() {
   const [current, setCurrent] = useState<GatewaySettings | null>(null);
@@ -71,7 +72,7 @@ export function OnlinePaymentsSettings() {
       {forbidden && (
         <p className="text-sm text-muted-fg">Only an owner or admin can change how customers pay online.</p>
       )}
-      {!current && !forbidden && <p className="text-sm text-muted-fg">Loading…</p>}
+      {!current && !forbidden && <ZerpaLoader />}
 
       {current && (
         <>

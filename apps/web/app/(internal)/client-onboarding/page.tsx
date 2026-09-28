@@ -22,6 +22,7 @@ import {
   type ExternalWorkRollup,
   type MspPackSettings,
 } from "@/lib/api/msp";
+import { ZerpaLoader } from "@/components/brand/zerpa-loader";
 
 export default function ClientOnboardingListPage() {
   const [rows, setRows] = useState<ClientOnboarding[]>([]);
@@ -170,7 +171,7 @@ export default function ClientOnboardingListPage() {
       )}
 
       {loading ? (
-        <p className="text-sm text-muted-fg">Loading…</p>
+        <ZerpaLoader />
       ) : rows.length === 0 ? (
         <EmptyState
           icon={Workflow}

@@ -7,6 +7,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth/context";
+import { ZerpaLoader } from "@/components/brand/zerpa-loader";
 
 export default function ClientPortalLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, company } = useAuth();
@@ -21,7 +22,7 @@ export default function ClientPortalLayout({ children }: { children: React.React
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-surface">
-        <div className="text-muted-fg text-sm">Loading…</div>
+        <ZerpaLoader title="Opening your portal" />
       </div>
     );
   }
