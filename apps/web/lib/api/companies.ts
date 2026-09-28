@@ -49,11 +49,16 @@ export interface HealthResponse {
   };
 }
 
-export function createCompany(payload: CreateCompanyPayload): Promise<CompanyResponse> {
-  return apiRequest<CompanyResponse>("/companies", {
+export async function createCompany(payload: CreateCompanyPayload): Promise<CompanyResponse> {
+  // credit the partner whose signup link brought them here (see components/referral-capture.tsx)
+  const { takeReferral, clearReferral } = await import("@/components/referral-capture");
+  const ref = takeReferral();
+  const company = await apiRequest<CompanyResponse>("/companies", {
     method: "POST",
-    body: payload,
+    body: ref ? { ...payload, ref } : payload,
   });
+  if (ref) clearReferral();
+  return company;
 }
 
 export function addTeamMember(
