@@ -112,7 +112,12 @@ export function HelpPage() {
         <PageHeader
           title="Help & support"
           subtitle="Ask the Zerpa team anything. We reply here, and you'll get a notification and an email."
-          action={!asking ? <Button className="gap-2" onClick={ask}><Plus size={16} /> Ask the Zerpa team</Button> : undefined}
+          action={!asking ? (
+            <div className="flex gap-2">
+              <Link href="/help/ideas"><Button variant="outline">Ideas</Button></Link>
+              <Button className="gap-2" onClick={ask}><Plus size={16} /> Ask the Zerpa team</Button>
+            </div>
+          ) : undefined}
         />
       </div>
       {!asking && (
