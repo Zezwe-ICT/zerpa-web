@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { rateTicket } from "@/lib/api/feedback";
 import { createSupportTicket, getSupportTicket, listSupportTickets, replySupportTicket, type SupportTicket } from "@/lib/api/support";
 import { ApiError } from "@/lib/api/client";
 import { formatDatetime } from "@/lib/utils/dates";
@@ -258,6 +259,7 @@ export function HelpTicket({ id }: { id: string }) {
           </motion.li>
         ))}
       </ol>
+      {(t.status === "solved" || t.status === "closed") && <RateTicket ticket={t} onRated={(csat) => setT({ ...t, csat })} />}
       {t.status !== "closed" && (
         <div className="max-w-3xl mt-4 space-y-2">
           <Textarea rows={3} value={reply} onChange={(e) => setReply(e.target.value)} placeholder="Add a reply" aria-label="Reply" />
@@ -329,5 +331,51 @@ export function HelpArticleView({ slug }: { slug: string }) {
         </div>
       )}
     </PageContainer>
+  );
+}
+
+const RATINGS = [[1, "😞", "Very poor"], [2, "🙁", "Poor"], [3, "😐", "OK"], [4, "🙂", "Good"], [5, "😄", "Excellent"]] as const;
+
+function RateTicket({ ticket, onRated }: { ticket: SupportTicket; onRated: (csat: { score: number; comment: string }) => void }) {
+  const [score, setScore] = useState<number | null>(ticket.csat?.score ?? null);
+  const [comment, setComment] = useState("");
+  const [saved, setSaved] = useState(Boolean(ticket.csat));
+
+  async function pick(n: number) {
+    setScore(n);
+    setSaved(false);
+    try {
+      await rateTicket(ticket.id, n);
+      onRated({ score: n, comment: "" });
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : "Could not save your rating");
+    }
+  }
+
+  async function send() {
+    if (score === null) return;
+    await rateTicket(ticket.id, score, comment.trim()).catch(() => undefined);
+    setSaved(true);
+  }
+
+  return (
+    <div className="max-w-3xl mt-6 rounded-[12px] border border-border bg-background p-5">
+      <p className="text-sm font-medium">How did we do with this request?</p>
+      <div className="mt-3 flex gap-2" role="radiogroup" aria-label="Rating">
+        {RATINGS.map(([n, face, label]) => (
+          <button key={n} type="button" role="radio" aria-checked={score === n} aria-label={label} title={label} onClick={() => pick(n)}
+            className={cn("size-11 rounded-[10px] border text-xl transition-all", score === n ? "border-primary bg-primary-tint scale-110" : "border-border hover:border-primary grayscale-[60%] hover:grayscale-0")}>
+            {face}
+          </button>
+        ))}
+      </div>
+      {score !== null && !saved && (
+        <div className="mt-3 space-y-2">
+          <Textarea rows={2} value={comment} onChange={(e) => setComment(e.target.value)} placeholder={score <= 2 ? "What should we have done better?" : "Anything to add? (optional)"} aria-label="Comment" />
+          <Button size="sm" onClick={send} disabled={!comment.trim()}>Send</Button>
+        </div>
+      )}
+      {saved && <p className="mt-3 text-xs text-muted-fg">Thanks for the rating.</p>}
+    </div>
   );
 }

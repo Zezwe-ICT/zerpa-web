@@ -15,6 +15,7 @@ export interface SupportTicket {
   createdAt: string;
   updatedAt: string;
   messages?: Array<{ id: string; body: string; fromStaff: boolean; author: { name: string } | null; at: string }>;
+  csat: { score: number; comment: string } | null;
 }
 
 export const listSupportTickets = () => apiRequest<SupportTicket[]>("/support/tickets");
