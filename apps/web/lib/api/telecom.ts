@@ -369,6 +369,8 @@ export function createNumberPort(payload: {
   donorNetwork?: string;
   serviceId?: string;
   ricaRef?: string;
+  portDate?: string;
+  accountNumber?: string;
 }) {
   return apiRequest<NumberPortRequest>("/telecom/ports", { method: "POST", body: payload });
 }

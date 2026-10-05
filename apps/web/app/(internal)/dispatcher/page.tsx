@@ -97,7 +97,7 @@ export default function DispatcherPage() {
   }));
 
   return (
-    <PageContainer fullWidth>
+    <PageContainer className="max-w-none">
       <div className="px-4 md:px-6">
         <PageHeader
           title="Dispatcher"
