@@ -10,6 +10,7 @@ import { Eye } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { getNestSales } from "@/lib/data/nest-sales";
+import { ZerpaLoader } from "@/components/brand/zerpa-loader";
 
 export default function NestSalesPage() {
   const [sales, setSales] = useState<Awaited<ReturnType<typeof getNestSales>>>([]);
@@ -40,7 +41,7 @@ export default function NestSalesPage() {
 
       {loading ? (
         <div className="flex items-center justify-center h-64">
-          <p className="text-muted-fg">Loading...</p>
+          <ZerpaLoader />
         </div>
       ) : (
         <>

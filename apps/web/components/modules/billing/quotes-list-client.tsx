@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StatsCard } from "@/components/ui/stats-card";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { AppChecklist } from "@/components/modules/setup/app-checklist";
 import { ActionMenu } from "./action-menu";
 import { DocumentPreviewModal } from "./document-preview-modal";
 import {
@@ -85,8 +86,8 @@ export function QuotesListClient() {
       await updateQuoteStatus(q.id, status);
       toast.success(`Quote marked ${status}`);
       reload();
-    } catch {
-      toast.error("Could not update quote");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not update quote");
     }
   }
 
@@ -95,8 +96,8 @@ export function QuotesListClient() {
       const invoice = await convertQuoteToInvoice(q.id);
       toast.success(`Converted to ${invoice.invoiceNumber}`);
       router.push(`/billing/invoices/${invoice.id}`);
-    } catch {
-      toast.error("Conversion failed");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Conversion failed");
     }
   }
 
@@ -105,8 +106,8 @@ export function QuotesListClient() {
       await duplicateQuote(q.id);
       toast.success("Quote duplicated");
       reload();
-    } catch {
-      toast.error("Could not duplicate");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not duplicate");
     }
   }
 
@@ -115,8 +116,8 @@ export function QuotesListClient() {
       await deleteQuote(q.id);
       toast.success("Quote deleted");
       reload();
-    } catch {
-      toast.error("Could not delete");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not delete");
     }
   }
 
@@ -134,6 +135,8 @@ export function QuotesListClient() {
           </Link>
         }
       />
+
+      <AppChecklist app="invoicing" />
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">

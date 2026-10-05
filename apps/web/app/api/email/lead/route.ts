@@ -9,6 +9,7 @@
 import { NextResponse } from "next/server";
 import { sendEmail, EmailConfigError } from "@/lib/server/email/ses";
 import { buildOutreachEmail, formatFrom, SALES_FROM_EMAIL } from "@/lib/server/email/templates";
+import { assertRouteAuth } from "@/lib/server/route-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,6 +18,9 @@ const NO_STORE = { "Cache-Control": "no-store, max-age=0" } as const;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(request: Request) {
+  const unauthorized = await assertRouteAuth(request);
+  if (unauthorized) return unauthorized;
+
   let body: {
     to?: string;
     subject?: string;

@@ -6,10 +6,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { toast } from "sonner";
 import { Plus, X, Search, Pencil, Archive, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/utils/currency";
+import { AppChecklist } from "@/components/modules/setup/app-checklist";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,6 +64,11 @@ interface FormState {
   taxRate: number;
   billingCycle: ProductBillingCycle;
   isActive: boolean;
+  sku: string;
+  trackStock: boolean;
+  reorderLevel: number;
+  costPrice: number;
+  openingStock: number;
 }
 
 const EMPTY_FORM: FormState = {
@@ -73,6 +80,11 @@ const EMPTY_FORM: FormState = {
   taxRate: 15,
   billingCycle: "monthly",
   isActive: true,
+  sku: "",
+  trackStock: false,
+  reorderLevel: 0,
+  costPrice: 0,
+  openingStock: 0,
 };
 
 export function ProductsClient() {
@@ -122,6 +134,11 @@ export function ProductsClient() {
       taxRate: p.taxRate,
       billingCycle: p.billingCycle,
       isActive: p.isActive,
+      sku: p.sku ?? "",
+      trackStock: Boolean(p.trackStock),
+      reorderLevel: p.reorderLevel ?? 0,
+      costPrice: p.costPrice ?? 0,
+      openingStock: 0,
     });
     setPanelOpen(true);
   }
@@ -130,9 +147,10 @@ export function ProductsClient() {
     e.preventDefault();
     setSaving(true);
     try {
-      const payload = { ...form, unit: form.unit || null };
+      const payload = { ...form, unit: form.unit || null, sku: form.sku || null };
       if (editing) {
-        await updateProduct(editing.id, payload);
+        const { openingStock: _opening, ...changes } = payload;
+        await updateProduct(editing.id, changes);
         toast.success("Product updated");
       } else {
         await createProduct(payload);
@@ -140,8 +158,8 @@ export function ProductsClient() {
       }
       setPanelOpen(false);
       reload();
-    } catch {
-      toast.error("Could not save product");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not save product");
     } finally {
       setSaving(false);
     }
@@ -174,6 +192,8 @@ export function ProductsClient() {
           </Button>
         }
       />
+
+      <AppChecklist app="invoicing" />
 
       {/* Category tabs */}
       <div className="flex items-center gap-1 flex-wrap border-b border-border mb-4">
@@ -237,6 +257,7 @@ export function ProductsClient() {
                   <Th>Unit</Th>
                   <Th className="text-right">Unit Price</Th>
                   <Th className="text-right">Tax</Th>
+                  <Th className="text-right">In stock</Th>
                   <Th>Billing Cycle</Th>
                   <Th>Status</Th>
                   <Th className="text-center">Actions</Th>
@@ -268,6 +289,16 @@ export function ProductsClient() {
                     </td>
                     <td className="px-4 py-3 text-right font-mono text-muted-fg">
                       {p.taxRate}%
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono">
+                      {p.trackStock ? (
+                        <Link href="/inventory" className={cn("hover:underline", p.lowStock ? "text-danger font-semibold" : "text-foreground")}>
+                          {p.stockOnHand}
+                          {p.lowStock ? " · low" : ""}
+                        </Link>
+                      ) : (
+                        <span className="text-muted-fg">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-muted-fg capitalize">
                       {p.billingCycle.replace("_", "-")}
@@ -438,6 +469,50 @@ export function ProductsClient() {
                   />
                 </div>
               </div>
+
+              {form.billingCycle === "once_off" && (
+                <div className="rounded-[10px] border border-border p-4 space-y-3">
+                  <label className="flex items-start gap-2 text-sm cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="mt-1"
+                      checked={form.trackStock}
+                      onChange={(e) => setForm({ ...form, trackStock: e.target.checked })}
+                    />
+                    <span>
+                      Track stock
+                      <span className="block text-xs text-muted-fg">
+                        Invoices take it out of stock, supplier bills put it back in, and you&apos;re warned when it runs low.
+                      </span>
+                    </span>
+                  </label>
+                  {form.trackStock && (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="sku">SKU / code</Label>
+                        <Input id="sku" value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="costPrice">Cost price (excl. VAT)</Label>
+                        <Input id="costPrice" type="number" min={0} step="any" value={form.costPrice} onChange={(e) => setForm({ ...form, costPrice: parseFloat(e.target.value) || 0 })} />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="reorderLevel">Warn me at</Label>
+                        <Input id="reorderLevel" type="number" min={0} step="any" value={form.reorderLevel} onChange={(e) => setForm({ ...form, reorderLevel: parseFloat(e.target.value) || 0 })} />
+                      </div>
+                      {!editing && (
+                        <div className="space-y-1.5">
+                          <Label htmlFor="openingStock">In stock now</Label>
+                          <Input id="openingStock" type="number" min={0} step="any" value={form.openingStock} onChange={(e) => setForm({ ...form, openingStock: parseFloat(e.target.value) || 0 })} />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {editing && form.trackStock && (
+                    <p className="text-xs text-muted-fg">Change the quantity with a stock count on the <Link href="/inventory" className="text-primary hover:underline">Inventory</Link> page, so there&apos;s a record of it.</p>
+                  )}
+                </div>
+              )}
 
               <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <input

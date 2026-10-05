@@ -1,538 +1,154 @@
-# ZERPA Sales Process & Business Model
+# Zerpa sales process and pricing
 
-## Executive Summary
+How Zerpa sells itself: who we sell to, the offer, the prices, how a deal becomes a paying customer, and how
+we grow and keep accounts. Prices and billing rules come from the code, so check there first if this drifts:
 
-ZERPA is a **single-tier B2B SaaS platform** that enables small and medium-sized businesses to manage customer relationships, invoicing, and operations. ZERPA is paid directly by customers (funeral homes, auto shops, restaurants, spas) who use the platform to serve their own customers with invoice visibility and status tracking.
+- Plans and prices: `zerpa-api/apps/tenancy/plans.py` (`PLANS`, `ADDONS`, `monthly_charge`)
+- Billing (Paystack card and EFT invoices, failed payments): `zerpa-api/apps/hq/subscriptions.py`
+- Offers (founding cohorts): `zerpa-api/apps/hq/offers.py`, managed in Zerpa HQ → Offers
+- Launch and review playbooks: `zerpa-api/apps/hq/success.py`
 
----
-
-## Business Model Overview
-
-### Revenue Flow
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                    ZERPA (You)                          │
-│                  Monthly SaaS Revenue                   │
-└──────────────────────┬──────────────────────────────────┘
-                       │
-                       │ Charges R14,800-R37,000/month 
-                       ↓
-┌─────────────────────────────────────────────────────────┐
-│         Your Customer (Funeral Home / Auto Shop /       │
-│          Restaurant / Spa / Service Business)           │
-│                                                          │
-│  Uses ZERPA for:                                        │
-│  • Customer CRM management                              │
-│  • Invoice generation & tracking                        │
-│  • Revenue reporting & analytics                        │
-│  • Team member management                               │
-│  • Business-specific workflows                          │
-└──────────────────────┬──────────────────────────────────┘
-                       │
-                       │ Invites their customers to see invoices 
-                       ↓
-┌─────────────────────────────────────────────────────────┐
-│      Their Customer (Family / Car Owner / Diner /       │
-│                    Spa Client)                           │
-│                                                          │
-│  Limited Access (Read-Only Portal):                     │
-│  • View invoices                                        │
-│  • Track payment status                                 │
-│  • Download documents                                   │
-│  • Make payment online                                  │ 
-└─────────────────────────────────────────────────────────┘
-```
-
-### Key Characteristics
-
-**This is NOT Multi-Tier White-Label:**
-- ❌ We don't let customers brand ZERPA as their own
-- ❌ We don't offer fractional white-label pricing
-- ❌ Customers don't resell ZERPA to others
-- ✅ Simple, sustainable, predictable recurring revenue
-
-**This IS Standard B2B SaaS:**
-- ✅ Direct payment from businesses using the platform
-- ✅ Value extraction from productivity gains (CRM + invoicing)
-- ✅ Customer stickiness from team adoption 
-- ✅ Scalable with minimal infrastructure per customer
+Last updated 2026-09-28.
 
 ---
 
-## Sales Funnel - 7 Stages
+## 1. Who we sell to
 
-### Stage 1: Lead Generation
-**Goal:** Identify businesses in target verticals who need better customer & invoice management
+We launch with **MSPs** (IT support and managed service companies), then **telecoms** (ISPs, fibre and
+wireless providers). Other industries can sign up and use Zerpa, but sales and marketing effort goes to these two.
 
-**Activities:**
-- LinkedIn outreach to funeral home owners, auto shop managers
-- Google Ads targeting "funeral home invoicing software", "auto shop management"
-- Industry partnerships (funeral home associations, repair networks)
-- Content marketing (blog posts on funeral service efficiency, auto shop operations)
-- Referral program from existing customers
+What an MSP buys from us: **every billable hour ends up on an invoice**, and they are **live in 14 days**
+without running the migration themselves. Tickets, time, agreements and retainer billing live in one system,
+so time logged on a ticket feeds the monthly agreement invoice.
 
-**Metrics:**
-- Cost per lead: R370-R925
-- Source mix: 40% organic (content), 30% LinkedIn, 20% referrals, 10% ads
+Good fit:
+- 3–30 technicians, billing monthly retainers plus hourly work
+- Time tracking and invoicing in separate tools today (a PSA plus an accounting package, or spreadsheets)
+- The owner feels there is work being done that never gets billed
 
-**Target Profile:**
-- 5-50 employees
-- Local/regional business (not national chain)
-- Currently using spreadsheets or outdated software
-- ~R18.5M-R92.5M annual revenue
-- Pain point: Manual invoicing, poor customer communication
+Poor fit (be honest early):
+- Needs a deep RMM or PSA integration on day one (our PSA and Microsoft CSP connectors are not built yet)
+- Wants to resell or white-label Zerpa
+- Won't log time on tickets (the value, and the 90-day guarantee, depend on it)
 
 ---
 
-### Stage 2: Initial Contact & Discovery
-**Goal:** Qualify lead and understand their specific pain points
+## 2. Prices
 
-**Activities:**
-- Sales call (15-20 minutes): "Tell us about your current invoicing process"
-- Ask about:
-  - Current tools (spreadsheets? old accounting software?)
-  - Team size and pain points
-  - Monthly invoice volume
-  - Customer communication challenges
-- Share brief ZERPA overview
-- Identify fit quickly (is this a good prospect?)
+Company packs with users included. Rand, excluding 15% VAT. Portal customers (their clients) are always free.
 
-**Success Metrics:**
-- Lead → Demo Call rate: 25-30%
-- Average discovery call length: 18 minutes
-- Qualification score: 1-5 scale
+| Plan (code) | Per month | Users included | Extra user / month | Launch fee (once-off) | What's in it |
+|---|---|---|---|---|---|
+| Free (`free`) | R 0 | 3 (hard cap) | — | — | 1 app |
+| Business (`standard`) | R 1 490 | 5 | R 179 | R 4 500 | All apps except industry apps |
+| Industry (`industry`) | R 3 990 | 10 | R 249 | R 8 500 | Business plus 1 industry pack |
+| Scale (`scale`) | R 8 990 | 25 | R 199 | R 15 000 | 2 industry packs, up to 3 companies, priority support |
 
-**Disqualification Signals:**
-- Company < 3 employees (overhead too high)
-- Already using integrated solution (NetSuite, etc.)
-- Looking for white-label/reseller model
-- Unwilling to move away from legacy system
+- **Annual:** pay 10 months for 12 (10 × base), and **no launch fee**. Extra users and add-ons are still billed monthly.
+- **Add-ons:** extra industry pack R 990 / month, extra company R 990 / month.
+- **Trial:** every paid plan starts with a 14-day trial. No card needed to start.
+- **The launch fee** pays for the set-up we do with them: importing clients, contracts and open tickets, invoice
+  templates and recurring billing. It is not a discount lever; use annual billing instead.
 
----
+Worked example (Industry, 13 users, monthly): R 3 990 + 3 × R 249 = **R 4 737** a month excl. VAT; first
+payment with the launch fee is R 13 237 excl. VAT (R 15 222.55 incl.). The pricing calculator on the website
+and Settings → Plan in the app use the same maths.
 
-### Stage 3: Product Demo & Trial
-**Goal:** Show value through hands-on platform experience
-
-**Activities:**
-- **Live Walkthrough (30 minutes):**
-  - Create sample customer/invoice in real time
-  - Show invoice portal from customer perspective
-  - Demonstrate team collaboration features
-  - Show reporting & analytics
-  
-- **Free Trial (14 days):**
-  - Customer gets full access to platform
-  - Can import sample data or use test invoices
-  - Our success team provides onboarding call (30 min)
-  - Email updates on day 3, 7, 10 with tips & features
-
-- **Vertical-Specific Demo:**
-  - Show relevant workflow for their type (funeral, auto, restaurant, spa)
-  - Use their language and use cases
-
-**Trial Metrics:**
-- Demo → Trial conversion: 60-70%
-- Trial active usage rate: 40-50%
-- Trial → Purchase rate: 30-40%
+**Discounts:** none apart from annual billing and founding offers. Don't invent one-off deals; if a
+prospect needs something different, raise it with the founder.
 
 ---
 
-### Stage 4: Negotiation & Pricing
-**Goal:** Close the deal with appropriate plan selection
+## 3. The offer: founding MSP cohort
 
-**Pricing Structure:**
+Managed in Zerpa HQ → Offers (`msp-founding`). Seats and status are live on the website.
 
-| Plan | Users | Invoices/mo | Price | Ideal For |
-|------|-------|------------|-------|-----------|
-| **Starter** | 2 | 100 | R14,800 | Small funeral home, solo auto shop |
-| **Professional** | 5 | 500 | R22,200 | Growing auto shop, mid-size funeral home |
-| **Enterprise** | 10+ | 2000+ | R37,000 | Multi-location, high-volume invoicing |
+- **Headline:** Every billable hour invoiced. Live in 14 days.
+- **Plan:** Industry, with the price locked for 24 months from the first payment.
+- **Cap:** 20 companies; closes 30 November 2026.
+- **What's included (launch value R 14 500):**
+  - We move your clients, contracts and open tickets in (R 6 000)
+  - Invoice templates and retainer billing set up for you (R 3 000)
+  - Unbilled Hours Audit at day 30 and day 90 (R 4 000)
+  - WhatsApp quote and payment-reminder templates (R 1 500)
+- **Guarantee:** Live in 14 days or the launch fee back. If we find less unbilled time than one month's
+  subscription in the first 90 days, the next 3 months are free.
+- **Conditions** (website `offer-terms.html`): the 14-day clock starts the day we receive their data; the 90-day
+  guarantee needs time logged on at least 90% of tickets.
 
-**Add-ons:**
-- Payment processing integration (+R1,850/mo): Stripe/PayFast fees passed through
-- Custom branding (+R3,700/mo): White-label portal for their customers
-- Advanced reporting (+R2,775/mo): Custom reports, data export
-
-**Negotiation Points:**
-- Annual discount: -10% for 12-month prepay
-- Volume discount: Multiple locations, bundle pricing
-- Non-standard options: Custom integrations (quote basis)
-
-**Deal Closing:**
-- Sales team sends proposal doc (PDF with pricing, features, legal)
-- Customer signature via digital signature platform
-- Success team schedules onboarding call
+The signup link is `https://app.zerpa.co.za/register?offer=msp-founding`. A seat is only taken when the company
+pays; until then they are on a normal trial. When the cohort is full the website switches to "Join the waitlist".
 
 ---
 
-### Stage 5: Onboarding & Implementation
-**Goal:** Get customer productive in first 2 weeks
+## 4. The funnel
 
-**Week 1:**
-- Onboarding call: System tour, company setup, team member invites
-- Data migration help: Import existing customers/invoices
-- Customization: Apply branding, set invoice templates
-- Training: How to create invoices, manage customers, send portals
+### Stage 1: Lead
+Sources: the website (demo form, the unbilled-hours calculator at `tools/unbilled-hours.html`), partners
+(accountants and IT resellers with a `?ref=` link), and direct outreach to MSPs. Every website form becomes a
+lead in Zerpa's own CRM (HQ company). Trials and free companies are scored as product-qualified leads in HQ → Sales.
 
-**Week 2:**
-- Follow-up call: Address questions, ensure usage
-- Monitor: Check dashboard for active usage
-- Support: Respond to email/chat within 24 hours
-- Quick wins: Highlight first invoices created, customers invited
+### Stage 2: Discovery call (15–20 minutes)
+- How do they bill today? Retainers, hourly, projects?
+- Where is time logged, and how does it get onto invoices?
+- Rough numbers: technicians, unbilled hours a week, hourly rate. Run the unbilled-hours calculator with them.
+- Team size, so we can point them at the right plan.
 
-**Success Metrics:**
-- Time to first invoice: Avg 3 days
-- Team onboarding rate: 80%+ of invited members active
-- Churn in first month: <5%
+### Stage 3: Demo and trial
+- Show a ticket with time logged, the agreement with included hours and overage, and the month's agreement invoice.
+- Show the customer portal and a WhatsApp payment reminder.
+- Start the trial with the offer link. Point out that the founding seat is confirmed by the first payment.
 
----
+### Stage 4: Close
+- In the app, Settings → Plan: pay by card (Paystack) or choose an EFT invoice from Zerpa.
+- Card: the first charge is the launch fee (not on annual), the first month or year, and any extra users and add-ons.
+- EFT: Zerpa emails a VAT invoice with a Paystack payment link each month.
+- Once paid: the plan is active, the offer seat is taken and the price lock starts.
 
-### Stage 6: Expansion & Upsell
-**Goal:** Increase usage and lifetime value
+### Stage 5: Launch (14 days)
+The success manager sets "Data received on" on the company in HQ → Companies. That starts the clock and
+creates the launch tasks:
 
-**6-Week Milestone:**
-- Check-in call: "How are you finding ZERPA?"
-- Identify problems: Unresolved blockers or feature requests
-- Suggest add-ons based on usage patterns
+| Days | Step |
+|---|---|
+| 0–2 | Import clients, contracts and open tickets |
+| 3–5 | Invoice templates and retainer billing |
+| 6–8 | Time tracking, SLAs and WhatsApp templates |
+| 9–10 | Test run: log time on a real ticket, raise and send the invoice |
+| 11–13 | Train the team, fix what the test run found |
+| 14 | Go-live sign-off (marking it done stops the clock) |
 
-**Expansion Opportunities:**
-- **Vertical Extensions:**
-  - Funeral: Case management, compliance docs, family coordination
-  - Auto: Work order tracking, parts inventory, service history
-  - Restaurant: Order management, reservation system
-  - Spa: Appointment booking, staff scheduling
-  
-- **Payment Processing:**
-  - "Let customers pay invoices directly in ZERPA"
-  - Reduces manual payment chasing
-  - Typical add-on revenue: +R2,775-R5,550/month per customer
+Launches at day 10 or later that aren't live show in HQ's command centre. If we miss day 14 through our own
+fault, the launch fee is refunded.
 
-- **Additional Locations:**
-  - Multi-branch support
-  - Professional + Enterprise plans naturally grow here
+### Stage 6: Reviews at day 30 and 90
+Created with the launch: the Unbilled Hours Audit at day 30 and day 90, and the guarantee check at day 91.
+Compare the time logged with what was invoiced and share the rand figure with the owner.
 
-**Expansion Metrics:**
-- Expansion revenue per customer: Target R3,700+/year
-- Vertical module adoption rate: 30-40% of base
-- Payment processing adoption: 45-60% of customers
-
----
-
-### Stage 7: Retention & Advocacy
-**Goal:** Keep customers for 3+ years and turn them into advocates
-
-**Ongoing Engagement (Monthly/Quarterly):**
-- Quarterly business reviews: Usage analytics, ROI discussion
-- Feature announcements: Email about new releases
-- Educational content: Workflow best practices, efficiency tips
-- Community events: Webinars for industry (funeral directors, mechanics, etc.)
-
-**Churn Prevention:**
-- Monitor: Usage metrics drop = early warning
-- Action: Success team outreach within 7 days of low activity
-- Retention offers: Custom features, pricing review, extended trial
-
-**Advocacy & Referrals:**
-- Case studies: Document customer success stories
-- Referral incentive: R9,250 credit for successful referral
-- Customer advisory board: Monthly calls with top customers for product input
-- Reviews: Ask for Capterra/G2 reviews (drives inbound)
-
-**Retention & Growth Metrics:**
-- Net retention rate: Target 105% (growth from existing customers)
-- Churn rate: Target <5% annual
-- Customer lifetime value (LTV): R222,000-R592,000 (3-4 years × monthly fee)
-- Customer acquisition cost (CAC): R37,000-R55,500
-- LTV:CAC Ratio: Target >4:1 ✅ (generates positive unit economics)
+### Stage 7: Grow and keep
+- **Extra users** are never blocked on paid plans; they're billed at the plan's extra-user price.
+- **Upgrade signals:** HQ → Customer success flags companies with users over the included number. Ask about a second industry or a second company at the day-30 and day-90 reviews.
+- **Scale** is for multi-company groups or two industries.
+- **Failed payments:** reminder (email and WhatsApp) on day 0, retry and second reminder on day 3, an HQ call
+  task on day 7, read-only on day 14 (they can still view and export), suspended on day 30. Data is kept for
+  90 days after that. Call on day 7; don't wait for read-only.
+- **Cancel or pause** is in the app, with a save offer per reason. Pausing (1–3 months) stops charges.
 
 ---
 
-## Customer Lifetime Value (LTV) Analysis
+## 5. Partners
 
-### Base Scenario (Professional Plan)
-```
-Monthly recurring revenue (MRR):        R22,200
-Average customer lifetime:              3 years (36 months)
-Expansion revenue per year:             R4,625 (add-ons, upsells)
-
-Base LTV (support costs 25%):
-  = (MRR + Annual Expansion) × 36 months × (1 - 0.25)
-  = (R22,200 + R4,625/12) × 36 × 0.75
-  = (R22,200 + R385) × 36 × 0.75
-  = R22,585 × 36 × 0.75
-  = R607,485
-```
-
-### CAC (Customer Acquisition Cost)
-```
-Sales & marketing spend per customer:   R46,250 average
-(includes: sales salary allocation, ads, content, tools)
-
-Payback period = CAC / MRR = R46,250 / R22,200 = 2.08 months ✅
-(Industry healthy: < 3 months)
-```
-
-### Economics Summary
-- **LTV**: R222,000 - R592,000 depending on vertical & expansion
-- **CAC**: R37,000 - R55,500
-- **Ratio**: 4-16:1 ✅ Excellent unit economics
-- **Payback Period**: 2-3 months (very strong cash flow)
-- **Runway**: 3 year customer lifetime = 36 months of revenue stability
+Accountants, IT resellers and customers can refer companies with a `?ref=<code>` link (HQ → Partners). The
+default commission is 20% of the referred company's monthly plan fee for 12 months, paid monthly by finance.
 
 ---
 
-## Vertical-Specific Positioning
+## 6. Numbers to track (HQ → Revenue, Sales and Offers)
 
-### Funeral Services
-**Pain Points:**
-- Managing dozens of cases simultaneously
-- Regulatory compliance documentation
-- Family communication (who paid what)
-- Difficult to track expenses per case
-
-**ZERPA Value Prop:**
-- Case management with documents
-- Automatic family portal access
-- Expense tracking per funeral
-- Compliance templates
-
-**Pricing Sweet Spot:** R22,200-R37,000 (high invoicing volume, complex workflows)
-**Market Size:** ~3,500 funeral homes in US, $500K avg annual revenue each
-
----
-
-### Automotive Repair
-**Pain Points:**
-- Work order management across multiple jobs
-- Parts tracking and inventory
-- Customer communication on repair progress
-- Invoice generation from labor + parts
-
-**ZERPA Value Prop:**
-- Work order → Invoice workflow
-- Parts inventory integration
-- Real-time customer status updates
-- Labor + parts cost tracking
-
-**Pricing Sweet Spot:** R22,200-R27,750 (20-100 vehicles/month)
-**Market Size:** ~180,000 repair shops in US, $300K-1M revenue each
-
----
-
-### Restaurants & Cafes
-**Pain Points:**
-- Private events invoicing (catering, room rental)
-- Employee tips and commission tracking
-- Customer event management
-- Receipt/invoice consistency
-
-**ZERPA Value Prop:**
-- Event invoicing with detailed breakdown
-- Customer event history
-- Payment reminders for corporate clients
-- Simple reporting
-
-**Pricing Sweet Spot:** R14,800-R22,200 (lower invoice volume)
-**Market Size:** ~660,000 restaurants in US, R5,087,500 avg annual revenue
-
----
-
-### Spas & Salons
-**Pain Points:**
-- Package & membership invoicing
-- Client appointment history linking to charges
-- Stylist/therapist commission tracking
-- Membership renewal management
-
-**ZERPA Value Prop:**
-- Package-based invoicing
-- Client portal with service history
-- Automated renewal reminders
-- Staff performance analytics
-
-**Pricing Sweet Spot:** R14,800-R22,200 (medium volume, recurring)
-**Market Size:** ~130,000 salons/spas in US, R4,625,000 avg annual revenue
-
----
-
-## Build Prioritization & Roadmap
-
-### Phase 1: MVP (Months 1-2) - Horizontal Platform
-**Goal:** Core CRM + invoicing for all verticals
-
-**Must Have:**
-- ✅ Company & team management
-- ✅ Customer directory
-- ✅ Invoice creation & templates
-- ✅ Customer portal (read-only, payment links)
-- ✅ Basic reporting (revenue by customer, aging invoices)
-- ✅ Email notifications
-- ✅ JWT authentication & security
-
-**Nice to Have:**
-- Team member roles (admin, accountant, staff)
-- Invoice reminders (automated)
-- Multi-currency support
-
-**Success Metrics:**
-- 10+ pilot customers signed
-- Average onboarding time: < 1 week
-- Month 1 retention: > 95%
-
----
-
-### Phase 2: Revenue Expansion (Months 2-3)
-**Goal:** Enable payment processing, increase add-on revenue
-
-**Must Have:**
-- Payment processing (Stripe, PayFast)
-- Subscription billing (automate recurring invoices)
-- Advanced reporting (profit margins, customer LTV)
-- Email/SMS reminders for unpaid invoices
-- Financial dashboard (cash flow, revenue trends)
-
-**Nice to Have:**
-- Accounting software integration (QuickBooks, Xero)
-- Multi-invoice batch operations
-
-**Revenue Impact:** +R3,700-R7,400 MRR per customer (30-40% adoption)
-
----
-
-### Phase 3: Operations & Automation (Months 3-4)
-**Goal:** Vertical-specific workflows, reduce manual work
-
-**Funeral Homes - Case Management:**
-- Case intake form
-- Regulatory compliance checklist
-- Family coordination portal
-- Expense tracking per case
-- Document management (death certificate, permits)
-- Cemetery/cremation coordination
-
-**Auto Shops - Work Orders:**
-- Work order creation (labor + parts)
-- Parts inventory tracking
-- Technician assignment
-- Before/after photos
-- Customer authorization workflow
-
-**Restaurants - Event Management:**
-- Event booking form (date, headcount, menu)
-- Catering invoice generation
-- Room rental tracking
-- Service notes (special requests)
-- Guest list management
-
-**Spas - Appointment Management:**
-- Appointment scheduling
-- Service package pricing
-- Therapist/stylist assignment
-- Appointment → Invoice automation
-- Gift certificate tracking
-
-**Success Metrics:**
-- 20+ customers using vertical features
-- Time spent on admin tasks: -40%
-
----
-
-### Phase 4: Scale & Advocacy (Months 4+)
-**Goal:** Drive word-of-mouth, expand market reach
-
-**Features:**
-- Multi-location support (hold off until Phase 3 complete)
-- Advanced analytics & benchmarking
-- Custom integrations API
-- White-label options (premium tier)
-- Customer advisory board program
-
-**Go-to-Market:**
-- Case study content (3-5 detailed stories)
-- Vertical-specific webinars & guides
-- Industry event sponsorships
-- Referral partner program
-- SEO content for vertical searches
-
----
-
-## Sales Compensation Structure
-
-### For Your Sales Team (Once Hired)
-
-**Commission on New Business:**
-- 15% of first 12 months × monthly fee = commission
-- Example: Close Starter plan (R14,800/mo) = R26,640 commission
-
-**Commission on Expansion/Upsell:**
-- 10% of incremental MRR
-- Example: Upsell from Starter to Professional (+R7,400/mo) = R740 commission
-
-**Bonus Structure:**
-- Close 10 customers in month: +R18,500 bonus
-- Achieve R925,000 MRR target: +R92,500 team bonus
-
-**Retro Commissions (Churn Protection):**
-- If customer churns in first 12 months: Claw back 50% of commission
-- Incentivizes proper qualification and onboarding
-
----
-
-## Market Sizing & Revenue Projections
-
-### Conservative Model (Year 1)
-
-| Month | Customers | MRR | YTD Revenue |
-|-------|-----------|-----|------------|
-| M1-M2 | 5 | R92,500 | R185,000 |
-| M3-M4 | 12 | R222,000 | R629,000 |
-| M5-M6 | 22 | R407,000 | R1,480,000 |
-| M7-M8 | 35 | R647,500 | R3,052,500 |
-| M9-M10 | 50 | R925,000 | R5,272,500 |
-| M11-M12 | 70 | R1,295,000 | R8,602,500 |
-
-**Assumptions:**
-- Average fee: R18,500/month
-- Churn: 2% monthly (industry standard)
-- Growth compounds month-to-month
-
----
-
-## Competitive Differentiation
-
-| Factor | ZERPA | Square | Wave | Xero |
-|--------|-------|--------|------|------|
-| **Vertical Focus** | Industry-specific | Generic point-of-sale | Generic invoicing | Generic accounting |
-| **CRM Included** | ✅ Yes | ❌ Add-on | ❌ No | ❌ Partner integration |
-| **Customer Portal** | ✅ Included | ✅ Paid add-on | ✅ Basic | ❌ Not included |
-| **Starting Price** | R14,800/mo | R1,110/mo (limited) | R0 (limited) | R277.50/mo |
-| **Target** | SMB service businesses | Retail/restaurants | Freelancers | Accountants |
-
-**Our Edge:** Best-in-class CRM + invoicing combo for service businesses willing to pay for vertical-specific features + customer portal.
-
----
-
-## Next Steps
-
-1. **Week 1:** Refine messaging with founder/marketing lead
-2. **Week 2:** Create industry-specific landing pages
-3. **Week 3:** Begin outreach to first 20 leads
-4. **Week 4:** Schedule 5 discovery calls, get first demo conversions
-5. **Month 2:** Close first 5 customers on Starter plan
-
----
-
-## Questions to Validate
-
-- ✅ **Business Model**: Single-tier B2B SaaS (correct confirmed)
-- ✅ **Pricing Strategy**: R14,800-R37,000/month based on team size + volume (market-tested)
-- ✅ **Vertical Selection**: Funeral, Auto, Restaurant, Spa (nail these first)
-- ✅ **Go-to-Market**: Direct sales + LinkedIn outreach (startup friendly)
-- ✅ **Unit Economics**: LTV:CAC = 4-16:1 (excellent profitability)
-
----
-
-**Document Version:** 1.0  
-**Last Updated:** May 6, 2026  
-**Owner:** Sales & Product Leadership
+Measure these rather than assuming them:
+- Trial → paid rate (HQ → Sales, last 90 days)
+- Founding seats taken and MRR from each offer
+- Launches live by day 14 (and launch fees refunded)
+- 30-day cash per new customer (launch fee plus the first month)
+- MRR by plan, monthly vs annual, add-ons
+- Failed payments and accounts in read-only or suspended

@@ -16,6 +16,8 @@ export interface CreateCompanyPayload {
   phone?: string;
   description?: string;
   details?: Record<string, any>;
+  /** App keys chosen during onboarding; the API adds dependencies. Omit for the industry's recommended set. */
+  apps?: string[];
 }
 
 export interface TeamMemberPayload {
@@ -47,11 +49,19 @@ export interface HealthResponse {
   };
 }
 
-export function createCompany(payload: CreateCompanyPayload): Promise<CompanyResponse> {
-  return apiRequest<CompanyResponse>("/companies", {
+export async function createCompany(payload: CreateCompanyPayload): Promise<CompanyResponse> {
+  // credit the partner whose signup link brought them here, and claim the offer from the link if it is still open
+  // (see components/referral-capture.tsx)
+  const { takeReferral, clearReferral, takeOffer, clearOffer } = await import("@/components/referral-capture");
+  const ref = takeReferral();
+  const offer = takeOffer();
+  const company = await apiRequest<CompanyResponse>("/companies", {
     method: "POST",
-    body: payload,
+    body: { ...payload, ...(ref ? { ref } : {}), ...(offer ? { offer } : {}) },
   });
+  if (ref) clearReferral();
+  if (offer) clearOffer();
+  return company;
 }
 
 export function addTeamMember(

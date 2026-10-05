@@ -1,30 +1,37 @@
 import { formatDistanceToNow, format, isPast } from "date-fns";
 
-export function formatDate(date: string | Date, pattern: string = "dd MMM yyyy"): string {
-  const d = typeof date === "string" ? new Date(date) : date;
-  return format(d, pattern);
+type DateInput = string | Date | null | undefined;
+
+/** Parses a date, or null when it's missing or invalid (e.g. an invoice with no due date). */
+function toDate(date: DateInput): Date | null {
+  if (!date) return null;
+  const d = typeof date === "string" ? new Date(date) : new Date(date.getTime());
+  return Number.isNaN(d.getTime()) ? null : d;
 }
 
-export function formatDatetime(
-  date: string | Date,
-  pattern: string = "dd MMM yyyy HH:mm"
-): string {
-  const d = typeof date === "string" ? new Date(date) : date;
-  return format(d, pattern);
+export function formatDate(date: DateInput, pattern: string = "dd MMM yyyy"): string {
+  const d = toDate(date);
+  return d ? format(d, pattern) : "—";
 }
 
-export function relativeTime(date: string | Date): string {
-  const d = typeof date === "string" ? new Date(date) : date;
-  return formatDistanceToNow(d, { addSuffix: true });
+export function formatDatetime(date: DateInput, pattern: string = "dd MMM yyyy HH:mm"): string {
+  const d = toDate(date);
+  return d ? format(d, pattern) : "—";
 }
 
-export function isOverdue(dueDate: string | Date): boolean {
-  const d = typeof dueDate === "string" ? new Date(dueDate) : dueDate;
-  return isPast(d);
+export function relativeTime(date: DateInput): string {
+  const d = toDate(date);
+  return d ? formatDistanceToNow(d, { addSuffix: true }) : "—";
 }
 
-export function daysUntilDue(dueDate: string | Date): number {
-  const d = typeof dueDate === "string" ? new Date(dueDate) : dueDate;
+export function isOverdue(dueDate: DateInput): boolean {
+  const d = toDate(dueDate);
+  return d ? isPast(d) : false;
+}
+
+export function daysUntilDue(dueDate: DateInput): number {
+  const d = toDate(dueDate);
+  if (!d) return 0;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   d.setHours(0, 0, 0, 0);

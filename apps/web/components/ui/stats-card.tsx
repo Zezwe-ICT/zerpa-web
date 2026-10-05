@@ -6,15 +6,20 @@
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyIcon = LucideIcon | React.ComponentType<any>;
+
 interface StatsCardProps {
-  label: string;
-  value: string | number;
+  label?: string;
+  title?: string; // alias for label — accepted for backwards compat
+  value: React.ReactNode;
   sub?: string;
-  icon: LucideIcon;
+  icon: AnyIcon;
   iconColor?: "blue" | "green" | "red" | "violet" | "amber";
   trend?: { value: string; positive: boolean };
   className?: string;
 }
+
 
 const iconStyles = {
   blue: "bg-info-bg text-info",
@@ -26,17 +31,20 @@ const iconStyles = {
 
 export function StatsCard({
   label,
+  title,
   value,
   sub,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   icon: Icon,
   iconColor = "blue",
   trend,
   className,
 }: StatsCardProps) {
+  const displayLabel = label ?? title ?? "";
   return (
     <div className={cn("rounded-[12px] border border-border bg-background p-5 shadow-xs", className)}>
       <div className="flex items-start justify-between mb-3">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-fg">{label}</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-fg">{displayLabel}</p>
         <span className={cn("rounded-[8px] p-2", iconStyles[iconColor])}>
           <Icon size={14} />
         </span>

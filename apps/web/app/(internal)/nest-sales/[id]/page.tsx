@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { getNestSaleById, getProvisioningChecklist } from "@/lib/data/nest-sales";
 import { NestSaleDetailClient } from "@/components/modules/nest-sales/nest-sale-detail-client";
 import { PageContainer } from "@/components/layouts/page-container";
+import { ZerpaLoader } from "@/components/brand/zerpa-loader";
 
 export default function NestSaleDetailPage() {
   const params = useParams();
@@ -27,7 +28,7 @@ export default function NestSaleDetailPage() {
     return (
       <PageContainer>
         <div className="flex items-center justify-center h-64">
-          <p className="text-muted-fg">Loading...</p>
+          <ZerpaLoader />
         </div>
       </PageContainer>
     );

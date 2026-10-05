@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
+import { downloadFile } from "@/lib/api/books";
 import { Plus, Receipt, AlertCircle, CheckCircle2, FileClock, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/utils/currency";
@@ -21,6 +22,7 @@ import { StatsCard } from "@/components/ui/stats-card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { ActionMenu } from "./action-menu";
 import { DocumentPreviewModal } from "./document-preview-modal";
+import { InvoicingSetupBanner } from "@/components/modules/billing/invoicing-setup-banner";
 import {
   getBillingInvoices,
   updateBillingInvoiceStatus,
@@ -55,7 +57,8 @@ export function InvoicesListClient() {
   function reload() {
     setLoading(true);
     getBillingInvoices()
-      .then(setInvoices)
+      // Credit notes have their own list (Quotes & Invoicing → Credit notes).
+      .then((rows) => setInvoices(rows.filter((r) => r.type !== "CREDIT")))
       .catch(() => setInvoices([]))
       .finally(() => setLoading(false));
   }
@@ -119,6 +122,8 @@ export function InvoicesListClient() {
           </div>
         }
       />
+
+      <InvoicingSetupBanner />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatsCard
@@ -270,8 +275,16 @@ export function InvoicesListClient() {
                             onClick: () => handleStatus(inv, "SENT"),
                           },
                           {
-                            label: "Download PDF",
+                            label: "Preview",
                             onClick: () => setPreviewDoc(inv),
+                          },
+                          {
+                            label: "Download PDF",
+                            onClick: () => {
+                              downloadFile(`/billing/invoices/${inv.id}/pdf`, `${inv.invoiceNumber}.pdf`).catch((e) =>
+                                toast.error(e instanceof Error ? e.message : "Could not download the PDF"),
+                              );
+                            },
                           },
                           {
                             label: "Void",

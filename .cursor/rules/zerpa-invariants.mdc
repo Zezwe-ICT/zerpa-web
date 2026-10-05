@@ -1,0 +1,57 @@
+---
+description: Zerpa platform invariants, stack truth and definition of done. Applies to all work in this repo.
+alwaysApply: true
+---
+
+# Stack truth (do not re-derive)
+
+- The API is **Django 5 + DRF** in `zerpa-api`. It is a modular monolith.
+- ADR-0001's "TypeScript modular monolith" sentence is **obsolete**. Never start a Node API. `apps/api` under `zerpa-web` was deleted on purpose.
+- Frontend is Next.js 15 + Tailwind v4 + shadcn/ui in `zerpa-web`. Packages: `packages/shared-types`, `packages/vertical-manifests`.
+- Django apps: core, tenancy, crm, billing, documents, communications, reporting, automation, assistant, nest, msp, telecom, funeral, spa, restaurant, automotive.
+- **The API uses DRF `APIView`, not `ViewSet`.** There is no shared queryset mixin enforcing company scoping — **every view scopes itself individually.** Assume nothing is inherited. When adding or touching a view, prove its scoping explicitly rather than trusting a base class.
+- Frontend typecheck path is `zerpa-web/apps/web/tsconfig.json` (not workspace-root `apps/web`).
+- Known pre-existing migration drift: `core` (`User` managers) and `telecom` (`CoverageWaitlist` index rename). Not yours to fix silently; never blend it into a report of your own changes.
+- `zerpa-web` is a git repo on master. `zerpa-api` is not a git repo. The parent `Zerpa-dev` folder is not a git repo. Do not assume API history exists; do not rely on `git log` for API context.
+- Canonical docs: `docs/PRODUCT_ENGINEERING_SPEC.md` (v3, except its TypeScript-API sentence), `docs/adr/0001–0005` (except 0001's stack), `docs/GLOSSARY.md`, `docs/plans/*`, `docs/gates/*`, `docs/DATA_CLASSIFICATION.md`, `docs/PLATFORM_ARCHITECTURE_SA.md`.
+- Historical, **do not follow**: `README.md`, `Progress.md`, `ZERPA_FRONTEND_SPECIFICATION.md`, `BUSINESS_ONBOARDING_FRAMEWORK.md`, `ARCHITECTURE.md`.
+- **Running Django + Next code wins if docs conflict.**
+
+# Invariants — never regress
+
+1. An empty company filter must never return company-wide or cross-tenant data.
+2. Missing membership / `X-Company-Id` → 403.
+3. Tenant context comes from authenticated membership (JWT + membership lookup). Never from a browser-supplied `tenantId` or localStorage. A missing or empty company hint is a **403**, never a fallback to the user's first membership.
+3a. Portal access is scoped to the portal member's own **account**, not to the company. A portal request with no account context is an error, not a wildcard.
+3b. Inbound webhooks are authenticated and may only advance a record that was already initiated by a legitimate flow. A webhook must never be able to complete or settle a record addressed only by id.
+4. Frontend action buttons must match server-enforced state machines exactly (TICKET_TRANSITIONS, telecom order/RICA machines, funeral/spa/restaurant/automotive transitions).
+5. `skipRica` only under DEBUG/tests. Never in production.
+6. Assist mutating actions require an explicit human decision. No auto-approve, no config flag that grants one.
+7. No nav entry for an unimplemented screen.
+8. Restricted data (ID numbers, RICA docs, death certificates, health notes, bank refs): need-to-know, masked where required, audited, retained to policy.
+9. Automations may create tasks/messages/jobs. They may not skip a required transition or a regulated approval.
+10. No vertical pack calls a provider SDK directly. Everything goes through a port.
+11. Invoices are immutable after issue.
+12. Billing never calls an accounting adapter directly. It emits ledger events; adapters subscribe.
+
+# Product scope — do not build
+
+- No full RMM, carrier OSS/core network, POS till clone, ConnectWise-depth PSA, national multi-FNO retail.
+- No funeral insurance: no policies, premiums, benefit records or claims. Arrangement, logistics and invoicing only.
+- No payroll. No MRP/BOM/multi-warehouse planning.
+- No SARS filing integration until SARS publishes the spec and accreditation exists. `FiscalPort` stays a no-op.
+- No native general ledger yet — see `docs/PLATFORM_ARCHITECTURE_SA.md` §2.2 for the triggers that change this.
+
+# Do not invent
+
+Never invent pricing, legal wording, security claims, spend figures, or unpublished features. **Prefer asking over guessing.** ZA defaults: ZAR, 15% VAT, POPIA, RICA, Africa/Johannesburg.
+
+# Definition of done for any slice
+
+- `USE_SQLITE=1 python3 manage.py migrate` in `zerpa-api`; fix drift you introduced (pre-existing core drift is not yours to fix silently — report it).
+- Run affected app tests (`apps.msp`, `apps.telecom`, `apps.billing`, …) and fix failures.
+- Frontend: `npx tsc --noEmit -p zerpa-web/apps/web/tsconfig.json` (run from the correct working directory); fix errors in files you touched.
+- Self-audit before reporting: tenant leaks, FE/API machine mismatch, missing nav icons/imports, Assist auto-approve, prod `skipRica`.
+- **Report what you actually ran and residual risks.** Do not claim shipped on green assumptions.
+
+Module DoD from the spec: migration · API contract · permission matrix · audit events · loading/empty/error UX · analytics · docs · retention/export · tests · seeded demo · ops alerts.

@@ -8,6 +8,7 @@
  */
 import { NextResponse } from "next/server";
 import { sendEmail, EmailConfigError } from "@/lib/server/email/ses";
+import { assertRouteAuth } from "@/lib/server/route-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,6 +16,9 @@ export const dynamic = "force-dynamic";
 const NO_STORE = { "Cache-Control": "no-store, max-age=0" } as const;
 
 export async function POST(request: Request) {
+  const unauthorized = await assertRouteAuth(request);
+  if (unauthorized) return unauthorized;
+
   let to: string | undefined;
   try {
     const body = (await request.json()) as { to?: string };

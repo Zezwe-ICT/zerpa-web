@@ -278,3 +278,52 @@
     margin: 12mm;
   }
 }
+
+/* ────────────────────────────────────────────────────────────────
+ * Bklit charts (components/charts). Colours follow Zerpa's tokens so
+ * charts re-theme with light/dark mode and a custom brand colour.
+ * ──────────────────────────────────────────────────────────────── */
+:root {
+  --chart-1: var(--color-primary);
+  --chart-2: #e1561b;
+  --chart-3: #2f7d6d;
+  --chart-4: #b8862b;
+  --chart-5: #7a5cc4;
+  --chart-background: var(--color-background);
+  --chart-foreground: var(--color-foreground);
+  --chart-foreground-muted: var(--color-muted-fg);
+  --chart-line-primary: var(--chart-1);
+  --chart-line-secondary: var(--chart-2);
+  --chart-crosshair: var(--color-muted-fg);
+  --chart-grid: var(--color-border);
+  --chart-brush-border: var(--color-border);
+  --chart-tooltip-background: rgba(13, 13, 20, 0.88);
+  --chart-tooltip-foreground: #ffffff;
+  --chart-tooltip-muted: #b4b4c2;
+  --chart-marker-background: var(--color-surface);
+  --chart-marker-border: var(--color-border-2);
+  --chart-marker-foreground: var(--color-foreground-2);
+  --chart-label: var(--color-muted-fg);
+}
+:root[data-theme="dark"] {
+  --chart-2: #f07a45;
+  --chart-3: #4fb39e;
+  --chart-4: #d9a948;
+  --chart-5: #a28ae0;
+  --chart-tooltip-background: rgba(242, 242, 245, 0.94);
+  --chart-tooltip-foreground: #0d0d14;
+  --chart-tooltip-muted: #5a5a6c;
+}
+/* Bklit reads a few shadcn tokens as full colours; ours are RGB triplets, so map them inside charts. */
+.zerpa-chart {
+  --foreground: var(--color-foreground);
+  --muted-foreground: var(--color-muted-fg);
+  --border: var(--color-border);
+  --color-muted: var(--color-surface-2);
+}
+@theme inline {
+  --color-chart-label: var(--chart-label);
+  --color-chart-tooltip-background: var(--chart-tooltip-background);
+  --color-chart-tooltip-foreground: var(--chart-tooltip-foreground);
+  --color-chart-tooltip-muted: var(--chart-tooltip-muted);
+}

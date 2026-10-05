@@ -1,16 +1,16 @@
 /**
  * @file components/ui/empty-state.tsx
  * @description EmptyState centred placeholder displayed when a list has no data.
- * Accepts an icon, title, description and optional action button.
+ * Accepts a Lucide (or similar) icon component, title, description and optional action.
  */
 "use client";
 
+import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type React from "react";
 
 interface EmptyStateProps {
-  icon: React.ReactNode;
+  icon: React.ComponentType<{ className?: string }>;
   title: string;
   description: string;
   action?: { label: string; onClick: () => void };
@@ -18,7 +18,7 @@ interface EmptyStateProps {
 }
 
 export function EmptyState({
-  icon,
+  icon: Icon,
   title,
   description,
   action,
@@ -27,7 +27,7 @@ export function EmptyState({
   return (
     <div className={cn("flex flex-col items-center justify-center py-20 text-center", className)}>
       <div className="rounded-[12px] bg-surface p-4 mb-4 border border-border">
-        {icon}
+        <Icon className="w-6 h-6 text-muted-fg" />
       </div>
       <h3 className="text-sm font-semibold text-foreground mb-1">{title}</h3>
       <p className="text-xs text-muted-fg max-w-xs">{description}</p>

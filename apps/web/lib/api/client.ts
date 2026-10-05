@@ -40,6 +40,7 @@ import { CONFIG } from "@/lib/config";
  * Using "zerpa_token" prefix to namespace and avoid conflicts
  */
 const TOKEN_KEY = "zerpa_token";
+const REFRESH_KEY = "zerpa_refresh_token";
 
 /**
  * Function: getToken
@@ -93,6 +94,38 @@ export function setToken(token: string): void {
  */
 export function clearToken(): void {
   localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(REFRESH_KEY);
+}
+
+export function setRefreshToken(token: string | undefined): void {
+  if (token) localStorage.setItem(REFRESH_KEY, token);
+  else localStorage.removeItem(REFRESH_KEY);
+}
+
+let refreshInFlight: Promise<boolean> | null = null;
+
+/** Swaps the refresh token for a new access token. Concurrent 401s share one attempt. */
+function refreshAccessToken(): Promise<boolean> {
+  if (typeof window === "undefined") return Promise.resolve(false);
+  const refresh = localStorage.getItem(REFRESH_KEY);
+  if (!refresh) return Promise.resolve(false);
+  refreshInFlight ??= fetch(`${CONFIG.apiUrl}/auth/refresh`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ refresh }),
+  })
+    .then(async (res) => {
+      if (!res.ok) return false;
+      const data = (await res.json()) as { access?: string };
+      if (!data.access) return false;
+      setToken(data.access);
+      return true;
+    })
+    .catch(() => false)
+    .finally(() => {
+      refreshInFlight = null;
+    });
+  return refreshInFlight;
 }
 
 /**
@@ -113,6 +146,8 @@ export function clearToken(): void {
  */
 type RequestOptions = Omit<RequestInit, "body"> & {
   body?: unknown;  // Typed body that will be JSON.stringify'd
+  /** Internal: set on the single retry after a token refresh. */
+  retriedAfterRefresh?: boolean;
 };
 
 /**
@@ -149,6 +184,28 @@ export class ApiError extends Error {
     super(message);
     this.name = "ApiError";
   }
+}
+
+/** Fired once when the API returns 401 so AuthProvider can send the user to login. */
+export const AUTH_INVALID_EVENT = "zerpa:auth-invalid";
+
+let authInvalidNotified = false;
+
+function notifyAuthInvalid() {
+  if (typeof window === "undefined") return;
+  clearToken();
+  if (authInvalidNotified) return;
+  authInvalidNotified = true;
+  window.dispatchEvent(new CustomEvent(AUTH_INVALID_EVENT));
+  // Allow a later successful sign-in to notify again if needed
+  window.setTimeout(() => {
+    authInvalidNotified = false;
+  }, 2000);
+}
+
+/** Reset the 401 latch after a successful login. */
+export function resetAuthInvalidLatch() {
+  authInvalidNotified = false;
 }
 
 /**
@@ -229,7 +286,7 @@ export async function apiRequest<T>(
   options: RequestOptions = {},
 ): Promise<T> {
   // Extract body and merge headers
-  const { body, headers: extraHeaders, ...rest } = options;
+  const { body, headers: extraHeaders, retriedAfterRefresh, ...rest } = options;
 
   // Build headers with content type and auth token
   const headers: Record<string, string> = {
@@ -243,17 +300,32 @@ export async function apiRequest<T>(
     headers["Authorization"] = `Bearer ${token}`;
   }
 
+  // Prefer membership-derived company context on the server
+  if (typeof window !== "undefined" && !headers["X-Company-Id"]) {
+    try {
+      const raw = localStorage.getItem("zerpa_company");
+      if (raw) {
+        const company = JSON.parse(raw) as { id?: string };
+        if (company.id) headers["X-Company-Id"] = company.id;
+      }
+    } catch {
+      // ignore corrupt storage
+    }
+  }
+
   // Resolve full API URL
   // Handle both /api/v1/... paths and direct /auth/... paths
   const url = path.startsWith("/api") || path.startsWith("/health")
     ? `${CONFIG.apiUrl.replace("/api/v1", "")}${path}`
     : `${CONFIG.apiUrl}${path}`;
 
-  // Log request for debugging
-  console.log(`[API] ${rest.method || "GET"} ${url}`, {
-    headers,
-    bodyPreview: body ? JSON.stringify(body).substring(0, 100) : undefined,
-  });
+  // Log request for debugging (debug only — console.error opens Next.js overlay)
+  if (process.env.NODE_ENV === "development" && process.env.NEXT_PUBLIC_API_DEBUG === "true") {
+    console.log(`[API] ${rest.method || "GET"} ${url}`, {
+      headers,
+      bodyPreview: body ? JSON.stringify(body).substring(0, 100) : undefined,
+    });
+  }
 
   // Execute fetch with error handling
   let res: Response;
@@ -266,13 +338,19 @@ export async function apiRequest<T>(
   } catch (networkErr) {
     // Network error (no internet, CORS blocked, invalid URL, etc.)
     const error = `Network error — could not reach ${url}. Check CORS or server availability.`;
-    console.error(`[API] Network Error on ${rest.method || "GET"} ${url}:`, networkErr);
-    console.error(`[API] Error Details:`, error);
+    if (process.env.NEXT_PUBLIC_API_DEBUG === "true") {
+      console.warn(`[API] Network Error on ${rest.method || "GET"} ${url}:`, networkErr);
+    }
     throw new ApiError(0, error);
   }
 
-  // Log response status
-  console.log(`[API] Response Status: ${res.status} ${res.statusText}`);
+  if (process.env.NEXT_PUBLIC_API_DEBUG === "true") {
+    console.log(`[API] Response Status: ${res.status} ${res.statusText}`);
+  }
+
+  if (res.status === 401 && !retriedAfterRefresh && !path.startsWith("/auth/") && (await refreshAccessToken())) {
+    return apiRequest<T>(path, { ...options, retriedAfterRefresh: true });
+  }
 
   // Handle HTTP errors (4xx, 5xx)
   if (!res.ok) {
@@ -281,7 +359,7 @@ export async function apiRequest<T>(
     try {
       // Try to parse error response
       const data = await res.json();
-      errorMessage = data.error ?? data.message ?? errorMessage;
+      errorMessage = data.error ?? data.message ?? data.detail ?? errorMessage;
       details = data.details;
       
       // Special handling for Zod validation errors
@@ -300,16 +378,24 @@ export async function apiRequest<T>(
     } catch {
       // Could not parse error response, use default message
     }
-    
-    console.error(`[API] Error Response (${res.status}):`, {
-      message: errorMessage,
-      details,
-    });
+
+    // Never console.error here — Next.js treats it as a blocking overlay even when
+    // callers catch and recover (dashboard soft-fails, settings stubs, etc.).
+    if (process.env.NEXT_PUBLIC_API_DEBUG === "true") {
+      console.warn(`[API] Error Response (${res.status}):`, { message: errorMessage, details });
+    }
+    if (res.status === 401) {
+      notifyAuthInvalid();
+    }
     throw new ApiError(res.status, errorMessage, details);
   }
 
+  if (res.status === 204) return undefined as T;
+
   // Success: parse and return response
   const responseData = await res.json();
-  console.log(`[API] Success Response:`, responseData);
+  if (process.env.NEXT_PUBLIC_API_DEBUG === "true") {
+    console.log(`[API] Success Response:`, responseData);
+  }
   return responseData as Promise<T>;
 }

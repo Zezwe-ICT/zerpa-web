@@ -1,23 +1,68 @@
-/**
- * @file components/layouts/internal-top-bar.tsx
- * @description Sticky top bar for the internal (admin) shell. Shows a global
- * search input, notification bell, and the logged-in user's avatar/initials.
- */
 "use client";
 
-import { Search, Bell, ChevronDown } from "lucide-react";
+import { useCallback } from "react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { Building2, FileText, LifeBuoy, Plus, Receipt, Ticket, UserPlus, Users } from "lucide-react";
+import { NotificationBell } from "./notification-bell";
+import { WhatsNew } from "@/components/announcements/whats-new";
 import { useAuth } from "@/lib/auth/context";
+import { useAppearance } from "@/lib/theme/context";
+import { CompanySwitcher } from "@/components/company-switcher";
+import ActionSearchBar, { type Action } from "@/components/kokonutui/action-search-bar";
+import ProfileDropdown from "@/components/kokonutui/profile-dropdown";
+import { searchRecords, type SearchResult } from "@/lib/api/search";
 
 interface TopBarProps {
   title?: string;
 }
 
-export function InternalTopBar({ title }: TopBarProps) {
-  const { user } = useAuth();
+const iconClass = "h-4 w-4";
+const QUICK_ACTIONS: Action[] = [
+  { id: "new-invoice", label: "New invoice", icon: <Plus className={`${iconClass} text-primary`} />, end: "Create", href: "/billing/invoices/new" },
+  { id: "new-quote", label: "New quote", icon: <Plus className={`${iconClass} text-primary`} />, end: "Create", href: "/billing/quotes/new" },
+  { id: "new-lead", label: "Add a lead", icon: <UserPlus className={`${iconClass} text-primary`} />, end: "Create", href: "/crm/leads/new" },
+  { id: "customers", label: "Customers", icon: <Users className={`${iconClass} text-muted-fg`} />, end: "Go to", href: "/clients" },
+  { id: "invoices", label: "Invoices", icon: <Receipt className={`${iconClass} text-muted-fg`} />, end: "Go to", href: "/billing/invoices" },
+];
 
-  const initials = user?.fullName
-    ? user.fullName.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()
-    : "?";
+const RESULT_ICONS: Record<SearchResult["type"], React.ReactNode> = {
+  customer: <Building2 className={`${iconClass} text-info`} />,
+  invoice: <Receipt className={`${iconClass} text-success`} />,
+  quote: <FileText className={`${iconClass} text-warning`} />,
+  lead: <UserPlus className={`${iconClass} text-primary`} />,
+  ticket: <Ticket className={`${iconClass} text-danger`} />,
+};
+
+const TYPE_LABEL: Record<SearchResult["type"], string> = {
+  customer: "Customer",
+  invoice: "Invoice",
+  quote: "Quote",
+  lead: "Lead",
+  ticket: "Ticket",
+};
+
+const rand = (n: number) =>
+  new Intl.NumberFormat("en-ZA", { style: "currency", currency: "ZAR", maximumFractionDigits: 0 }).format(n);
+
+export function InternalTopBar({ title }: TopBarProps) {
+  const router = useRouter();
+  const pathname = usePathname() ?? "/";
+  const { user, company, signOut } = useAuth();
+  const { settings, update } = useAppearance();
+
+  const onSearch = useCallback(async (q: string): Promise<Action[]> => {
+    const rows = await searchRecords(q);
+    return rows.map((r) => ({
+      id: `${r.type}-${r.id}`,
+      label: r.title,
+      description: r.subtitle,
+      icon: RESULT_ICONS[r.type],
+      short: r.amount != null ? rand(r.amount) : undefined,
+      end: TYPE_LABEL[r.type],
+      href: r.href,
+    }));
+  }, []);
 
   return (
     <header className="sticky top-0 z-40 bg-background border-b border-border h-14">
@@ -25,33 +70,39 @@ export function InternalTopBar({ title }: TopBarProps) {
         {title && <h2 className="text-sm font-semibold text-foreground">{title}</h2>}
         <div className="flex-1" />
 
-        {/* Search */}
-        <div className="flex items-center gap-2 bg-surface rounded-[6px] px-3 py-2 border border-border w-64">
-          <Search size={14} className="text-muted-fg" />
-          <input
-            type="text"
-            placeholder="Search..."
-            className="bg-transparent text-sm placeholder-muted-fg focus:outline-none flex-1"
-          />
-          <span className="text-xs text-muted-fg">⌘K</span>
-        </div>
+        <CompanySwitcher />
 
-        {/* Notifications */}
-        <button className="relative p-2 hover:bg-surface rounded-[6px] transition-colors">
-          <Bell size={16} className="text-foreground-2" />
-          <span className="absolute top-1 right-1 w-2 h-2 bg-danger rounded-full" />
-        </button>
+        <ActionSearchBar
+          actions={QUICK_ACTIONS}
+          onSearch={company?.id ? onSearch : undefined}
+          onSelect={(a) => router.push(a.href)}
+          placeholder="Search or jump to…"
+        />
 
-        {/* User Menu */}
-        <button className="flex items-center gap-2 px-3 py-1.5 hover:bg-surface rounded-[6px] transition-colors">
-          <div className="w-6 h-6 rounded-full bg-primary text-primary-fg flex items-center justify-center text-xs font-semibold">
-            {initials}
-          </div>
-          <span className="text-sm font-medium text-foreground">
-            {user?.fullName ?? "—"}
-          </span>
-          <ChevronDown size={14} className="text-muted-fg" />
-        </button>
+        <Link
+          href={pathname.startsWith("/help") ? "/help" : `/help?from=${encodeURIComponent(pathname)}`}
+          className="p-2 rounded-[6px] text-muted-fg hover:text-foreground hover:bg-surface"
+          aria-label="Help & support"
+          title="Help & support"
+        >
+          <LifeBuoy size={18} />
+        </Link>
+
+        <WhatsNew />
+
+        <NotificationBell />
+
+        <ProfileDropdown
+          data={{
+            name: user?.fullName ?? "—",
+            email: user?.email ?? "",
+            companyName: company?.name,
+            role: company?.role,
+          }}
+          theme={settings.theme}
+          onThemeChange={(theme) => update({ theme })}
+          onSignOut={signOut}
+        />
       </div>
     </header>
   );

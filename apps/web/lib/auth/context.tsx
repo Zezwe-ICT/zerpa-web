@@ -17,6 +17,7 @@ import {
 import { useRouter } from "next/navigation";
 import {
   signIn as apiSignIn,
+  verifyMfa as apiVerifyMfa,
   register as apiRegister,
   getCompanies as apiGetCompanies,
   createCompany as apiCreateCompany,
@@ -28,7 +29,7 @@ import type {
   AuthCompany,
   CreateCompanyPayload,
 } from "@/lib/api/auth";
-import { clearToken, getToken, setToken } from "@/lib/api/client";
+import { clearToken, getToken, setToken, setRefreshToken, AUTH_INVALID_EVENT, resetAuthInvalidLatch } from "@/lib/api/client";
 
 /**
  * Represents an authenticated user in the ZERPA system
@@ -42,6 +43,8 @@ export interface AuthUser {
   id: string;
   email: string;
   fullName: string;
+  /** False until the person clicks the link in their verification email. Missing = older session. */
+  emailVerified?: boolean;
 }
 
 /**
@@ -78,13 +81,21 @@ interface AuthContextValue {
   companies: AuthCompany[];
   isLoading: boolean;
   isAuthenticated: boolean;
-  signIn: (payload: SignInPayload) => Promise<void>;
+  /** Password step. Resolves with mfaRequired when an authenticator code is needed next. */
+  signIn: (payload: SignInPayload) => Promise<SignInResult>;
+  /** Second step for accounts with two-step sign-in. */
+  completeMfa: (mfaToken: string, code: string) => Promise<void>;
   register: (payload: RegisterPayload) => Promise<AuthResponse>;
   selectCompany: (companyId: string) => void;
   addCompany: (payload: CreateCompanyPayload) => Promise<AuthCompany>;
+  attachCompany: (company: AuthCompany) => void;
   setCompany: (company: AuthCompany) => void;
   signOut: () => void;
+  /** Merge changes into the signed-in user (e.g. after verifying their email) and persist them. */
+  updateUser: (patch: Partial<AuthUser>) => void;
 }
+
+export type SignInResult = { mfaRequired: false } | { mfaRequired: true; mfaToken: string };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
@@ -147,40 +158,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const storedCompany = localStorage.getItem(COMPANY_KEY);
     const storedCompanies = localStorage.getItem(COMPANIES_KEY);
 
-    // Only load user if we have a valid token
+    // Only restore session when a token is present. Company without auth caused
+    // dashboard fetches to hit the API with 401 (no Authorization header).
     if (token && storedUser) {
       try {
         setUser(JSON.parse(storedUser));
       } catch {
-        // Data corrupted, clear auth
         clearToken();
         localStorage.removeItem(USER_KEY);
       }
-    }
 
-    // Load active company (regardless of token)
-    if (storedCompany) {
-      try {
-        setCompanyState(JSON.parse(storedCompany));
-      } catch {
-        // Data corrupted, clear it
-        localStorage.removeItem(COMPANY_KEY);
+      if (storedCompany) {
+        try {
+          setCompanyState(JSON.parse(storedCompany));
+        } catch {
+          localStorage.removeItem(COMPANY_KEY);
+        }
       }
-    }
 
-    // Load all companies (regardless of token)
-    if (storedCompanies) {
-      try {
-        setCompaniesState(JSON.parse(storedCompanies));
-      } catch {
-        // Data corrupted, clear it
-        localStorage.removeItem(COMPANIES_KEY);
+      if (storedCompanies) {
+        try {
+          setCompaniesState(JSON.parse(storedCompanies));
+        } catch {
+          localStorage.removeItem(COMPANIES_KEY);
+        }
       }
+    } else {
+      clearToken();
+      localStorage.removeItem(USER_KEY);
+      // Keep company keys so select-company can still hint after re-login,
+      // but do not hydrate active company into React without a token.
     }
 
     // Mark rehydration complete
     setIsLoading(false);
   }, []);
+
+  // Invalid / expired JWT → clear session and return to login
+  useEffect(() => {
+    function onAuthInvalid() {
+      clearToken();
+      localStorage.removeItem(USER_KEY);
+      localStorage.removeItem(COMPANY_KEY);
+      localStorage.removeItem(COMPANIES_KEY);
+      setUser(null);
+      setCompanyState(null);
+      setCompaniesState([]);
+      router.replace("/login");
+    }
+    window.addEventListener(AUTH_INVALID_EVENT, onAuthInvalid);
+    return () => window.removeEventListener(AUTH_INVALID_EVENT, onAuthInvalid);
+  }, [router]);
 
   /**
    * Function: signIn
@@ -209,13 +237,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * @param {SignInPayload} payload - {email, password}
    * @throws {Error} - If API call fails (displayed to user in UI)
    */
-  const signIn = useCallback(
-    async (payload: SignInPayload) => {
-      // Authenticate with backend
-      const res = await apiSignIn(payload);
-      
+  /** Stores the session, loads the user's companies and routes (shared by both sign-in steps). */
+  const finishSignIn = useCallback(
+    async (res: AuthResponse) => {
       // Store JWT token (for subsequent API calls)
       setToken(res.token);
+      setRefreshToken(res.refreshToken);
       
       // Store user info in localStorage and context
       localStorage.setItem(USER_KEY, JSON.stringify(res.user));
@@ -265,6 +292,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     },
     [router]
+  );
+
+  const signIn = useCallback(
+    async (payload: SignInPayload): Promise<SignInResult> => {
+      resetAuthInvalidLatch();
+      const res = await apiSignIn(payload);
+      if ("mfaRequired" in res && res.mfaRequired) {
+        return { mfaRequired: true, mfaToken: res.mfaToken };
+      }
+      await finishSignIn(res as AuthResponse);
+      return { mfaRequired: false };
+    },
+    [finishSignIn]
+  );
+
+  const completeMfa = useCallback(
+    async (mfaToken: string, code: string) => {
+      resetAuthInvalidLatch();
+      await finishSignIn(await apiVerifyMfa(mfaToken, code));
+    },
+    [finishSignIn]
   );
 
   /**
@@ -338,6 +386,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [companies]
   );
 
+  /** Attach an already-created company without a second POST. */
+  const attachCompany = useCallback((company: AuthCompany) => {
+    setCompaniesState((prev) => {
+      const exists = prev.some((c) => c.id === company.id);
+      const updated = exists ? prev : [...prev, company];
+      localStorage.setItem(COMPANIES_KEY, JSON.stringify(updated));
+      return updated;
+    });
+    localStorage.setItem(COMPANY_KEY, JSON.stringify(company));
+    setCompanyState(company);
+  }, []);
+
   /**
    * Function: register
    * 
@@ -360,8 +420,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * @throws {Error} - If API call fails
    */
   const register = useCallback(async (payload: RegisterPayload) => {
+    resetAuthInvalidLatch();
     const res = await apiRegister(payload);
     setToken(res.token);
+    setRefreshToken(res.refreshToken);
     
     // Save user to context and storage
     localStorage.setItem(USER_KEY, JSON.stringify(res.user));
@@ -411,6 +473,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    *
    * Note: Should be called when user clicks logout or token expires
    */
+  const updateUser = useCallback((patch: Partial<AuthUser>) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, ...patch };
+      localStorage.setItem(USER_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
   const signOut = useCallback(() => {
     // Clear token from secure storage
     clearToken();
@@ -438,11 +509,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         isAuthenticated: !!user,
         signIn,
+        completeMfa,
         register,
         selectCompany,
         addCompany,
+        attachCompany,
         setCompany,
         signOut,
+        updateUser,
       }}
     >
       {children}

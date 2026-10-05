@@ -1,15 +1,17 @@
 {
   "name": "zerpa-erp",
-  "version": "2.0.0",
-  "description": "ZERPA ERP - Modern SaaS Platform for Funeral, Automotive, Restaurant & Spa Industries",
+  "version": "3.0.0",
+  "description": "ZERPA — modular multi-vertical CRM platform for South Africa (web)",
   "private": true,
   "packageManager": "npm@10.9.2",
   "workspaces": [
     "apps/web",
-    "packages/shared-types"
+    "packages/shared-types",
+    "packages/vertical-manifests"
   ],
   "scripts": {
     "dev": "turbo dev",
+    "dev:web": "npm run dev -w zerpa-web",
     "build": "turbo build",
     "start": "turbo start",
     "test": "turbo test",
@@ -25,10 +27,5 @@
   },
   "engines": {
     "node": ">=18.0.0"
-  },
-  "dependencies": {
-    "@tailwindcss/postcss": "^4.2.2",
-    "lucide-react": "^1.7.0",
-    "next": "^15.0.0"
   }
 }

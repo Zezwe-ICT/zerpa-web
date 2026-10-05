@@ -18,8 +18,8 @@ export function DashboardGreeting() {
   const firstName = user?.fullName?.split(" ")[0] ?? "there";
 
   return (
-    <p className="text-muted-fg text-sm">
+    <span>
       {greeting}, {firstName}. Here&apos;s what&apos;s happening today.
-    </p>
+    </span>
   );
 }

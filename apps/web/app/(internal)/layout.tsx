@@ -8,8 +8,12 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { AppRouteGuard } from "@/components/layouts/app-route-guard";
 import { InternalShell } from "@/components/layouts/internal-shell";
+import { NpsPrompt } from "@/components/feedback/nps-prompt";
+import { PageTracker } from "@/components/analytics/page-tracker";
 import { useAuth } from "@/lib/auth/context";
+import { ZerpaLoader } from "@/components/brand/zerpa-loader";
 
 export default function InternalLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -24,12 +28,18 @@ export default function InternalLayout({ children }: { children: React.ReactNode
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-surface">
-        <div className="text-muted-fg text-sm">Loading…</div>
+        <ZerpaLoader title="Opening your workspace" />
       </div>
     );
   }
 
   if (!isAuthenticated) return null;
 
-  return <InternalShell>{children}</InternalShell>;
+  return (
+    <InternalShell>
+      <AppRouteGuard>{children}</AppRouteGuard>
+      <NpsPrompt />
+      <PageTracker />
+    </InternalShell>
+  );
 }

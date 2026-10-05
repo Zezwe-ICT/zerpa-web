@@ -17,6 +17,7 @@ import {
   revokeApiKey,
 } from "@/lib/api/settings";
 import type { TeamMember } from "@/lib/api/settings";
+import { emailHeaders } from "@/lib/api/email";
 
 interface ApiKey {
   id: string;
@@ -93,7 +94,7 @@ export function SecuritySettings() {
       try {
         await fetch("/api/email/invite", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: emailHeaders(),
           body: JSON.stringify({
             to: newMemberEmail,
             companyName: company.name,

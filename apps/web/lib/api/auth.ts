@@ -73,10 +73,12 @@ export interface AuthCompany {
  */
 export interface AuthResponse {
   token: string;
+  refreshToken?: string;
   user: {
     id: string;
     email: string;
     fullName: string;
+    emailVerified?: boolean;
   };
   company?: AuthCompany;
   companies?: AuthCompany[];
@@ -101,6 +103,10 @@ export interface RegisterPayload {
   email: string;
   fullName: string;
   password: string;
+  phone?: string;
+  /** Must be true — POPIA / terms acceptance is required by the API. */
+  acceptTerms: true;
+  marketingOptIn?: boolean;
 }
 
 /**
@@ -141,11 +147,23 @@ export interface SignInPayload {
  * @returns {Promise<AuthResponse>} - User, token, and optional companies
  * @throws {ApiError} - If authentication fails
  */
-export function signIn(payload: SignInPayload): Promise<AuthResponse> {
-  return apiRequest<AuthResponse>("/auth/sign-in", {
+/** With two-step sign-in on, the password step returns this instead of a session. */
+export interface MfaChallenge {
+  mfaRequired: true;
+  mfaToken: string;
+  email: string;
+}
+
+export function signIn(payload: SignInPayload): Promise<AuthResponse | MfaChallenge> {
+  return apiRequest<AuthResponse | MfaChallenge>("/auth/sign-in", {
     method: "POST",
     body: payload,
   });
+}
+
+/** Second step: the 6-digit code from the authenticator app (or a backup code). */
+export function verifyMfa(mfaToken: string, code: string): Promise<AuthResponse> {
+  return apiRequest<AuthResponse>("/auth/2fa/verify", { method: "POST", body: { mfaToken, code } });
 }
 
 /**

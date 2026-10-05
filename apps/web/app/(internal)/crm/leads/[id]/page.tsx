@@ -25,29 +25,12 @@ import {
 import Link from "next/link";
 import { Send } from "lucide-react";
 import { toast } from "sonner";
-import { getLeadById } from "@/lib/data/crm";
+import { getLeadById, saveLeadNote, updateLeadStatus, updateLeadWork } from "@/lib/data/crm";
+import { DEFAULT_LEAD_STAGES, getLeadStages } from "@/lib/data/lead-stages";
+import type { PipelineStage } from "@/lib/api/customization";
 import { useAuth } from "@/lib/auth/context";
 import type { Lead, LeadActivity, LeadStatus, LeadActivityType } from "@zerpa/shared-types";
-
-// ── Pipeline config ────────────────────────────────────────
-
-const PIPELINE_STAGES: { key: LeadStatus; label: string }[] = [
-  { key: "NEW", label: "New" },
-  { key: "CONTACTED", label: "Contacted" },
-  { key: "QUALIFIED", label: "Qualified" },
-  { key: "PROPOSAL", label: "Proposal" },
-  { key: "NEGOTIATION", label: "Negotiation" },
-];
-
-function getNextStage(current: LeadStatus): LeadStatus | null {
-  const idx = PIPELINE_STAGES.findIndex((s) => s.key === current);
-  if (idx === -1 || idx >= PIPELINE_STAGES.length - 1) return null;
-  return PIPELINE_STAGES[idx + 1].key;
-}
-
-function getStageLabel(status: LeadStatus): string {
-  return PIPELINE_STAGES.find((s) => s.key === status)?.label ?? status;
-}
+import { emailHeaders } from "@/lib/api/email";
 
 // ── Activity helpers ───────────────────────────────────────
 
@@ -88,6 +71,47 @@ export default function LeadDetailPage() {
   // Local mutable state for activities and stage
   const [activities, setActivities] = useState<LeadActivity[]>([]);
   const [currentStatus, setCurrentStatus] = useState<LeadStatus>("NEW");
+  const [stages, setStages] = useState<PipelineStage[]>(DEFAULT_LEAD_STAGES);
+  const [changingStage, setChangingStage] = useState(false);
+
+  const openStages = stages.filter((s) => s.kind === "open");
+  const wonStage = stages.find((s) => s.kind === "won");
+  const lostStage = stages.find((s) => s.kind === "lost");
+
+  function getNextStage(current: string): LeadStatus | null {
+    const idx = openStages.findIndex((s) => s.key === current);
+    if (idx === -1 || idx >= openStages.length - 1) return null;
+    return openStages[idx + 1].key as LeadStatus;
+  }
+
+  function getStageLabel(key: string): string {
+    return stages.find((s) => s.key === key)?.label ?? key;
+  }
+
+  /** Saves the stage first so the screen never shows a stage the API rejected. */
+  async function changeStage(to: string): Promise<boolean> {
+    setChangingStage(true);
+    try {
+      const updated = await updateLeadStatus(id, to, company?.id);
+      setLead(updated);
+      setCurrentStatus(updated.status);
+      setActivities(updated.activities ?? []);
+      return true;
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not change stage");
+      return false;
+    } finally {
+      setChangingStage(false);
+    }
+  }
+
+  async function reloadLead() {
+    const data = await getLeadById(id, company?.id);
+    if (!data) return;
+    setLead(data);
+    setCurrentStatus(data.status);
+    setActivities(data.activities ?? []);
+  }
 
   // Log activity form state
   const [showLogForm, setShowLogForm] = useState(false);
@@ -122,100 +146,51 @@ export default function LeadDetailPage() {
       .finally(() => setLoading(false));
   }, [id, company?.id]);
 
+  useEffect(() => {
+    getLeadStages()
+      .then(setStages)
+      .catch(() => setStages(DEFAULT_LEAD_STAGES));
+  }, [company?.id]);
+
   function handleAdvanceStage() {
     const next = getNextStage(currentStatus);
-    if (!next) return;
-    const stageActivity: LeadActivity = {
-      id: `act-${Date.now()}`,
-      leadId: id,
-      type: "STAGE_CHANGE",
-      date: new Date().toISOString(),
-      summary: `Moved to ${getStageLabel(next)}`,
-      stageChangedFrom: currentStatus,
-      stageChangedTo: next,
-      agentName: "You",
-    };
-    setActivities((prev) => [stageActivity, ...prev]);
-    setCurrentStatus(next);
+    if (next) void changeStage(next);
   }
 
   function handleMarkWon() {
-    const stageActivity: LeadActivity = {
-      id: `act-${Date.now()}`,
-      leadId: id,
-      type: "STAGE_CHANGE",
-      date: new Date().toISOString(),
-      summary: "Lead marked as Closed Won",
-      stageChangedFrom: currentStatus,
-      stageChangedTo: "CLOSED_WON",
-      agentName: "You",
-    };
-    setActivities((prev) => [stageActivity, ...prev]);
-    setCurrentStatus("CLOSED_WON");
+    if (wonStage) void changeStage(wonStage.key);
   }
 
   function handleMarkLost() {
-    const stageActivity: LeadActivity = {
-      id: `act-${Date.now()}`,
-      leadId: id,
-      type: "STAGE_CHANGE",
-      date: new Date().toISOString(),
-      summary: "Lead marked as Closed Lost",
-      stageChangedFrom: currentStatus,
-      stageChangedTo: "CLOSED_LOST",
-      agentName: "You",
-    };
-    setActivities((prev) => [stageActivity, ...prev]);
-    setCurrentStatus("CLOSED_LOST");
+    if (lostStage) void changeStage(lostStage.key);
   }
 
-  function handleLogSubmit(e: React.FormEvent) {
+  async function handleLogSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!logForm.summary.trim()) return;
 
     setSubmitting(true);
-    const newActivity: LeadActivity = {
-      id: `act-${Date.now()}`,
-      leadId: id,
-      type: logType,
-      date: new Date().toISOString(),
-      summary: logForm.summary,
-      notes: logForm.notes || undefined,
-      nextSteps: logForm.nextSteps || undefined,
-      durationMinutes:
-        logType === "CALL" && logForm.durationMinutes
-          ? Number(logForm.durationMinutes)
-          : undefined,
-      agentName: "You",
-    };
-
-    // Optionally advance stage
-    if (logForm.advanceStage) {
-      const next = getNextStage(currentStatus);
+    try {
+      await saveLeadNote(id, {
+        kind: logType,
+        summary: logForm.summary,
+        notes: logForm.notes,
+        nextStep: logForm.nextSteps,
+      });
+      const next = logForm.advanceStage ? getNextStage(currentStatus) : null;
       if (next) {
-        const stageActivity: LeadActivity = {
-          id: `act-${Date.now() + 1}`,
-          leadId: id,
-          type: "STAGE_CHANGE",
-          date: new Date().toISOString(),
-          summary: `Moved to ${getStageLabel(next)}`,
-          stageChangedFrom: currentStatus,
-          stageChangedTo: next,
-          agentName: "You",
-        };
-        setActivities((prev) => [stageActivity, newActivity, ...prev]);
-        setCurrentStatus(next);
+        const moved = await changeStage(next);
+        if (!moved) return;
       } else {
-        setActivities((prev) => [newActivity, ...prev]);
+        await reloadLead();
       }
-    } else {
-      setActivities((prev) => [newActivity, ...prev]);
+      setLogForm({ summary: "", notes: "", nextSteps: "", durationMinutes: "", advanceStage: false });
+      setShowLogForm(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not save that note");
+    } finally {
+      setSubmitting(false);
     }
-
-    // Reset form
-    setLogForm({ summary: "", notes: "", nextSteps: "", durationMinutes: "", advanceStage: false });
-    setShowLogForm(false);
-    setSubmitting(false);
   }
 
   async function handleSendEmail(e: React.FormEvent) {
@@ -227,9 +202,14 @@ export default function LeadDetailPage() {
 
     setSendingEmail(true);
     try {
+      await saveLeadNote(id, {
+        kind: "email",
+        summary: `Emailed ${to}: ${subject}`,
+        notes: message,
+      });
       const res = await fetch("/api/email/lead", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: emailHeaders(),
         body: JSON.stringify({
           to,
           subject,
@@ -242,21 +222,10 @@ export default function LeadDetailPage() {
         ok?: boolean;
         error?: string;
       };
+      await reloadLead();
       if (!res.ok || !data.ok) {
         throw new Error(data.error || "Failed to send email");
       }
-
-      // Record the outreach as an EMAIL activity in the timeline.
-      const emailActivity: LeadActivity = {
-        id: `act-${Date.now()}`,
-        leadId: id,
-        type: "EMAIL",
-        date: new Date().toISOString(),
-        summary: `Emailed ${to}: ${subject}`,
-        notes: message,
-        agentName: user?.fullName || "You",
-      };
-      setActivities((prev) => [emailActivity, ...prev]);
       setEmailForm({ subject: "", message: "" });
       setShowEmailForm(false);
       toast.success("Email sent");
@@ -298,9 +267,11 @@ export default function LeadDetailPage() {
   }
 
   const nextStage = getNextStage(currentStatus);
-  const isClosed =
-    currentStatus === "CLOSED_WON" || currentStatus === "CLOSED_LOST";
-  const isLastActiveStage = currentStatus === "NEGOTIATION";
+  const currentKind = stages.find((s) => s.key === currentStatus)?.kind;
+  const isWon = currentKind === "won" || currentStatus === "CLOSED_WON";
+  const isLost = currentKind === "lost" || currentStatus === "CLOSED_LOST";
+  const isClosed = currentKind ? currentKind !== "open" : isWon || isLost;
+  const isLastActiveStage = openStages[openStages.length - 1]?.key === currentStatus;
 
   // Sort activities newest first for display
   const sortedActivities = [...activities].sort(
@@ -327,13 +298,54 @@ export default function LeadDetailPage() {
         {lead.title && (
           <p className="text-sm text-muted-fg mt-0.5">{lead.company}</p>
         )}
+        <div className="mt-4 flex flex-wrap items-end gap-3">
+          <label className="text-xs text-muted-fg space-y-1">
+            <span className="block">Next step</span>
+            <input
+              className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground"
+              defaultValue={lead.nextStep || ""}
+              key={lead.nextStep || "next-step"}
+              onBlur={async (e) => {
+                try {
+                  const updated = await updateLeadWork(id, { nextStep: e.target.value });
+                  setLead(updated);
+                  setActivities(updated.activities ?? []);
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : "Could not save the next step");
+                }
+              }}
+            />
+          </label>
+          {user?.id && lead.assignedAgentId !== user.id && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={async () => {
+                try {
+                  const updated = await updateLeadWork(id, { ownerId: user.id });
+                  setLead(updated);
+                  toast.success("Assigned to you");
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : "Could not assign this lead");
+                }
+              }}
+            >
+              Assign to me
+            </Button>
+          )}
+          {lead.quoteId && (
+            <Link href={`/billing/quotes/${lead.quoteId}`} className="text-sm text-primary hover:underline">
+              Open the draft quote
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* ── Pipeline Stepper ────────────────────────────────── */}
       <div className="rounded-[12px] border border-border bg-background p-4 mb-6">
         <div className="flex items-center gap-0 overflow-x-auto">
-          {PIPELINE_STAGES.map((stage, idx) => {
-            const stageIdx = PIPELINE_STAGES.findIndex(
+          {openStages.map((stage, idx) => {
+            const stageIdx = openStages.findIndex(
               (s) => s.key === currentStatus
             );
             const isActive = stage.key === currentStatus;
@@ -380,7 +392,7 @@ export default function LeadDetailPage() {
                     </span>
                   </div>
                 </div>
-                {idx < PIPELINE_STAGES.length - 1 && (
+                {idx < openStages.length - 1 && (
                   <ChevronRight
                     size={14}
                     className={`flex-shrink-0 ${
@@ -399,9 +411,9 @@ export default function LeadDetailPage() {
             />
             <div
               className={`flex flex-col items-center px-2 py-1 rounded-[8px] ${
-                currentStatus === "CLOSED_WON"
+                isWon
                   ? "bg-success-bg"
-                  : currentStatus === "CLOSED_LOST"
+                  : isLost
                   ? "bg-danger-bg"
                   : ""
               }`}
@@ -409,23 +421,23 @@ export default function LeadDetailPage() {
               <div className="flex items-center gap-1.5 mb-1">
                 <div
                   className={`w-3 h-3 rounded-full flex-shrink-0 ${
-                    currentStatus === "CLOSED_WON"
+                    isWon
                       ? "bg-success"
-                      : currentStatus === "CLOSED_LOST"
+                      : isLost
                       ? "bg-danger"
                       : "bg-border"
                   }`}
                 />
                 <span
                   className={`text-xs font-medium whitespace-nowrap ${
-                    currentStatus === "CLOSED_WON"
+                    isWon
                       ? "text-success"
-                      : currentStatus === "CLOSED_LOST"
+                      : isLost
                       ? "text-danger"
                       : "text-muted-fg"
                   }`}
                 >
-                  {currentStatus === "CLOSED_LOST" ? "Lost" : "Won"}
+                  {isLost ? lostStage?.label ?? "Lost" : wonStage?.label ?? "Won"}
                 </span>
               </div>
             </div>
@@ -901,6 +913,7 @@ export default function LeadDetailPage() {
                     className="w-full justify-start gap-2"
                     size="sm"
                     onClick={handleAdvanceStage}
+                    disabled={changingStage}
                   >
                     <ChevronRight size={14} />
                     Move to {getStageLabel(nextStage)}
@@ -912,6 +925,7 @@ export default function LeadDetailPage() {
                       className="w-full justify-start gap-2 bg-success hover:bg-success/90 text-white"
                       size="sm"
                       onClick={handleMarkWon}
+                      disabled={changingStage}
                     >
                       <CheckCircle2 size={14} />
                       Mark as Won
@@ -921,6 +935,7 @@ export default function LeadDetailPage() {
                       className="w-full justify-start gap-2 border-danger text-danger hover:bg-danger-bg"
                       size="sm"
                       onClick={handleMarkLost}
+                      disabled={changingStage}
                     >
                       <X size={14} />
                       Mark as Lost
@@ -933,6 +948,7 @@ export default function LeadDetailPage() {
                       className="w-full justify-start gap-2 bg-success hover:bg-success/90 text-white"
                       size="sm"
                       onClick={handleMarkWon}
+                      disabled={changingStage}
                     >
                       <CheckCircle2 size={14} />
                       Mark as Won
@@ -942,6 +958,7 @@ export default function LeadDetailPage() {
                       className="w-full justify-start gap-2 border-danger text-danger hover:bg-danger-bg"
                       size="sm"
                       onClick={handleMarkLost}
+                      disabled={changingStage}
                     >
                       <X size={14} />
                       Mark as Lost

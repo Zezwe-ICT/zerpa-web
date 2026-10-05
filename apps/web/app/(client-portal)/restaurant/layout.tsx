@@ -1,15 +1,8 @@
-/**
- * @file app/(client-portal)/restaurant/layout.tsx
- * @description Layout for the Restaurant client portal vertical. Wraps pages
- * in ClientPortalNav with links to Dashboard, Orders and Invoices.
- */
 import { ClientPortalNav } from "@/components/layouts/client-portal-nav";
 
 const RESTAURANT_NAV_ITEMS = [
   { label: "Dashboard", href: "/restaurant/dashboard" },
-  { label: "Orders", href: "/restaurant/orders" },
-  { label: "Kitchen", href: "/restaurant/kitchen" },
-  { label: "Menu", href: "/restaurant/menu" },
+  { label: "Reservations", href: "/restaurant/reservations" },
   { label: "Invoices", href: "/restaurant/invoices" },
 ];
 

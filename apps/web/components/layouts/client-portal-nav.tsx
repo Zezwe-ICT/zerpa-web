@@ -11,6 +11,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { ChevronDown } from "lucide-react";
 import type { Vertical } from "@zerpa/shared-types";
+import { ZerpaLogo } from "@/components/brand/zerpa-logo";
 
 interface ClientPortalNavProps {
   vertical: Vertical;
@@ -22,6 +23,9 @@ const VERTICAL_NAMES: Record<Vertical, string> = {
   AUTOMOTIVE: "Automotive",
   RESTAURANT: "Restaurant",
   SPA: "Spa & Wellness",
+  MSP: "Managed Services",
+  TELECOM: "Telecom",
+  GENERIC: "Client Portal",
 };
 
 export function ClientPortalNav({ vertical, navItems }: ClientPortalNavProps) {
@@ -36,11 +40,8 @@ export function ClientPortalNav({ vertical, navItems }: ClientPortalNavProps) {
       <div className="flex items-center justify-between px-6 h-full gap-6">
         {/* Logo & Portal Name */}
         <div className="flex items-center gap-4">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-[6px] bg-primary text-primary-fg flex items-center justify-center font-bold text-lg">
-              Z
-            </div>
-            <span className="font-display text-sm font-normal">Zerpa</span>
+          <Link href="/" className="flex items-center">
+            <ZerpaLogo className="h-7" />
           </Link>
           <span className="text-xs text-muted-fg">|</span>
           <span className="text-sm font-medium text-foreground">{VERTICAL_NAMES[vertical]}</span>

@@ -6,7 +6,7 @@ import {
   getMockContacts,
   getMockContactById,
 } from "@/lib/mock/leads";
-import type { Lead, Contact } from "@zerpa/shared-types";
+import type { Lead, Contact, LeadActivity } from "@zerpa/shared-types";
 
 // ─── API response shapes ─────────────────────────────────
 
@@ -23,22 +23,35 @@ interface ApiContact {
   updatedAt: string;
 }
 
+interface ApiLeadActivity {
+  id: string;
+  type: LeadActivity["type"];
+  date: string;
+  summary: string;
+  notes?: string;
+  agentName?: string | null;
+}
+
 interface ApiLead {
   id: string;
-  tenantId: string;
-  contactId: string;
-  assignedTo: string | null;
-  stage: string;
-  vertical: string | null;
-  priority: number;
-  estimatedValue: number | null;
-  notes: string | null;
-  createdAt: string;
-  updatedAt: string;
-  // Server may populate contact inline
+  tenantId?: string;
+  contactId?: string;
+  assignedTo?: string | null;
+  ownerId?: string | null;
+  stage?: string;
+  status?: string;
+  vertical?: string | null;
+  priority?: number;
+  estimatedValue?: number | null;
+  notes?: string | null;
+  nextStep?: string | null;
+  quoteId?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
   contact?: ApiContact;
-  // Server may include company name as an extension
   company?: string;
+  title?: string;
+  activities?: ApiLeadActivity[];
 }
 
 function mapApiContact(c: ApiContact): Contact {
@@ -56,19 +69,31 @@ function mapApiContact(c: ApiContact): Contact {
 
 function mapApiLead(l: ApiLead): Lead {
   const contact = l.contact ? mapApiContact(l.contact) : undefined;
+  const now = new Date().toISOString();
   return {
     id: l.id,
-    contactId: l.contactId,
+    contactId: l.contactId || "",
     contact,
     company: l.company ?? contact?.company ?? "",
-    vertical: (l.vertical as Lead["vertical"]) ?? "FUNERAL",
-    status: l.stage as Lead["status"],
-    estimatedValue: l.estimatedValue ?? 0,
+    vertical: (l.vertical as Lead["vertical"]) ?? "GENERIC",
+    status: (l.status ?? l.stage ?? "NEW") as Lead["status"],
+    estimatedValue: Number(l.estimatedValue ?? 0),
     currency: "ZAR",
-    assignedAgentId: l.assignedTo ?? undefined,
+    assignedAgentId: l.ownerId ?? l.assignedTo ?? undefined,
+    nextStep: l.nextStep ?? null,
+    quoteId: l.quoteId ?? null,
     notes: l.notes ?? undefined,
-    createdAt: l.createdAt,
-    updatedAt: l.updatedAt,
+    createdAt: l.createdAt ?? now,
+    updatedAt: l.updatedAt ?? now,
+    activities: (l.activities ?? []).map((row) => ({
+      id: row.id,
+      leadId: l.id,
+      type: row.type,
+      date: row.date,
+      summary: row.summary,
+      notes: row.notes,
+      agentName: row.agentName ?? undefined,
+    })),
   };
 }
 
@@ -92,11 +117,10 @@ export async function getLeads(
     if (status) params.set("stage", status);
     const qs = params.toString();
     const leads = await apiRequest<ApiLead[]>(
-      `/api/v1/crm/leads${qs ? `?${qs}` : ""}`
+      `/crm/leads${qs ? `?${qs}` : ""}`
     );
     return (leads ?? []).map(mapApiLead);
-  } catch (error) {
-    console.error("Failed to fetch leads:", error);
+  } catch {
     return [];
   }
 }
@@ -111,16 +135,34 @@ export async function getLeadById(
   }
 
   try {
-    const params = new URLSearchParams();
-    if (tenantId) params.set("tenantId", tenantId);
-    const qs = params.toString();
-    const leads = await apiRequest<ApiLead[]>(`/api/v1/crm/leads${qs ? `?${qs}` : ""}`);
-    const lead = (leads ?? []).find((l) => l.id === id);
-    return lead ? mapApiLead(lead) : undefined;
+    const lead = await apiRequest<ApiLead>(`/crm/leads/${id}`);
+    return mapApiLead(lead);
   } catch (error) {
     console.error("Failed to fetch lead:", error);
     return undefined;
   }
+}
+
+export async function saveLeadNote(
+  id: string,
+  body: { kind: string; summary: string; notes?: string; nextStep?: string }
+) {
+  return apiRequest(`/timeline`, {
+    method: "POST",
+    body: {
+      recordType: "lead",
+      recordId: id,
+      kind: body.kind.toLowerCase(),
+      subject: body.summary,
+      body: body.notes || body.summary,
+      nextStep: body.nextStep,
+    },
+  });
+}
+
+export async function updateLeadWork(id: string, body: { nextStep?: string; ownerId?: string | null }) {
+  const lead = await apiRequest<ApiLead>(`/crm/leads/${id}`, { method: "PATCH", body });
+  return mapApiLead(lead);
 }
 
 export async function getLeadsByVertical(
@@ -166,15 +208,16 @@ export async function createLead(
     return newLead;
   }
 
-  const lead = await apiRequest<ApiLead>("/api/v1/crm/leads", {
+  const lead = await apiRequest<ApiLead>("/crm/leads", {
     method: "POST",
     body: {
-      tenantId: data.tenantId,
+      companyName: data.company || "New lead",
+      title: data.title || data.notes?.slice(0, 80) || data.company || "Lead",
+      stage: data.status,
       contactId: data.contactId,
-      stage: data.status ?? "NEW",
-      vertical: data.vertical,
       estimatedValue: data.estimatedValue,
       notes: data.notes,
+      vertical: data.vertical,
     },
   });
   return mapApiLead(lead);
@@ -191,18 +234,12 @@ export async function updateLead(
     return { ...lead, ...data, updatedAt: new Date().toISOString() };
   }
 
-  const lead = await apiRequest<ApiLead>(`/api/v1/crm/leads/${id}`, {
-    method: "PATCH",
-    body: {
-      tenantId: data.tenantId,
-      stage: data.status,
-      vertical: data.vertical,
-      estimatedValue: data.estimatedValue,
-      notes: data.notes,
-      assignedTo: data.assignedAgentId,
-    },
-  });
-  return mapApiLead(lead);
+  const changed = Object.keys(data).filter((k) => k !== "tenantId");
+  if (changed.length === 1 && data.status) {
+    return updateLeadStatus(id, data.status);
+  }
+  // Django exposes only a stage route for existing leads; other fields are read-only after create.
+  throw new Error("Only the lead stage can be changed on this API yet");
 }
 
 export async function updateLeadStatus(
@@ -210,7 +247,9 @@ export async function updateLeadStatus(
   status: string,
   tenantId?: string
 ): Promise<Lead> {
-  return updateLead(id, { status: status as Lead["status"], tenantId });
+  if (CONFIG.useMock) return updateLead(id, { status: status as Lead["status"], tenantId });
+  const lead = await apiRequest<ApiLead>(`/crm/leads/${id}/stage`, { method: "POST", body: { stage: status } });
+  return mapApiLead(lead);
 }
 
 // ─── Contacts ───────────────────────────────────────────

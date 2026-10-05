@@ -1,9 +1,11 @@
 /**
  * @file lib/api/settings.ts
- * @description Settings API client functions
+ * @description Settings helpers. Most settings endpoints are not on Django yet —
+ * we persist preferences locally so Settings pages don't 404-spam the overlay.
  */
 
 import { apiRequest } from "./client";
+import { CONFIG } from "@/lib/config";
 
 export interface UserSettings {
   notifications: {
@@ -42,157 +44,186 @@ export interface IntegrationConfig {
   config?: Record<string, any>;
 }
 
-/**
- * Get current user's notification settings
- */
-export async function getUserSettings(): Promise<UserSettings> {
-  return apiRequest<UserSettings>("/users/settings");
+const USER_SETTINGS_KEY = "zerpa_user_settings_v1";
+
+const DEFAULT_USER_SETTINGS: UserSettings = {
+  notifications: {
+    invoiceReminders: true,
+    leadUpdates: true,
+    systemAlerts: true,
+    paymentReceived: true,
+    newLeads: true,
+  },
+  twoFactorEnabled: false,
+  sessionTimeout: 60,
+};
+
+function readLocalUserSettings(): UserSettings {
+  if (typeof window === "undefined") return DEFAULT_USER_SETTINGS;
+  try {
+    const raw = localStorage.getItem(USER_SETTINGS_KEY);
+    if (!raw) return DEFAULT_USER_SETTINGS;
+    return { ...DEFAULT_USER_SETTINGS, ...JSON.parse(raw) };
+  } catch {
+    return DEFAULT_USER_SETTINGS;
+  }
 }
 
-/**
- * Update user notification settings
- */
+function writeLocalUserSettings(settings: UserSettings) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(USER_SETTINGS_KEY, JSON.stringify(settings));
+}
+
+export async function getUserSettings(): Promise<UserSettings> {
+  // Django has no /users/settings yet
+  return readLocalUserSettings();
+}
+
 export async function updateUserSettings(
   settings: Partial<UserSettings>
 ): Promise<UserSettings> {
-  return apiRequest<UserSettings>("/users/settings", {
-    method: "PATCH",
-    body: settings,
-  });
+  const next: UserSettings = {
+    ...readLocalUserSettings(),
+    ...settings,
+    notifications: {
+      ...readLocalUserSettings().notifications,
+      ...(settings.notifications || {}),
+    },
+  };
+  writeLocalUserSettings(next);
+  return next;
 }
 
-/**
- * Get company settings
- */
 export async function getCompanySettings(
   companyId: string
 ): Promise<CompanySettings> {
-  return apiRequest<CompanySettings>(`/companies/${companyId}/settings`);
+  if (typeof window !== "undefined") {
+    try {
+      const raw = localStorage.getItem("zerpa_company");
+      if (raw) {
+        const c = JSON.parse(raw) as { id?: string; name?: string; slug?: string; vertical?: string };
+        if (c.id === companyId) {
+          return {
+            id: c.id,
+            name: c.name || "Company",
+            slug: c.slug || "",
+            vertical: c.vertical || "GENERIC",
+            owner: "",
+            createdAt: new Date().toISOString(),
+          };
+        }
+      }
+    } catch {
+      /* fall through */
+    }
+  }
+  return {
+    id: companyId,
+    name: "Company",
+    slug: "",
+    vertical: "GENERIC",
+    owner: "",
+    createdAt: new Date().toISOString(),
+  };
 }
 
-/**
- * Update company settings
- */
 export async function updateCompanySettings(
   companyId: string,
   settings: Partial<CompanySettings>
 ): Promise<CompanySettings> {
-  return apiRequest<CompanySettings>(`/companies/${companyId}/settings`, {
-    method: "PATCH",
-    body: settings,
-  });
+  const current = await getCompanySettings(companyId);
+  return { ...current, ...settings, id: companyId };
 }
 
-/**
- * Get team members for a company
- */
 export async function getTeamMembers(companyId: string): Promise<TeamMember[]> {
-  return apiRequest<TeamMember[]>(`/companies/${companyId}/team-members`);
+  // List is not implemented on Django (POST-only invite endpoint).
+  void companyId;
+  return [];
 }
 
-/**
- * Add team member to company
- */
 export async function addTeamMember(
   companyId: string,
   email: string,
-  role: "ADMIN" | "STAFF" = "STAFF"
+  role: "ADMIN" | "STAFF" = "STAFF",
+  fullName?: string,
+  password?: string
 ): Promise<TeamMember> {
-  return apiRequest<TeamMember>(`/companies/${companyId}/team-members`, {
+  const res = await apiRequest<{
+    membership?: { id: string; role: string; user?: { email: string; fullName: string } };
+  }>(`/companies/${companyId}/team-members`, {
     method: "POST",
-    body: { email, role },
+    body: { email, role, fullName: fullName || email.split("@")[0], password },
   });
+  return {
+    id: res.membership?.id || `member-${Date.now()}`,
+    email: res.membership?.user?.email || email,
+    fullName: res.membership?.user?.fullName || fullName || email,
+    role: (res.membership?.role as TeamMember["role"]) || role,
+    joinedAt: new Date().toISOString(),
+  };
 }
 
-/**
- * Remove team member from company
- */
 export async function removeTeamMember(
   companyId: string,
   memberId: string
 ): Promise<void> {
-  return apiRequest<void>(`/companies/${companyId}/team-members/${memberId}`, {
-    method: "DELETE",
-  });
+  void companyId;
+  void memberId;
+  throw new Error("Removing team members is not available on this API yet");
 }
 
-/**
- * Get integrations for a company
- */
 export async function getIntegrations(
   companyId: string
 ): Promise<IntegrationConfig[]> {
-  return apiRequest<IntegrationConfig[]>(`/companies/${companyId}/integrations`);
+  void companyId;
+  return [];
 }
 
-/**
- * Connect an integration
- */
 export async function connectIntegration(
   companyId: string,
   integrationId: string,
   config: Record<string, any>
 ): Promise<IntegrationConfig> {
-  return apiRequest<IntegrationConfig>(
-    `/companies/${companyId}/integrations/${integrationId}`,
-    {
-      method: "POST",
-      body: config,
-    }
-  );
+  void companyId;
+  void config;
+  throw new Error("Integrations are not available on this API yet");
 }
 
-/**
- * Disconnect an integration
- */
 export async function disconnectIntegration(
   companyId: string,
   integrationId: string
 ): Promise<void> {
-  return apiRequest<void>(
-    `/companies/${companyId}/integrations/${integrationId}`,
-    {
-      method: "DELETE",
-    }
-  );
+  void companyId;
+  void integrationId;
+  throw new Error("Integrations are not available on this API yet");
 }
 
-/**
- * Generate API key
- */
 export async function generateApiKey(
   companyId: string,
   name: string
 ): Promise<{ id: string; key: string; name: string; createdAt: string }> {
-  return apiRequest(
-    `/companies/${companyId}/api-keys`,
-    {
-      method: "POST",
-      body: { name },
-    }
-  );
+  void companyId;
+  void name;
+  throw new Error("API keys are not available on this API yet");
 }
 
-/**
- * List API keys
- */
 export async function listApiKeys(
   companyId: string
 ): Promise<Array<{ id: string; name: string; createdAt: string; lastUsed?: string }>> {
-  return apiRequest(
-    `/companies/${companyId}/api-keys`
-  );
+  void companyId;
+  return [];
 }
 
-/**
- * Revoke API key
- */
 export async function revokeApiKey(
   companyId: string,
   keyId: string
 ): Promise<void> {
-  return apiRequest(
-    `/companies/${companyId}/api-keys/${keyId}`,
-    { method: "DELETE" }
-  );
+  void companyId;
+  void keyId;
+  throw new Error("API keys are not available on this API yet");
+}
+
+/** Kept for callers that branch on mock mode */
+export function settingsApiLive(): boolean {
+  return CONFIG.useMock;
 }

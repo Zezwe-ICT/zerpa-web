@@ -55,6 +55,7 @@ import { useRouter } from "next/navigation";
 import { MessageCircle, Building2 } from "lucide-react";
 import { getCompanies } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
+import { ZerpaLoader } from "@/components/brand/zerpa-loader";
 
 /**
  * Component: SelectCompanyPage
@@ -82,6 +83,12 @@ export default function SelectCompanyPage() {
   const { companies, selectCompany, isLoading } = useAuth();
   const router = useRouter();
   const [isFetching, setIsFetching] = useState(false);
+  // The company being opened, so the loader can name it while the dashboard loads.
+  const [opening, setOpening] = useState<string | null>(null);
+  const open = (id: string, name: string) => {
+    setOpening(name);
+    selectCompany(id);
+  };
   const [displayCompanies, setDisplayCompanies] = useState(companies || []);
 
   /**
@@ -195,11 +202,7 @@ export default function SelectCompanyPage() {
   if (isLoading || isFetching) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          {/* Spinner animation */}
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-fg">Loading companies...</p>
-        </div>
+        <ZerpaLoader title="Loading your companies" />
       </div>
     );
   }
@@ -232,6 +235,7 @@ export default function SelectCompanyPage() {
   // Main layout: Company selection grid
   return (
     <div className="flex items-center justify-center min-h-screen bg-surface p-4">
+      {opening && <ZerpaLoader fullScreen title={`Opening ${opening}`} messages={["Loading your apps", "Getting your dashboard ready"]} />}
       <div className="w-full max-w-3xl">
         {/* Page heading */}
         <div className="text-center mb-12">
@@ -248,7 +252,7 @@ export default function SelectCompanyPage() {
             <Card
               key={company.id}
               className="p-6 cursor-pointer hover:shadow-lg hover:border-primary/30 transition-all group"
-              onClick={() => selectCompany(company.id)}
+              onClick={() => open(company.id, company.name)}
             >
               {/* Company header with icon and name */}
               <div className="flex items-start gap-4 mb-4">
@@ -298,7 +302,7 @@ export default function SelectCompanyPage() {
                 onClick={(e) => {
                   // Prevent event bubbling to parent Card click handler
                   e.stopPropagation();
-                  selectCompany(company.id);
+                  open(company.id, company.name);
                 }}
                 className="w-full"
               >

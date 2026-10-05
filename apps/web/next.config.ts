@@ -22,16 +22,21 @@ const nextConfig: NextConfig = {
         source: "/api/:path*",
         headers: [{ key: "Cache-Control", value: "no-store, max-age=0" }],
       },
-      // Cache everything else (excludes /api via negative lookahead).
-      {
-        source: "/((?!api/).*)",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400",
-          },
-        ],
-      },
+      // Cache everything else (excludes /api via negative lookahead). Production only: in
+      // `next dev` chunk URLs have no content hash, so caching them serves stale code after edits.
+      ...(process.env.NODE_ENV === "production"
+        ? [
+            {
+              source: "/((?!api/).*)",
+              headers: [
+                {
+                  key: "Cache-Control",
+                  value: "public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400",
+                },
+              ],
+            },
+          ]
+        : []),
     ];
   },
 };

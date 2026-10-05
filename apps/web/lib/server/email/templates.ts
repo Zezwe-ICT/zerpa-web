@@ -72,6 +72,8 @@ export interface InviteEmailInput {
   loginEmail?: string;
   /** Temporary password the admin set — included so the user can sign in. */
   tempPassword?: string;
+  /** Secure invite acceptance link (preferred over temp password). */
+  inviteUrl?: string;
 }
 
 export function buildInviteEmail(input: InviteEmailInput): { subject: string; html: string; text: string } {
@@ -80,14 +82,15 @@ export function buildInviteEmail(input: InviteEmailInput): { subject: string; ht
   const role = input.role?.trim();
   const loginEmail = input.loginEmail?.trim();
   const tempPassword = input.tempPassword?.trim();
-  const loginUrl = `${APP_URL}/login`;
+  const inviteUrl = input.inviteUrl?.trim();
+  const actionUrl = inviteUrl || `${APP_URL}/login`;
+  const actionLabel = inviteUrl ? "Accept invitation" : `Sign in to ${BRAND}`;
 
   const subject = `You've been invited to join ${company} on ${BRAND}`;
   const intro = inviter
     ? `${escapeHtml(inviter)} has invited you to join <strong>${escapeHtml(company)}</strong> on ${escapeHtml(BRAND)}.`
     : `You've been invited to join <strong>${escapeHtml(company)}</strong> on ${escapeHtml(BRAND)}.`;
 
-  // Credentials block — only when a temporary password was provided.
   const credsHtml =
     loginEmail && tempPassword
       ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;background:#f4f4f5;border-radius:10px;">
@@ -98,13 +101,15 @@ export function buildInviteEmail(input: InviteEmailInput): { subject: string; ht
           </td></tr>
         </table>
         <p style="margin:0 0 4px;color:#71717a;font-size:13px;">For your security, please change this password after your first sign-in.</p>`
-      : `<p style="margin:0 0 4px;">Sign in with this email address to get started.</p>`;
+      : inviteUrl
+        ? `<p style="margin:0 0 4px;">Use the button below to create your password and join the team. The link expires in 7 days.</p>`
+        : `<p style="margin:0 0 4px;">Sign in with this email address to get started.</p>`;
 
   const html = layout(`
     <p style="margin:0 0 12px;">Hi there,</p>
     <p style="margin:0 0 12px;">${intro}${role ? ` Your role: <strong>${escapeHtml(role)}</strong>.` : ""}</p>
     ${credsHtml}
-    ${button("Sign in to " + BRAND, loginUrl)}
+    ${button(actionLabel, actionUrl)}
     <p style="margin:12px 0 0;color:#71717a;font-size:13px;">If you weren't expecting this invitation, you can safely ignore this email.</p>
   `);
 
@@ -116,7 +121,9 @@ export function buildInviteEmail(input: InviteEmailInput): { subject: string; ht
           `  Temporary password: ${tempPassword}`,
           `(For your security, please change this password after your first sign-in.)`,
         ].join("\n")
-      : `Sign in with this email address to get started.`;
+      : inviteUrl
+        ? `Open this link to join (expires in 7 days):\n${inviteUrl}`
+        : `Sign in with this email address to get started.`;
 
   const text = [
     `Hi there,`,
@@ -128,7 +135,7 @@ export function buildInviteEmail(input: InviteEmailInput): { subject: string; ht
     ``,
     credsText,
     ``,
-    `Sign in here: ${loginUrl}`,
+    `${actionLabel}: ${actionUrl}`,
     ``,
     `If you weren't expecting this invitation, you can safely ignore this email.`,
   ]
@@ -303,4 +310,39 @@ export function buildInvoiceEmail(input: InvoiceEmailInput): { subject: string; 
     .join("\n");
 
   return { subject, html, text };
+}
+
+// ── Business notification (quote accepted, payment received, …) ─────────
+
+export interface NotificationEmailInput {
+  name?: string;
+  subject: string;
+  body?: string;
+  link?: string;
+  companyName?: string;
+  /** staff = team bell email. customer = receipt or quote confirmation, with no settings link. */
+  audience?: "staff" | "customer";
+  buttonLabel?: string;
+}
+
+export function buildNotificationEmail(input: NotificationEmailInput): { subject: string; html: string; text: string } {
+  const customer = input.audience === "customer";
+  const greeting = input.name ? `Hi ${input.name.split(" ")[0]},` : "Hi,";
+  const action = input.buttonLabel?.trim() || (customer ? "Continue" : "Open in Zerpa");
+  const context = input.companyName ? `<p style="margin:0 0 6px;color:#71717a;font-size:13px;">${escapeHtml(input.companyName)}</p>` : "";
+  const footer = customer
+    ? ""
+    : `<p style="margin:16px 0 0;color:#a1a1aa;font-size:12px;">You can choose which notifications you get in Settings → Notifications.</p>`;
+  const html = layout(`
+    ${context}
+    <p style="margin:0 0 12px;font-size:17px;font-weight:600;">${escapeHtml(input.subject)}</p>
+    <p style="margin:0 0 12px;">${escapeHtml(greeting)}</p>
+    ${input.body ? `<p style="margin:0 0 12px;">${escapeHtml(input.body)}</p>` : ""}
+    ${input.link ? button(action, input.link) : ""}
+    ${footer}
+  `);
+  const text = [input.companyName, input.subject, "", greeting, input.body, input.link ? `${action}: ${input.link}` : ""]
+    .filter((l) => l !== undefined)
+    .join("\n");
+  return { subject: input.subject, html, text };
 }

@@ -10,7 +10,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowLeft, Save, Send, CheckCircle2, Ban, Plus, FileText } from "lucide-react";
+import { Chatter } from "@/components/chatter/chatter";
+import { ArrowLeft, Save, Send, CheckCircle2, Ban, Plus, FileText, Link2, Copy, ExternalLink, MessageCircle, Undo2 } from "lucide-react";
 import { PageContainer } from "@/components/layouts/page-container";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,10 +21,12 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { formatCurrency } from "@/lib/utils/currency";
 import { formatDate } from "@/lib/utils/dates";
 import { CustomerSelect } from "./customer-select";
+import { getBillingCustomerById } from "@/lib/data/billing-customers";
 import { LineItemEditor } from "./line-item-editor";
 import { TotalsPanel } from "./totals-panel";
 import { DocumentPreviewModal } from "./document-preview-modal";
 import { SendInvoiceModal } from "./send-invoice-modal";
+import { CreditNoteDialog } from "./credit-note-dialog";
 import {
   getBillingInvoiceById,
   createManualInvoice,
@@ -31,6 +34,9 @@ import {
   updateBillingInvoiceStatus,
   recordInvoicePayment,
 } from "@/lib/data/invoices";
+import { ApiError } from "@/lib/api/client";
+import { downloadFile } from "@/lib/api/books";
+import { createPayLink, whatsappShareUrl } from "@/lib/api/payments";
 import type {
   BillingLineItem,
   DiscountType,
@@ -95,12 +101,16 @@ export function InvoiceEditor({ invoiceId }: InvoiceEditorProps) {
   const [items, setItems] = useState<BillingLineItem[]>([]);
   const [previewDoc, setPreviewDoc] = useState<Invoice | null>(null);
   const [sendOpen, setSendOpen] = useState(false);
+  const [creditOpen, setCreditOpen] = useState(false);
 
   // record-payment form
   const [payAmount, setPayAmount] = useState<number>(0);
   const [payDate, setPayDate] = useState<string>(todayIso());
   const [payMethod, setPayMethod] = useState<PaymentMethod>("eft");
   const [payRef, setPayRef] = useState<string>("");
+  const [linkBusy, setLinkBusy] = useState(false);
+
+  const errorText = (e: unknown, fallback: string) => (e instanceof ApiError ? e.message : fallback);
 
   function hydrate(inv: Invoice) {
     setInvoice(inv);
@@ -123,6 +133,23 @@ export function InvoiceEditor({ invoiceId }: InvoiceEditorProps) {
     setPayAmount(inv.balanceDue ?? inv.total);
   }
 
+  // "Invoice" button on the Customers page opens /billing/invoices/new?customer=<id>.
+  useEffect(() => {
+    if (invoiceId) return;
+    const customerId = new URLSearchParams(window.location.search).get("customer");
+    if (!customerId) return;
+    getBillingCustomerById(customerId).then((c) => {
+      if (!c) return;
+      setForm((f) => ({
+        ...f,
+        customerId: c.id,
+        customerName: c.name,
+        contactEmail: c.contactEmail ?? f.contactEmail,
+        dueDate: c.paymentTermsDays != null ? addDaysIso(c.paymentTermsDays) : f.dueDate,
+      }));
+    });
+  }, [invoiceId]);
+
   useEffect(() => {
     if (!invoiceId) return;
     getBillingInvoiceById(invoiceId)
@@ -130,6 +157,10 @@ export function InvoiceEditor({ invoiceId }: InvoiceEditorProps) {
         if (!inv) {
           toast.error("Invoice not found");
           router.push("/billing/invoices");
+          return;
+        }
+        if (inv.type === "CREDIT") {
+          router.replace(`/billing/credit-notes/${inv.id}`);
           return;
         }
         hydrate(inv);
@@ -167,14 +198,16 @@ export function InvoiceEditor({ invoiceId }: InvoiceEditorProps) {
     }
     setSaving(true);
     try {
-      const saved =
-        isEdit && invoiceId
-          ? await updateBillingInvoice(invoiceId, payload())
-          : await createManualInvoice(payload());
+      // Once a new invoice has been saved (e.g. by Preview), keep updating that one.
+      const existingId = invoiceId ?? invoice?.id;
+      const saved = existingId
+        ? await updateBillingInvoice(existingId, payload())
+        : await createManualInvoice(payload());
       hydrate(saved);
+      if (!invoiceId) window.history.replaceState(null, "", `/billing/invoices/${saved.id}`);
       return saved;
-    } catch {
-      toast.error("Could not save invoice");
+    } catch (e) {
+      toast.error(errorText(e, "Could not save invoice"));
       return null;
     } finally {
       setSaving(false);
@@ -200,8 +233,8 @@ export function InvoiceEditor({ invoiceId }: InvoiceEditorProps) {
       const updated = await updateBillingInvoiceStatus(invoice.id, status);
       hydrate(updated);
       toast.success(`Invoice ${status.toLowerCase()}`);
-    } catch {
-      toast.error("Could not update invoice");
+    } catch (e) {
+      toast.error(errorText(e, "Could not update invoice"));
     }
   }
 
@@ -221,9 +254,45 @@ export function InvoiceEditor({ invoiceId }: InvoiceEditorProps) {
       hydrate(updated);
       setPayRef("");
       toast.success("Payment recorded");
-    } catch {
-      toast.error("Could not record payment");
+    } catch (e) {
+      toast.error(errorText(e, "Could not record payment"));
     }
+  }
+
+  async function getPayLink(): Promise<string | null> {
+    if (!invoice) return null;
+    if (invoice.payUrl) return invoice.payUrl;
+    setLinkBusy(true);
+    try {
+      const { payUrl } = await createPayLink(invoice.id);
+      setInvoice({ ...invoice, payUrl });
+      return payUrl;
+    } catch (e) {
+      toast.error(errorText(e, "Could not create a payment link"));
+      return null;
+    } finally {
+      setLinkBusy(false);
+    }
+  }
+
+  async function copyPayLink() {
+    const url = await getPayLink();
+    if (!url) return;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("Payment link copied");
+    } catch {
+      toast.message(url);
+    }
+  }
+
+  async function shareOnWhatsApp() {
+    if (!invoice) return;
+    const url = await getPayLink();
+    if (!url) return;
+    const amount = formatCurrency(invoice.balanceDue ?? invoice.total);
+    const text = `Hi ${invoice.tenantName || "there"}, here is invoice ${invoice.invoiceNumber} for ${amount}. You can pay securely here: ${url}`;
+    window.open(whatsappShareUrl(text), "_blank", "noopener");
   }
 
   if (loading) {
@@ -256,6 +325,9 @@ export function InvoiceEditor({ invoiceId }: InvoiceEditorProps) {
             <p className="text-sm text-muted-fg mt-1">
               Issued {formatDate(invoice.issuedDate)} · Due{" "}
               {formatDate(invoice.dueDate)}
+              {invoice.emailDelivery
+                ? ` · Email ${invoice.emailDelivery.status}${invoice.emailDelivery.note ? ` — ${invoice.emailDelivery.note}` : ""}`
+                : ""}
             </p>
           )}
         </div>
@@ -296,8 +368,15 @@ export function InvoiceEditor({ invoiceId }: InvoiceEditorProps) {
                       set("customerVertical", customer.vertical);
                     if (customer?.contactEmail)
                       set("contactEmail", customer.contactEmail);
+                    // Due date follows the customer's payment terms.
+                    if (customer?.paymentTermsDays != null && form.issuedDate) {
+                      const due = new Date(form.issuedDate);
+                      due.setDate(due.getDate() + customer.paymentTermsDays);
+                      set("dueDate", due.toISOString().split("T")[0]);
+                    }
                   }}
                   required
+                  fallbackName={form.customerName}
                 />
               </div>
               <div className="space-y-1.5">
@@ -379,6 +458,7 @@ export function InvoiceEditor({ invoiceId }: InvoiceEditorProps) {
               />
             </div>
           </div>
+          {invoice && <Chatter recordType="invoice" recordId={invoice.id} />}
         </div>
 
         {/* Right */}
@@ -406,8 +486,24 @@ export function InvoiceEditor({ invoiceId }: InvoiceEditorProps) {
               disabled={saving}
             >
               <FileText size={14} className="mr-1.5" />
-              Preview / Download PDF
+              Preview
             </Button>
+            {invoice && (
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={async () => {
+                  try {
+                    await downloadFile(`/billing/invoices/${invoice.id}/pdf`, `${invoice.invoiceNumber}.pdf`);
+                  } catch (e) {
+                    toast.error(e instanceof Error ? e.message : "Could not download the PDF");
+                  }
+                }}
+              >
+                <FileText size={14} className="mr-1.5" />
+                Download PDF
+              </Button>
+            )}
             {invoice && (
               <>
                 {invoice.status === "DRAFT" && (
@@ -432,7 +528,13 @@ export function InvoiceEditor({ invoiceId }: InvoiceEditorProps) {
                     Send Invoice
                   </Button>
                 )}
-                {invoice.status !== "VOID" && invoice.status !== "PAID" && (
+                {["APPROVED", "SENT", "ISSUED", "OVERDUE", "PARTIALLY_PAID", "PAID"].includes(invoice.status) && (
+                  <Button variant="outline" className="w-full" onClick={() => setCreditOpen(true)}>
+                    <Undo2 size={14} className="mr-1.5" />
+                    Credit note
+                  </Button>
+                )}
+                {!["VOID", "PAID", "CREDITED"].includes(invoice.status) && (
                   <Button
                     variant="ghost"
                     className="w-full text-danger hover:text-danger hover:bg-danger-bg"
@@ -445,6 +547,64 @@ export function InvoiceEditor({ invoiceId }: InvoiceEditorProps) {
               </>
             )}
           </div>
+
+          {/* Get paid */}
+          {invoice && !["DRAFT", "VOID", "CANCELLED", "PAID", "CREDITED"].includes(invoice.status) && (
+            <div className="rounded-[12px] border border-primary/30 bg-primary/5 p-5 space-y-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-primary flex items-center gap-1.5">
+                  <Link2 size={12} /> Get paid
+                </p>
+                <p className="text-sm mt-1">
+                  {formatCurrency(invoice.balanceDue ?? invoice.total)} outstanding. Send your customer a secure link to
+                  pay by card or instant EFT.
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <Button variant="outline" size="sm" onClick={copyPayLink} disabled={linkBusy}>
+                  <Copy size={14} className="mr-1.5" /> Copy link
+                </Button>
+                <Button variant="outline" size="sm" onClick={shareOnWhatsApp} disabled={linkBusy}>
+                  <MessageCircle size={14} className="mr-1.5" /> WhatsApp
+                </Button>
+              </div>
+              {invoice.payUrl && (
+                <a
+                  href={invoice.payUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                >
+                  <ExternalLink size={12} /> Open the payment page
+                </a>
+              )}
+            </div>
+          )}
+          {invoice?.status === "DRAFT" && (
+            <p className="rounded-[12px] border border-border p-4 text-xs text-muted-fg">
+              Approve or send this invoice to get a payment link your customer can pay online.
+            </p>
+          )}
+
+          {invoice && (invoice.creditNotes?.length ?? 0) > 0 && (
+            <div className="rounded-[12px] border border-border bg-background p-5 space-y-2">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted-fg">Credit notes</span>
+              <ul className="space-y-1.5">
+                {invoice.creditNotes!.map((c) => (
+                  <li key={c.id} className="flex items-center justify-between text-sm">
+                    <button
+                      type="button"
+                      onClick={() => router.push(`/billing/credit-notes/${c.id}`)}
+                      className="text-primary hover:underline font-medium"
+                    >
+                      {c.number}
+                    </button>
+                    <span className="font-mono">−{formatCurrency(c.total)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {/* Payments */}
           {invoice && (
@@ -467,7 +627,18 @@ export function InvoiceEditor({ invoiceId }: InvoiceEditorProps) {
                       className="flex items-center justify-between text-sm border-b border-border pb-1.5 last:border-0"
                     >
                       <span className="text-muted-fg">
-                        {formatDate(p.paymentDate)} · {p.method.toUpperCase()}
+                        {formatDate(p.paymentDate)} ·{" "}
+                        {p.provider === "credit_note"
+                          ? `Credit note ${p.reference ?? ""}`
+                          : p.provider === "payfast"
+                          ? "PayFast"
+                          : p.provider === "ozow"
+                            ? "Ozow"
+                            : p.provider === "bank_import"
+                              ? "Bank match"
+                              : p.method === "instant_eft"
+                                ? "Instant EFT"
+                                : p.method.toUpperCase()}
                       </span>
                       <span className="font-mono">{formatCurrency(p.amount)}</span>
                     </li>
@@ -476,6 +647,7 @@ export function InvoiceEditor({ invoiceId }: InvoiceEditorProps) {
               )}
 
               {invoice.status !== "PAID" &&
+                invoice.status !== "CREDITED" &&
                 invoice.status !== "VOID" &&
                 invoice.status !== "DRAFT" && (
                   <div className="space-y-2 pt-1">
@@ -534,6 +706,18 @@ export function InvoiceEditor({ invoiceId }: InvoiceEditorProps) {
           )}
         </div>
       </div>
+
+      {invoice && (
+        <CreditNoteDialog
+          invoice={invoice}
+          open={creditOpen}
+          onOpenChange={setCreditOpen}
+          onIssued={async () => {
+            const fresh = await getBillingInvoiceById(invoice.id);
+            if (fresh) hydrate(fresh);
+          }}
+        />
+      )}
 
       <DocumentPreviewModal
         open={Boolean(previewDoc)}

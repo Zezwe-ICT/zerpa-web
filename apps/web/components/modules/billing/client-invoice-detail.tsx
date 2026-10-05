@@ -12,6 +12,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { InvoicePreview } from "./invoice-preview";
 import { Download, AlertTriangle } from "lucide-react";
+import { downloadFile } from "@/lib/api/books";
 import { cn } from "@/lib/utils";
 import type { Invoice } from "@zerpa/shared-types";
 
@@ -24,9 +25,9 @@ export function ClientInvoiceDetail({ invoice }: ClientInvoiceDetailProps) {
   const pastDue = isOverdue(invoice.dueDate);
 
   const handleDownloadPDF = () => {
-    // In production, this would download from S3
-    // For now, trigger browser print
-    window.print();
+    downloadFile(`/billing/invoices/${invoice.id}/pdf`, `${invoice.invoiceNumber}.pdf`).catch(() => {
+      window.print();
+    });
   };
 
   return (
@@ -146,9 +147,16 @@ export function ClientInvoiceDetail({ invoice }: ClientInvoiceDetailProps) {
             <div className="border-t border-border my-4" />
             <div className="bg-muted/50 rounded-[8px] p-3 text-xs space-y-1">
               <p className="font-semibold text-foreground">Payment Details</p>
-              <p className="text-muted-fg">
-                Contact us if you have any payment inquiries.
-              </p>
+              {invoice.issuer?.bankName || invoice.issuer?.accountNumber ? (
+                <div className="text-muted-fg space-y-0.5">
+                  {invoice.issuer.bankName ? <p>{invoice.issuer.bankName}</p> : null}
+                  {invoice.issuer.accountNumber ? <p>Account {invoice.issuer.accountNumber}</p> : null}
+                  {invoice.issuer.branchCode ? <p>Branch {invoice.issuer.branchCode}</p> : null}
+                  <p>Use {invoice.invoiceNumber} as the reference.</p>
+                </div>
+              ) : (
+                <p className="text-muted-fg">Ask {invoice.issuer?.name || "the business"} for their bank details.</p>
+              )}
             </div>
           </>
         )}
