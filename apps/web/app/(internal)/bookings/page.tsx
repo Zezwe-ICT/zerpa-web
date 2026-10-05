@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { Calendar, Clock, Plus, Search, X } from "lucide-react";
+import { Calendar, ChevronLeft, ChevronRight, Clock, List, Plus, Search, X } from "lucide-react";
 import { PageContainer } from "@/components/layouts/page-container";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
@@ -109,6 +109,29 @@ export default function BookingsPage() {
   const today = rows.filter((r) => r.bookingDate === new Date().toISOString().slice(0, 10)).length;
   const missingConsent = rows.filter((r) => !r.consentCaptured && r.status !== "cancelled").length;
 
+  // Calendar view state
+  const [view, setView] = useState<"list" | "calendar">("list");
+  const now = new Date();
+  const [calYear, setCalYear] = useState(now.getFullYear());
+  const [calMonth, setCalMonth] = useState(now.getMonth());
+
+  const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+
+  const byDate = useMemo(() => {
+    const m: Record<string, any[]> = {};
+    rows.forEach((r) => {
+      if (r.bookingDate) {
+        if (!m[r.bookingDate]) m[r.bookingDate] = [];
+        m[r.bookingDate].push(r);
+      }
+    });
+    return m;
+  }, [rows]);
+
   return (
     <PageContainer>
       <PageHeader
@@ -123,10 +146,20 @@ export default function BookingsPage() {
       />
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-3 gap-4 mb-4">
         <StatsCard title="Confirmed" value={String(confirmed)} icon={Calendar} />
         <StatsCard title="Today" value={String(today)} icon={Clock} />
         <StatsCard title="Consent pending" value={String(missingConsent)} icon={X} />
+      </div>
+
+      {/* View toggle */}
+      <div className="flex gap-2 mb-4">
+        <Button size="sm" variant={view === "list" ? "default" : "outline"} onClick={() => setView("list")}>
+          <List size={13} className="mr-1" />List
+        </Button>
+        <Button size="sm" variant={view === "calendar" ? "default" : "outline"} onClick={() => setView("calendar")}>
+          <Calendar size={13} className="mr-1" />Calendar
+        </Button>
       </div>
 
       {/* New booking form */}
@@ -210,16 +243,56 @@ export default function BookingsPage() {
         )}
       </div>
 
+      {/* Calendar view */}
+      {view === "calendar" && (
+        <div className="rounded-[12px] border border-border overflow-hidden mb-6">
+          <div className="flex items-center justify-between px-4 py-3 bg-surface border-b border-border">
+            <Button size="sm" variant="ghost" onClick={() => { if (calMonth === 0) { setCalMonth(11); setCalYear((y) => y - 1); } else { setCalMonth((m) => m - 1); } }}>
+              <ChevronLeft size={14} />
+            </Button>
+            <p className="font-semibold text-sm">{MONTH_NAMES[calMonth]} {calYear}</p>
+            <Button size="sm" variant="ghost" onClick={() => { if (calMonth === 11) { setCalMonth(0); setCalYear((y) => y + 1); } else { setCalMonth((m) => m + 1); } }}>
+              <ChevronRight size={14} />
+            </Button>
+          </div>
+          <div className="grid grid-cols-7 border-b border-border">
+            {DAY_NAMES.map((d) => <div key={d} className="text-center text-xs font-semibold text-muted-fg py-2">{d}</div>)}
+          </div>
+          <div className="grid grid-cols-7">
+            {Array.from({ length: firstDay }).map((_, i) => <div key={`e${i}`} className="min-h-[80px] border-r border-b border-border bg-surface/40" />)}
+            {Array.from({ length: daysInMonth }).map((_, i) => {
+              const day = i + 1;
+              const dateKey = `${calYear}-${String(calMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+              const dayBookings = byDate[dateKey] || [];
+              const isToday = dateKey === new Date().toISOString().slice(0, 10);
+              return (
+                <div key={day} className={`min-h-[80px] border-r border-b border-border p-1.5 ${isToday ? "bg-primary/5" : ""}`}>
+                  <p className={`text-xs font-medium mb-1 w-5 h-5 flex items-center justify-center rounded-full ${isToday ? "bg-primary text-primary-foreground" : "text-muted-fg"}`}>
+                    {day}
+                  </p>
+                  {dayBookings.slice(0, 3).map((b) => (
+                    <div key={b.id} className="text-[10px] rounded px-1 py-0.5 mb-0.5 bg-primary/10 text-primary truncate">
+                      {b.bookingTime || ""} {b.serviceName || "Booking"}
+                    </div>
+                  ))}
+                  {dayBookings.length > 3 && <p className="text-[10px] text-muted-fg">+{dayBookings.length - 3} more</p>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Bookings list */}
-      {loading && <p className="text-sm text-muted-fg text-center py-8">Loading bookings…</p>}
-      {!loading && filtered.length === 0 && (
+      {view === "list" && loading && <p className="text-sm text-muted-fg text-center py-8">Loading bookings…</p>}
+      {view === "list" && !loading && filtered.length === 0 && (
         <div className="text-center py-16 text-muted-fg">
           <Calendar size={32} className="mx-auto mb-3 opacity-40" />
           <p className="font-medium">No bookings found</p>
           <p className="text-sm mt-1">Create a new booking to get started.</p>
         </div>
       )}
-      <div className="space-y-3">
+      {view === "list" && <div className="space-y-3">
         {filtered.map((row) => {
           const next = nextAdvanceState(SPA_BOOKING_MACHINE, row.status);
           return (
@@ -262,7 +335,7 @@ export default function BookingsPage() {
             </div>
           );
         })}
-      </div>
+      </div>}
     </PageContainer>
   );
 }

@@ -63,3 +63,17 @@ export function commitCustomers(input: { csv?: string; file?: File | null }) {
     body: { entity: "accounts", csv: input.csv || "" },
   });
 }
+
+export function previewImport(entity: string, csv: string) {
+  return apiRequest<ImportPreview>("/imports/preview", {
+    method: "POST",
+    body: { entity, csv },
+  });
+}
+
+export function commitImport(entity: string, csv: string) {
+  return apiRequest<ImportResult>("/imports/commit", {
+    method: "POST",
+    body: { entity, csv },
+  });
+}
